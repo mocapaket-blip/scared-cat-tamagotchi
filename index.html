@@ -479,7 +479,7 @@ function LocationScreen({ screen, onBack, onAction, actionDone, catX, catFacing,
         <button onClick={onBack} style={{ background:'rgba(20,8,0,0.6)', border:'1.5px solid rgba(255,255,255,0.15)', borderRadius:12, width:38, height:38, cursor:'pointer', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', color:'white' }}>←</button>
         <span style={{ fontSize:18, fontWeight:900, color:'#f5dfc0', textShadow:'0 1px 6px rgba(0,0,0,0.6)' }}>{locationName}</span>
       </div>
-      <div style={{ position:'absolute', bottom:PANEL_H+22, left:catX, width:148, filter:'drop-shadow(0 10px 22px rgba(0,0,0,0.55))', transform:`scaleX(${catFacing})`, transformOrigin:'center' }}>
+      <div style={{ position:'absolute', bottom:PANEL_H+22, left:catX, width:148, filter:'drop-shadow(0 0 10px rgba(255,255,255,0.4)) drop-shadow(0 8px 18px rgba(0,0,0,0.7))', transform:`scaleX(${catFacing})`, transformOrigin:'center' }}>
         <img src={CAT} alt="Кот" style={{ width:'100%', display:'block' }} draggable="false"/>
       </div>
       <div style={{ position:'absolute', bottom:PANEL_H+16, left:0, right:0, display:'flex', justifyContent:'center', zIndex:55, animation:'slideUp 0.4s ease' }}>
@@ -509,38 +509,35 @@ function ComplaintOverlay({ text, onClose }) {
   );
 }
 
-/* ══════ APP ══════ */
-function App() {
-  // Init from localStorage
-  const initData = useState(() => {
+/* ══════ INIT HELPER (runs once, outside React) ══════ */
+const _INIT = (() => {
+  try {
     const saved = G.load();
     const now = Date.now();
     if (saved && saved.stats) {
-      const minutesAway = (now - (saved.lastUpdate || now)) / 60000;
-      const stats = G.applyDecay(saved.stats, minutesAway);
-      return {
-        stats,
-        coins: saved.coins ?? 125,
-        createdAt: saved.createdAt || now,
-        complaint: G.buildComplaint(stats, minutesAway),
-      };
+      const minsAway = Math.max(0, (now - (saved.lastUpdate || now)) / 60000);
+      const stats = G.applyDecay(saved.stats, minsAway);
+      return { stats, coins: saved.coins != null ? saved.coins : 125,
+               createdAt: saved.createdAt || now, complaint: G.buildComplaint(stats, minsAway) };
     }
-    const stats = G.defaultStats();
-    G.save({ stats, coins:125, createdAt:now });
-    return { stats, coins:125, createdAt:now, complaint:null };
-  })[0];
+  } catch(e) { console.warn('State load error:', e); }
+  const stats = G.defaultStats();
+  return { stats, coins: 125, createdAt: Date.now(), complaint: null };
+})();
 
+/* ══════ APP ══════ */
+function App() {
   const [screen,     setScreen]     = useState('home');
-  const [stats,      setStats]      = useState(initData.stats);
-  const [coins,      setCoins]      = useState(initData.coins);
-  const [complaint,  setComplaint]  = useState(initData.complaint);
+  const [stats,      setStats]      = useState(_INIT.stats);
+  const [coins,      setCoins]      = useState(_INIT.coins);
+  const [complaint,  setComplaint]  = useState(_INIT.complaint);
   const [hearts,     setHearts]     = useState([]);
   const [activeNav,  setActiveNav]  = useState('home');
   const [catX,       setCatX]       = useState(111);
   const [catFacing,  setCatFacing]  = useState(1);
   const [showGif,    setShowGif]    = useState(false);
   const [actionDone, setActionDone] = useState(false);
-  const createdAt = useRef(initData.createdAt);
+  const createdAt = useRef(_INIT.createdAt);
   const walkRef   = useRef({ x:111, dir:1 });
   const gifTimer  = useRef(null);
   const heartId   = useRef(0);
@@ -591,7 +588,8 @@ function App() {
 
   // Thought bubble: show worst need
   const thoughtEmojis = { hunger:'🍗', toilet:'🚽', fatigue:'😴', mood:'💔', health:'🤒' };
-  const [worstKey] = Object.entries(fills).sort(([,a],[,b]) => a - b)[0];
+  const sortedFills = Object.entries(fills).sort((a, b) => a[1] - b[1]);
+  const worstKey = sortedFills.length > 0 ? sortedFills[0][0] : 'mood';
   const thoughtEmoji = fills[worstKey] > 65 ? '😊' : (thoughtEmojis[worstKey] || '😊');
 
   const spawnHearts = useCallback((n=3, baseX=115) => {
@@ -693,7 +691,7 @@ function App() {
       {/* Walking cat */}
       <div onClick={handleCatClick}
            style={{ position:'absolute', zIndex:15, bottom: PANEL_H + 24, left: catX, width:168, cursor:'pointer', transition: showGif ? 'left 0.25s ease-out' : 'none' }}>
-        <div style={{ transform:`scaleX(${catFacing})`, transformOrigin:'center', filter:'drop-shadow(0 14px 28px rgba(0,0,0,0.6))', animation: showGif ? 'none' : 'catWalkBob 0.55s ease-in-out infinite', position:'relative' }}>
+        <div style={{ transform:`scaleX(${catFacing})`, transformOrigin:'center', filter:'drop-shadow(0 0 12px rgba(255,255,255,0.4)) drop-shadow(0 14px 28px rgba(0,0,0,0.6))', animation: showGif ? 'none' : 'catWalkBob 0.55s ease-in-out infinite', position:'relative' }}>
           <img src={CAT} alt="Кот"
                style={{ width:'100%', display:'block', userSelect:'none', pointerEvents:'none', opacity: showGif ? 0 : 1, transition:'opacity 0.2s' }}
                draggable="false"/>
