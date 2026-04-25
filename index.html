@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Котик-Тамагочи</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+
+    <!-- Жалоба при возвращении -->
+    <div id="complaint-overlay" class="hidden">
+      <div class="complaint-box">
+        <div id="complaint-cat-img"></div>
+        <div id="complaint-title">Кот соскучился!</div>
+        <div id="complaint-text"></div>
+        <button id="complaint-close" class="btn-primary">Прости, котик! 🥺</button>
+      </div>
+    </div>
+
+    <!-- Шапка -->
+    <div class="header">
+      <div class="header-left">
+        <span id="cat-name-display">Котик</span>
+        <span id="cat-age-display" class="age-badge">0 дней</span>
+      </div>
+      <div id="cat-status-badge" class="status-badge status-happy">😊 Счастливый</div>
+    </div>
+
+    <!-- Кот -->
+    <div class="cat-section">
+      <div class="cat-bg">
+        <div id="cat-image-container"></div>
+      </div>
+      <div id="speech-bubble" class="speech-bubble hidden">
+        <span id="speech-text"></span>
+      </div>
+    </div>
+
+    <!-- Характеристики -->
+    <div class="stats-section">
+      <div class="stat-row">
+        <span class="stat-icon">🍖</span>
+        <span class="stat-label">Голод</span>
+        <div class="stat-track">
+          <div id="hunger-bar" class="stat-fill fill-hunger"></div>
+        </div>
+        <span id="hunger-num" class="stat-num">0%</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-icon">😴</span>
+        <span class="stat-label">Усталость</span>
+        <div class="stat-track">
+          <div id="tiredness-bar" class="stat-fill fill-tiredness"></div>
+        </div>
+        <span id="tiredness-num" class="stat-num">0%</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-icon">🚽</span>
+        <span class="stat-label">Туалет</span>
+        <div class="stat-track">
+          <div id="toilet-bar" class="stat-fill fill-toilet"></div>
+        </div>
+        <span id="toilet-num" class="stat-num">0%</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-icon">💝</span>
+        <span class="stat-label">Настроение</span>
+        <div class="stat-track">
+          <div id="mood-bar" class="stat-fill fill-mood"></div>
+        </div>
+        <span id="mood-num" class="stat-num">100%</span>
+      </div>
+    </div>
+
+    <!-- Кнопки действий -->
+    <div class="actions-section">
+      <div id="panel-main" class="action-panel">
+        <button class="action-btn btn-feed" onclick="Game.showPanel('feed')">
+          <span class="btn-icon">🍖</span>
+          <span class="btn-label">Покормить</span>
+        </button>
+        <button class="action-btn btn-sleep" id="sleep-btn" onclick="Game.toggleSleep()">
+          <span class="btn-icon">😴</span>
+          <span class="btn-label" id="sleep-label">Спать</span>
+        </button>
+        <button class="action-btn btn-toilet" onclick="Game.cleanToilet()">
+          <span class="btn-icon">🚽</span>
+          <span class="btn-label">Туалет</span>
+        </button>
+        <button class="action-btn btn-play" onclick="Game.showPanel('play')">
+          <span class="btn-icon">🎮</span>
+          <span class="btn-label">Играть</span>
+        </button>
+      </div>
+
+      <div id="panel-feed" class="action-panel hidden">
+        <div class="panel-title">Чем покормить?</div>
+        <button class="action-btn btn-feed" onclick="Game.feed('fish')">
+          <span class="btn-icon">🐟</span>
+          <span class="btn-label">Рыбка<br><small>−20 голода</small></span>
+        </button>
+        <button class="action-btn btn-feed" onclick="Game.feed('meal')">
+          <span class="btn-icon">🍖</span>
+          <span class="btn-label">Порция<br><small>−50 голода</small></span>
+        </button>
+        <button class="action-btn btn-play" onclick="Game.feed('treat')">
+          <span class="btn-icon">🍬</span>
+          <span class="btn-label">Лакомство<br><small>−10 / +10 настр.</small></span>
+        </button>
+        <button class="action-btn btn-back" onclick="Game.showPanel('main')">
+          <span class="btn-icon">←</span>
+          <span class="btn-label">Назад</span>
+        </button>
+      </div>
+
+      <div id="panel-play" class="action-panel hidden">
+        <div class="panel-title">Как поиграем?</div>
+        <button class="action-btn btn-play" onclick="Game.play('ball')">
+          <span class="btn-icon">⚽</span>
+          <span class="btn-label">Мячик<br><small>+20 настр.</small></span>
+        </button>
+        <button class="action-btn btn-play" onclick="Game.play('laser')">
+          <span class="btn-icon">🔴</span>
+          <span class="btn-label">Лазер<br><small>+25 настр.</small></span>
+        </button>
+        <button class="action-btn btn-feed" onclick="Game.play('cuddle')">
+          <span class="btn-icon">🤗</span>
+          <span class="btn-label">Обнимашки<br><small>+15 настр.</small></span>
+        </button>
+        <button class="action-btn btn-back" onclick="Game.showPanel('main')">
+          <span class="btn-icon">←</span>
+          <span class="btn-label">Назад</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="cats.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
