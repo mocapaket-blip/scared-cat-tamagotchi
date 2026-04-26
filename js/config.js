@@ -341,3 +341,70 @@ function buildComplaint(stats, minutes) {
   if (issues.length) msg += '\n\nПока тебя не было:\n• ' + issues.join('\n• ');
   return msg;
 }
+
+// ─── PHASE 3: RETURN BONUS ───
+function calcReturnBonus(minsAway) {
+  if (minsAway < 30) return { coins: 0, xp: 0 };
+  const t = Math.min(minsAway / 480, 1); // 0..1 over 8 h
+  return {
+    coins: Math.round(50 + t * 100),  // 50 → 150
+    xp:    Math.round(20 + t * 60),   // 20 → 80
+  };
+}
+
+// ─── PHASE 3: CAT EMOTION STATE MACHINE ───
+const CAT_STATES = {
+  veryScared: { anim:'catShakeStrong 0.18s linear infinite', filter:'saturate(0.45) brightness(0.72)', thought:'😱', particle:'💦', glow:'rgba(220,20,20,0.38)'   },
+  scared:     { anim:'catShake 0.26s linear infinite',       filter:'saturate(0.6)  brightness(0.82)', thought:'😨', particle:'💦', glow:'rgba(180,20,20,0.28)'   },
+  sick:       { anim:'none',                                 filter:'saturate(0.28) hue-rotate(80deg)',thought:'🤒', particle:'💊', glow:'rgba(30,200,30,0.28)'   },
+  hungry:     { anim:'catWalkBob 0.55s ease-in-out infinite',filter:'sepia(0.35)',                     thought:'🍔', particle:'🍔', glow:'rgba(255,120,20,0.28)'  },
+  tired:      { anim:'none',                                 filter:'brightness(0.8) saturate(0.65)', thought:'😴', particle:'💤', glow:'rgba(80,80,200,0.28)'   },
+  dirty:      { anim:'none',                                 filter:'saturate(0.48) brightness(0.86)',thought:'🚽', particle:'💨', glow:'rgba(110,85,20,0.28)'   },
+  sad:        { anim:'none',                                 filter:'saturate(0.42) brightness(0.88)',thought:'😿', particle:'💧', glow:'rgba(80,80,255,0.28)'   },
+  playful:    { anim:'catWalkBob 0.38s ease-in-out infinite',filter:'brightness(1.08)',                thought:'🎮', particle:'⭐', glow:'rgba(255,210,20,0.22)'  },
+  happy:      { anim:'catWalkBob 0.45s ease-in-out infinite',filter:'brightness(1.06) saturate(1.1)', thought:'😺', particle:'❤️', glow:'rgba(255,90,110,0.22)'  },
+  special:    { anim:'catFloat 2s ease-in-out infinite',     filter:'brightness(1.16) saturate(1.3)', thought:'✨', particle:'✨', glow:'rgba(255,195,20,0.38)'  },
+  neutral:    { anim:'catWalkBob 0.48s ease-in-out infinite',filter:'none',                           thought:'😐', particle:'❤️', glow:'none'                   },
+};
+
+function getCatState(stats, level) {
+  if (stats.health  <= 20)                                              return 'veryScared';
+  if (stats.hunger  >= 85 || stats.toilet >= 85 || stats.fatigue >= 85)return 'scared';
+  if (stats.health  <= 40)                                              return 'sick';
+  if (stats.hunger  >= 70)                                              return 'hungry';
+  if (stats.fatigue >= 70)                                              return 'tired';
+  if (stats.toilet  >= 70)                                              return 'dirty';
+  if (stats.mood    <= 25)                                              return 'sad';
+  if (level >= 10 && stats.mood >= 80 && stats.health >= 90)            return 'special';
+  if (stats.mood >= 80)                                                 return 'happy';
+  if (stats.mood >= 65)                                                 return 'playful';
+  return 'neutral';
+}
+
+// ─── PHASE 3: ROOM CUSTOMIZATION ───
+const ROOM_ITEMS = [
+  { id:'ri_candle',   emoji:'🕯️', name:'Свеча',        cost: 60 },
+  { id:'ri_web',      emoji:'🕸️', name:'Паутина',      cost: 50 },
+  { id:'ri_bat',      emoji:'🦇', name:'Летучая мышь', cost: 70 },
+  { id:'ri_skull',    emoji:'💀', name:'Череп',        cost: 80 },
+  { id:'ri_crystal',  emoji:'🔮', name:'Кристалл',     cost: 90 },
+  { id:'ri_mushroom', emoji:'🍄', name:'Гриб',         cost: 55 },
+  { id:'ri_spider',   emoji:'🕷️', name:'Паук',         cost: 65 },
+  { id:'ri_pumpkin',  emoji:'🎃', name:'Тыква',        cost: 75 },
+  { id:'ri_potion',   emoji:'🧪', name:'Зелье',        cost: 85 },
+  { id:'ri_scroll',   emoji:'📜', name:'Свиток',       cost: 60 },
+  { id:'ri_bones',    emoji:'🦴', name:'Кости',        cost: 45 },
+  { id:'ri_moon',     emoji:'🌙', name:'Луна',         cost:100 },
+];
+
+const BG_OVERLAYS = [
+  { id:'bg_default', name:'Обычная', color:'transparent',         emoji:'🏠', cost:  0 },
+  { id:'bg_night',   name:'Ночь',    color:'rgba(20,10,60,0.45)', emoji:'🌙', cost:120 },
+  { id:'bg_autumn',  name:'Осень',   color:'rgba(80,30,0,0.38)',  emoji:'🍂', cost:150 },
+  { id:'bg_horror',  name:'Ужас',    color:'rgba(80,0,0,0.38)',   emoji:'👻', cost:180 },
+  { id:'bg_forest',  name:'Лес',     color:'rgba(0,60,20,0.38)',  emoji:'🌲', cost:150 },
+];
+
+function defaultRoomLayout() {
+  return { bg: 'bg_default', items: [] };
+}

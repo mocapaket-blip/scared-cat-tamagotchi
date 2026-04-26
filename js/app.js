@@ -268,12 +268,14 @@ function MemoryGameScreen({ level, onComplete, onBack }) {
 /* ══════════════════════════════════════════════════
    SHOP SCREEN 🛒
    ══════════════════════════════════════════════════ */
-function ShopScreen({ coins, inventory, equipped, achievements, onBuy, onEquip, onBack }) {
+function ShopScreen({ coins, inventory, equipped, achievements, onBuy, onEquip, onBack,
+                      ownedDecor, ownedBgs, roomLayout, onBuyDecor, onBuyBg, onSetBg }) {
   const [tab, setTab] = useState('food');
   const tabs = [
     { id:'food',  label:'🍽️ Еда'      },
     { id:'toys',  label:'🎮 Игрушки'  },
     { id:'acc',   label:'🎀 Аксессуары'},
+    { id:'room',  label:'🏠 Комната'  },
   ];
 
   const itemsByTab = { food: FOOD_ITEMS, toys: TOY_ITEMS, acc: ACC_ITEMS };
@@ -305,8 +307,67 @@ function ShopScreen({ coins, inventory, equipped, achievements, onBuy, onEquip, 
 
       {/* Items */}
       <div style={{ overflowY:'auto', padding:'8px 16px 120px', height:'calc(100% - 130px)' }}>
-        {tab === 'acc' ? (
-          // Accessories grid
+
+        {/* ── ROOM TAB ── */}
+        {tab === 'room' && (
+          <div>
+            {/* Background section */}
+            <div style={{ fontSize:12, fontWeight:800, color:'rgba(60,24,8,0.5)', marginBottom:10, letterSpacing:0.5, textTransform:'uppercase' }}>Фон комнаты</div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, marginBottom:18 }}>
+              {BG_OVERLAYS.map(bg => {
+                const isOwned  = (ownedBgs || []).includes(bg.id);
+                const isActive = roomLayout && roomLayout.bg === bg.id;
+                const canAfford = coins >= bg.cost;
+                return (
+                  <div key={bg.id} style={{ background: isActive ? 'rgba(255,210,60,0.18)' : 'rgba(255,255,255,0.55)', border:`2px solid ${isActive ? 'rgba(255,210,60,0.7)' : 'rgba(255,255,255,0.85)'}`, borderRadius:16, padding:'10px 6px', display:'flex', flexDirection:'column', alignItems:'center', gap:5 }}>
+                    <div style={{ fontSize:32 }}>{bg.emoji}</div>
+                    <div style={{ fontSize:11, fontWeight:800, color:'#3a1808', textAlign:'center' }}>{bg.name}</div>
+                    {isOwned ? (
+                      <button onClick={() => onSetBg && onSetBg(bg.id)}
+                        style={{ marginTop:2, padding:'5px 10px', borderRadius:10, border:'none', cursor:'pointer', fontSize:11, fontWeight:800, fontFamily:"'Nunito',sans-serif", background: isActive ? 'linear-gradient(135deg,#80d060,#40a020)' : 'linear-gradient(135deg,#d0a060,#a07030)', color:'white', boxShadow: isActive ? '0 2px 0 #308010' : '0 2px 0 #705020' }}>
+                        {isActive ? '✅ Активен' : 'Выбрать'}
+                      </button>
+                    ) : (
+                      <button onClick={() => canAfford && onBuyBg && onBuyBg(bg)}
+                        style={{ marginTop:2, padding:'5px 10px', borderRadius:10, border:'none', cursor: canAfford ? 'pointer' : 'default', fontSize:11, fontWeight:800, fontFamily:"'Nunito',sans-serif", background: canAfford ? 'linear-gradient(135deg,#ffd060,#f0a020)' : '#ccc', color:'white', boxShadow: canAfford ? '0 2px 0 #c07808' : 'none', opacity: canAfford ? 1 : 0.65 }}>
+                        🪙 {bg.cost}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Decor section */}
+            <div style={{ fontSize:12, fontWeight:800, color:'rgba(60,24,8,0.5)', marginBottom:10, letterSpacing:0.5, textTransform:'uppercase' }}>Декор</div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8 }}>
+              {ROOM_ITEMS.map(item => {
+                const isOwned   = !!(ownedDecor || {})[item.id];
+                const isPlaced  = !!(roomLayout && roomLayout.items.some(i => i.id === item.id));
+                const canAfford = coins >= item.cost;
+                return (
+                  <div key={item.id} className="item-card" style={{ padding:'12px 8px' }}>
+                    <div style={{ fontSize:34 }}>{item.emoji}</div>
+                    <div style={{ fontSize:12, fontWeight:900, color:'#3a1808', textAlign:'center' }}>{item.name}</div>
+                    {isOwned ? (
+                      <div style={{ fontSize:11, fontWeight:700, color: isPlaced ? '#508030' : '#8a6040' }}>
+                        {isPlaced ? '✅ В комнате' : '📦 В запасе'}
+                      </div>
+                    ) : (
+                      <button onClick={() => canAfford && onBuyDecor && onBuyDecor(item)}
+                        style={{ marginTop:4, padding:'6px 12px', borderRadius:10, border:'none', cursor: canAfford ? 'pointer' : 'default', fontSize:12, fontWeight:800, fontFamily:"'Nunito',sans-serif", background: canAfford ? 'linear-gradient(135deg,#ffd060,#f0a020)' : '#ccc', color:'white', boxShadow: canAfford ? '0 2px 0 #c07808' : 'none', opacity: canAfford ? 1 : 0.65 }}>
+                        🪙 {item.cost}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── ACCESSORIES TAB ── */}
+        {tab === 'acc' && (
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
             {items.map(item => {
               const owned = !!achievements[item.id];
@@ -331,8 +392,10 @@ function ShopScreen({ coins, inventory, equipped, achievements, onBuy, onEquip, 
               );
             })}
           </div>
-        ) : (
-          // Food / Toys list
+        )}
+
+        {/* ── FOOD / TOYS TABS ── */}
+        {(tab === 'food' || tab === 'toys') && (
           <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
             {items.map(item => {
               const count = inventory[item.id] || 0;
@@ -345,7 +408,7 @@ function ShopScreen({ coins, inventory, equipped, achievements, onBuy, onEquip, 
                     <div style={{ fontSize:12, color:'#8a6040', marginTop:1 }}>{item.desc}</div>
                     <div style={{ display:'flex', gap:8, marginTop:4, flexWrap:'wrap' }}>
                       {item.hunger && <span style={{ fontSize:11, color:'#e05020', fontWeight:700 }}>🍔{item.hunger > 0 ? '+' : ''}{item.hunger}</span>}
-                      {item.mood > 0 && <span style={{ fontSize:11, color:'#e08020', fontWeight:700 }}>😺+{item.mood}</span>}
+                      {item.mood > 0 && tab === 'food' && <span style={{ fontSize:11, color:'#e08020', fontWeight:700 }}>😺+{item.mood}</span>}
                       {item.health > 0 && <span style={{ fontSize:11, color:'#20a040', fontWeight:700 }}>❤️+{item.health}</span>}
                       {item.mood && tab === 'toys' && <span style={{ fontSize:11, color:'#e08020', fontWeight:700 }}>😺+{item.mood}</span>}
                       <span style={{ fontSize:11, color:'#6080e0', fontWeight:700 }}>✨+{item.xp}XP</span>
@@ -363,6 +426,7 @@ function ShopScreen({ coins, inventory, equipped, achievements, onBuy, onEquip, 
             })}
           </div>
         )}
+
       </div>
     </div>
   );
@@ -527,11 +591,11 @@ function PawIndicator({ pawId, icon, label, fill, critical, onClick }) {
 /* ══════════════════════════════════════════════════
    FLOATING HEART
    ══════════════════════════════════════════════════ */
-function FloatingHeart({ id, x, y, onDone }) {
-  const emojis = ['❤️','💕','💖','💗'];
-  const e = emojis[id % emojis.length];
+function FloatingHeart({ id, x, y, onDone, emoji }) {
+  const defaults = ['❤️','💕','💖','💗'];
+  const e = emoji || defaults[id % defaults.length];
   return (
-    <div onAnimationEnd={onDone} style={{ position:'absolute', left:x, top:y||'38%', fontSize:20, animation:'heartPop 1.1s ease-out forwards', pointerEvents:'none', zIndex:30 }}>
+    <div onAnimationEnd={onDone} style={{ position:'absolute', left:x, top:y||'38%', fontSize:22, animation:'heartPop 1.1s ease-out forwards', pointerEvents:'none', zIndex:30 }}>
       {e}
     </div>
   );
@@ -825,7 +889,7 @@ function KitchenScreen({ inventory, coins, level, fills, isCrit, activeNav, setA
       <div style={{ position:'absolute', top:0, left:0, right:0, bottom:PANEL_H }}>
         <KitchenRoom/>
       </div>
-      {hearts.map(h => <FloatingHeart key={h.id} id={h.id} x={h.x} y={h.y} onDone={() => removeHeart(h.id)}/>)}
+      {hearts.map(h => <FloatingHeart key={h.id} id={h.id} x={h.x} y={h.y} onDone={() => removeHeart(h.id)} emoji={h.emoji}/>)}
       {/* Header */}
       <div style={{ position:'absolute', top:0, left:0, right:0, zIndex:60, display:'flex', alignItems:'center', gap:12, padding:'14px 16px 0' }}>
         <button onClick={onBack} style={{ background:'rgba(20,8,0,0.6)', border:'1.5px solid rgba(255,255,255,0.15)', borderRadius:12, width:38, height:38, cursor:'pointer', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', color:'white' }}>←</button>
@@ -881,7 +945,7 @@ function YardScreen({ inventory, fills, isCrit, activeNav, setActiveNav, onPawCl
       <div style={{ position:'absolute', top:0, left:0, right:0, bottom:PANEL_H }}>
         <YardRoom/>
       </div>
-      {hearts.map(h => <FloatingHeart key={h.id} id={h.id} x={h.x} y={h.y} onDone={() => removeHeart(h.id)}/>)}
+      {hearts.map(h => <FloatingHeart key={h.id} id={h.id} x={h.x} y={h.y} onDone={() => removeHeart(h.id)} emoji={h.emoji}/>)}
       <div style={{ position:'absolute', top:0, left:0, right:0, zIndex:60, display:'flex', alignItems:'center', gap:12, padding:'14px 16px 0' }}>
         <button onClick={onBack} style={{ background:'rgba(20,8,0,0.6)', border:'1.5px solid rgba(255,255,255,0.15)', borderRadius:12, width:38, height:38, cursor:'pointer', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', color:'white' }}>←</button>
         <span style={{ fontSize:18, fontWeight:900, color:'#f5dfc0', textShadow:'0 1px 6px rgba(0,0,0,0.6)' }}>🎮 Игровая</span>
@@ -930,7 +994,7 @@ function LocationScreen({ screen, onBack, onAction, actionDone, catX, catFacing,
       <div style={{ position:'absolute', top:0, left:0, right:0, bottom:PANEL_H }}>
         <RoomComp/>
       </div>
-      {hearts.map(h => <FloatingHeart key={h.id} id={h.id} x={h.x} y={h.y} onDone={() => removeHeart(h.id)}/>)}
+      {hearts.map(h => <FloatingHeart key={h.id} id={h.id} x={h.x} y={h.y} onDone={() => removeHeart(h.id)} emoji={h.emoji}/>)}
       <div style={{ position:'absolute', top:0, left:0, right:0, zIndex:60, display:'flex', alignItems:'center', gap:12, padding:'14px 16px 0' }}>
         <button onClick={onBack} style={{ background:'rgba(20,8,0,0.6)', border:'1.5px solid rgba(255,255,255,0.15)', borderRadius:12, width:38, height:38, cursor:'pointer', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', color:'white' }}>←</button>
         <span style={{ fontSize:18, fontWeight:900, color:'#f5dfc0', textShadow:'0 1px 6px rgba(0,0,0,0.6)' }}>{locationName}</span>
@@ -967,6 +1031,178 @@ function ComplaintOverlay({ text, onClose }) {
         <button onClick={onClose} style={{ background:'linear-gradient(155deg,#ffd060,#f0a020)', border:'none', borderRadius:18, padding:'14px 36px', fontSize:16, fontWeight:900, color:'white', cursor:'pointer', boxShadow:'0 5px 0 #c07808', width:'100%', fontFamily:"'Nunito',sans-serif" }}>
           Прости, котик! 😊
         </button>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════
+   PHASE 3 — RETURN HOME MODAL
+   ══════════════════════════════════════════════════ */
+function ReturnModal({ returnData, onClaim }) {
+  const { minsAway, statsBefore, statsAfter, bonus } = returnData;
+  const h = Math.floor(minsAway / 60);
+  const m = Math.floor(minsAway % 60);
+  const timeStr = h > 0 ? `${h} ч${m > 0 ? ' ' + m + ' мин' : ''}` : `${m} мин`;
+
+  const STAT_CFG = [
+    { key:'hunger',  icon:'🍔', label:'Голод',       neg:true  },
+    { key:'fatigue', icon:'😴', label:'Усталость',   neg:true  },
+    { key:'toilet',  icon:'🚽', label:'Туалет',      neg:true  },
+    { key:'mood',    icon:'🎮', label:'Настроение',  neg:false },
+    { key:'health',  icon:'🏥', label:'Здоровье',    neg:false },
+  ];
+
+  return (
+    <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.82)', zIndex:300, display:'flex', alignItems:'center', justifyContent:'center', padding:18, backdropFilter:'blur(8px)' }}>
+      <div style={{ background:'linear-gradient(160deg,#1c0a00,#301800)', border:'2px solid rgba(255,180,60,0.38)', borderRadius:28, padding:'24px 20px 26px', maxWidth:340, width:'100%', boxShadow:'0 14px 60px rgba(0,0,0,0.75)', animation:'returnModalIn 0.4s cubic-bezier(0.34,1.56,0.64,1)', textAlign:'center' }}>
+        {/* Scared cat */}
+        <div style={{ animation:'catShakeStrong 0.22s linear infinite', display:'inline-block', marginBottom:10 }}>
+          <img src={CAT} alt="кот" style={{ width:100 }} draggable="false"/>
+        </div>
+        <div style={{ fontSize:20, fontWeight:900, color:'#f5dfc0', marginBottom:4 }}>Кот тебя ждал! 😿</div>
+        <div style={{ fontSize:13, color:'#c8a060', marginBottom:16 }}>
+          Тебя не было <strong style={{ color:'#ffd060' }}>{timeStr}</strong>
+        </div>
+
+        {/* Stat delta grid */}
+        <div style={{ background:'rgba(0,0,0,0.32)', borderRadius:16, padding:'12px 14px', marginBottom:14, textAlign:'left' }}>
+          <div style={{ fontSize:10, color:'rgba(255,255,255,0.38)', fontWeight:800, marginBottom:8, textTransform:'uppercase', letterSpacing:0.6 }}>Пока тебя не было:</div>
+          {STAT_CFG.map(({ key, icon, label, neg }) => {
+            const delta = Math.round(statsAfter[key] - statsBefore[key]);
+            if (Math.abs(delta) < 2) return null;
+            const isBad = neg ? delta > 0 : delta < 0;
+            return (
+              <div key={key} style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+                <span style={{ fontSize:15, width:20 }}>{icon}</span>
+                <span style={{ fontSize:12, color:'rgba(255,255,255,0.65)', flex:1 }}>{label}</span>
+                <span style={{ fontSize:13, fontWeight:900, color: isBad ? '#ff7060' : '#70e060' }}>
+                  {delta > 0 ? '+' : ''}{delta}%
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Return bonus */}
+        {bonus.coins > 0 && (
+          <div style={{ background:'linear-gradient(135deg,rgba(255,210,60,0.14),rgba(255,130,20,0.14))', border:'1.5px solid rgba(255,210,60,0.38)', borderRadius:16, padding:'12px 16px', marginBottom:16, display:'flex', alignItems:'center', gap:14 }}>
+            <div style={{ fontSize:36 }}>🎁</div>
+            <div style={{ textAlign:'left' }}>
+              <div style={{ fontSize:11, color:'#ffd060', fontWeight:800, textTransform:'uppercase', letterSpacing:0.4 }}>Бонус за ожидание</div>
+              <div style={{ fontSize:17, fontWeight:900, color:'#f5dfc0' }}>+{bonus.coins} 🪙 &nbsp;+{bonus.xp} XP</div>
+            </div>
+          </div>
+        )}
+
+        <button onClick={onClaim} style={{ background:'linear-gradient(155deg,#ffd060,#f0a020)', border:'none', borderRadius:18, padding:'15px 36px', fontSize:17, fontWeight:900, color:'white', cursor:'pointer', boxShadow:'0 5px 0 #c07808', width:'100%', fontFamily:"'Nunito',sans-serif", animation:'actionPop 0.4s ease' }}>
+          Я дома! 🏠
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════
+   PHASE 3 — DRAGGABLE ROOM ITEM
+   ══════════════════════════════════════════════════ */
+function DraggableRoomItem({ item, x, y, editMode, onMove, onRemove }) {
+  const ref     = useRef(null);
+  const active  = useRef(false);
+  const origin  = useRef(null);
+
+  const onPointerDown = (e) => {
+    if (!editMode) return;
+    e.stopPropagation();
+    active.current = true;
+    ref.current.setPointerCapture(e.pointerId);
+    const rootEl  = document.getElementById('root');
+    const rootRect = rootEl ? rootEl.getBoundingClientRect() : { left:0, top:0 };
+    origin.current = {
+      ptrX: e.clientX - rootRect.left,
+      ptrY: e.clientY - rootRect.top,
+      startX: x,
+      startY: y,
+    };
+  };
+
+  const onPointerMove = (e) => {
+    if (!active.current || !origin.current) return;
+    const rootEl   = document.getElementById('root');
+    const rootRect = rootEl ? rootEl.getBoundingClientRect() : { left:0, top:0 };
+    const curX = e.clientX - rootRect.left;
+    const curY = e.clientY - rootRect.top;
+    onMove(
+      clamp(origin.current.startX + (curX - origin.current.ptrX), 4, 340),
+      clamp(origin.current.startY + (curY - origin.current.ptrY), 56, 455),
+    );
+  };
+
+  const onPointerUp = () => { active.current = false; };
+
+  return (
+    <div ref={ref}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      style={{
+        position:'absolute', left:x, top:y, zIndex:13,
+        fontSize:36, userSelect:'none', touchAction:'none',
+        cursor: editMode ? 'move' : 'default',
+        filter:'drop-shadow(0 3px 10px rgba(0,0,0,0.55))',
+        lineHeight:1,
+      }}
+    >
+      {item.emoji}
+      {editMode && (
+        <div onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          style={{ position:'absolute', top:-9, right:-9, background:'#ff3050', color:'white', borderRadius:99, width:20, height:20, fontSize:11, display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900, cursor:'pointer', zIndex:2, boxShadow:'0 2px 6px rgba(0,0,0,0.4)' }}>
+          ✕
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════
+   PHASE 3 — ROOM EDIT PANEL
+   ══════════════════════════════════════════════════ */
+function RoomEditPanel({ ownedDecor, roomLayout, onPlace, onDone }) {
+  const owned   = ROOM_ITEMS.filter(item => ownedDecor[item.id]);
+  const unplaced = owned.filter(item => !roomLayout.items.some(i => i.id === item.id));
+
+  return (
+    <div style={{ position:'absolute', bottom:0, left:0, right:0, zIndex:50, animation:'slideUp 0.28s ease' }}>
+      <div style={{ background:'rgba(10,4,0,0.92)', borderTop:'1.5px solid rgba(255,200,60,0.22)', borderRadius:'22px 22px 0 0', padding:'14px 14px 28px', backdropFilter:'blur(12px)' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+          <span style={{ fontSize:13, fontWeight:800, color:'rgba(255,255,255,0.5)', textTransform:'uppercase', letterSpacing:0.6 }}>
+            🎨 Декор комнаты
+          </span>
+          <button onClick={onDone}
+            style={{ background:'linear-gradient(135deg,#70d050,#40a020)', border:'none', borderRadius:12, padding:'7px 18px', fontSize:13, fontWeight:900, color:'white', cursor:'pointer', fontFamily:"'Nunito',sans-serif", boxShadow:'0 3px 0 #308010' }}>
+            Готово ✓
+          </button>
+        </div>
+        {owned.length === 0 ? (
+          <div style={{ fontSize:13, color:'rgba(255,255,255,0.35)', textAlign:'center', padding:'10px 0' }}>
+            Купи декор в магазине 🛒
+          </div>
+        ) : (
+          <div style={{ display:'flex', gap:10, overflowX:'auto', paddingBottom:4 }}>
+            {unplaced.map(item => (
+              <button key={item.id} onClick={() => onPlace(item.id)}
+                style={{ flexShrink:0, background:'rgba(255,255,255,0.08)', border:'1.5px solid rgba(255,255,255,0.18)', borderRadius:14, padding:'10px 12px', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:5, fontFamily:"'Nunito',sans-serif" }}>
+                <span style={{ fontSize:30 }}>{item.emoji}</span>
+                <span style={{ fontSize:10, color:'rgba(255,255,255,0.65)', fontWeight:700, whiteSpace:'nowrap' }}>{item.name}</span>
+              </button>
+            ))}
+            {unplaced.length === 0 && owned.length > 0 && (
+              <div style={{ fontSize:12, color:'rgba(255,255,255,0.35)', alignSelf:'center', padding:'0 8px' }}>
+                Все предметы размещены!
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1171,13 +1407,19 @@ function App() {
   const [highScores,    setHighScores]    = useState(_INIT.highScores);
   const [actionCounts,  setActionCounts]  = useState(_INIT.actionCounts);
   const [dailyMissions, setDailyMissions] = useState(_INIT.dailyMissions);
+  // Phase 3 state
+  const [roomLayout,  setRoomLayout]  = useState(_INIT.roomLayout  || defaultRoomLayout());
+  const [ownedDecor,  setOwnedDecor]  = useState(_INIT.ownedDecor  || {});
+  const [ownedBgs,    setOwnedBgs]    = useState(_INIT.ownedBgs    || ['bg_default']);
+  const [editMode,    setEditMode]    = useState(false);
+  const [returnData,  setReturnData]  = useState(_INIT.returnData  || null);
 
   // ── Derived ──
   const level  = levelFromXP(xp);
   const xpProg = xpProgress(xp);
 
   // ── UI state ──
-  const [complaint,      setComplaint]      = useState(_INIT.complaint);
+  const [complaint,      setComplaint]      = useState(null);
   const [showDailyModal, setShowDailyModal] = useState(_INIT.canClaimDaily);
   const [pendingStreak,  setPendingStreak]  = useState(_INIT.pendingStreak);
   const [levelUpModal,   setLevelUpModal]   = useState(null);
@@ -1214,8 +1456,9 @@ function App() {
       lastDaily, dailyStreak,
       inventory, equipped, achievements, highScores,
       actionCounts, dailyMissions,
+      roomLayout, ownedDecor, ownedBgs,
     });
-  }, [stats, coins, xp, lastDaily, dailyStreak, inventory, equipped, actionCounts, dailyMissions]);
+  }, [stats, coins, xp, lastDaily, dailyStreak, inventory, equipped, actionCounts, dailyMissions, roomLayout, ownedDecor, ownedBgs]);
 
   // ── Achievement checking (runs after actionCounts or level changes) ──
   useEffect(() => {
@@ -1281,8 +1524,11 @@ function App() {
 
   // ── Thought bubble: show worst need ──
   const sortedFills = Object.entries(fills).sort((a, b) => a[1] - b[1]);
-  const worstKey = sortedFills[0]?.[0] || 'mood';
-  const thoughtEmoji = fills[worstKey] > 65 ? '😺' : (THOUGHT_EMOJIS[worstKey] || '😿');
+  const worstKey    = sortedFills[0]?.[0] || 'mood';
+  // Phase 3: emotion state
+  const catEmoState = showGif ? 'neutral' : getCatState(stats, level);
+  const catEmoCfg   = CAT_STATES[catEmoState] || CAT_STATES.neutral;
+  const thoughtEmoji = fills[worstKey] > 65 ? catEmoCfg.thought : (THOUGHT_EMOJIS[worstKey] || '😿');
 
   // ── Helpers ──
   // ── afterAction: increment lifetime count + update daily missions ──
@@ -1298,11 +1544,12 @@ function App() {
     }));
   }, []);
 
-  const spawnHearts = useCallback((n = 3, baseX = 100) => {
+  const spawnHearts = useCallback((n = 3, baseX = 100, particleEmoji = null) => {
     const hs = Array.from({ length: n }, () => ({
-      id: ++heartId.current,
-      x:  baseX + Math.random() * 120,
-      y:  '38%',
+      id:    ++heartId.current,
+      x:     baseX + Math.random() * 120,
+      y:     '38%',
+      emoji: particleEmoji,
     }));
     setHearts(p => [...p, ...hs]);
   }, []);
@@ -1445,16 +1692,77 @@ function App() {
     playSound('tap');
     walkRef.current.x = 111; walkRef.current.dir = 1;
     setCatX(111); setCatFacing(1);
+    // Spawn emotion-specific particles
+    const cs  = getCatState(stats, level);
+    const pEmoji = CAT_STATES[cs]?.particle || '❤️';
+    spawnHearts(3, 80, pEmoji);
     if (showGif) return;
     setShowGif(true);
     clearTimeout(gifTimer.current);
     gifTimer.current = setTimeout(() => setShowGif(false), 3000);
-  }, [showGif]);
+  }, [showGif, stats, level, spawnHearts]);
 
   const handlePawClick = useCallback((dest) => {
     if (dest === 'home')  { setScreen('home'); setActionDone(false); setActiveNav('home'); return; }
     if (dest === 'shop')  { setScreen('shop'); setActiveNav('shop'); return; }
     setScreen(dest); setActionDone(false); setShowGif(false);
+  }, []);
+
+  // ── Phase 3: Return Home ──
+  const handleClaimReturn = useCallback(() => {
+    if (!returnData) return;
+    const { bonus } = returnData;
+    if (bonus.coins > 0) setCoins(c => c + bonus.coins);
+    if (bonus.xp    > 0) applyXP(bonus.xp);
+    playSound('coin');
+    showToast(`🏠 Добро пожаловать! +${bonus.coins}🪙 +${bonus.xp}XP`);
+    setReturnData(null);
+  }, [returnData, applyXP, showToast]);
+
+  // ── Phase 3: Room customization ──
+  const handleBuyDecor = useCallback((item) => {
+    if (coins < item.cost) { showToast('Недостаточно монет 😿'); return; }
+    setCoins(c => c - item.cost);
+    setOwnedDecor(prev => ({ ...prev, [item.id]: true }));
+    afterAction('buyCount');
+    playSound('buy');
+    showToast(`${item.emoji} ${item.name} куплено!`);
+  }, [coins, afterAction, showToast]);
+
+  const handleBuyBg = useCallback((bg) => {
+    if (coins < bg.cost) { showToast('Недостаточно монет 😿'); return; }
+    setCoins(c => c - bg.cost);
+    setOwnedBgs(prev => prev.includes(bg.id) ? prev : [...prev, bg.id]);
+    setRoomLayout(prev => ({ ...prev, bg: bg.id }));
+    afterAction('buyCount');
+    playSound('buy');
+    showToast(`${bg.emoji} ${bg.name} куплен!`);
+  }, [coins, afterAction, showToast]);
+
+  const handleSetBg = useCallback((bgId) => {
+    setRoomLayout(prev => ({ ...prev, bg: bgId }));
+    playSound('tap');
+    showToast('🏠 Фон изменён!');
+  }, [showToast]);
+
+  const handlePlaceDecor = useCallback((itemId) => {
+    const item = ROOM_ITEMS.find(i => i.id === itemId);
+    if (!item) return;
+    setRoomLayout(prev => {
+      if (prev.items.some(i => i.id === itemId)) return prev; // already placed
+      return { ...prev, items: [...prev.items, { id: itemId, x: 60 + Math.random() * 220, y: 80 + Math.random() * 180 }] };
+    });
+  }, []);
+
+  const handleMoveDecor = useCallback((itemId, x, y) => {
+    setRoomLayout(prev => ({
+      ...prev,
+      items: prev.items.map(i => i.id === itemId ? { ...i, x, y } : i),
+    }));
+  }, []);
+
+  const handleRemoveDecor = useCallback((itemId) => {
+    setRoomLayout(prev => ({ ...prev, items: prev.items.filter(i => i.id !== itemId) }));
   }, []);
 
   // ─────────────────────── RENDER ───────────────────────
@@ -1473,7 +1781,9 @@ function App() {
       <ShopScreen
         coins={coins} inventory={inventory} equipped={equipped} achievements={achievements}
         onBuy={handleShopBuy} onEquip={handleShopEquip}
-        onBack={() => { setScreen('home'); setActiveNav('home'); }}/>
+        onBack={() => { setScreen('home'); setActiveNav('home'); }}
+        ownedDecor={ownedDecor} ownedBgs={ownedBgs} roomLayout={roomLayout}
+        onBuyDecor={handleBuyDecor} onBuyBg={handleBuyBg} onSetBg={handleSetBg}/>
       {toast && <Toast key={toastKey} msg={toast}/>}
       {achToast && <AchievementToastBanner achievement={achToast} onDone={() => setAchToast(null)}/>}
     </div>
@@ -1564,15 +1874,46 @@ function App() {
 
   // ── HOME SCREEN ──
   const PANEL_H = 192;
+  // Emotion-state derived values (Phase 3)
+  const catAnimStyle  = showGif ? 'none' : catEmoCfg.anim;
+  const catFilterStr  = catEmoCfg.filter === 'none' ? 'drop-shadow(0 8px 22px rgba(0,0,0,0.65))' : `drop-shadow(0 8px 22px rgba(0,0,0,0.65)) ${catEmoCfg.filter}`;
+  const activeBgObj   = BG_OVERLAYS.find(b => b.id === roomLayout.bg);
+
   return (
     <div style={{ width:'100%', height:'100%', position:'relative', overflow:'hidden', background:'#3a2010', fontFamily:"'Nunito',sans-serif" }}>
+
       {/* Room background */}
       <div style={{ position:'absolute', top:0, left:0, right:0, bottom:PANEL_H-30, overflow:'hidden' }}>
         <HomeRoom/>
+        {/* BG colour overlay */}
+        {activeBgObj && activeBgObj.color !== 'transparent' && (
+          <div style={{ position:'absolute', inset:0, background:activeBgObj.color, pointerEvents:'none', zIndex:2 }}/>
+        )}
       </div>
 
-      {/* Floating hearts */}
-      {hearts.map(h => <FloatingHeart key={h.id} id={h.id} x={h.x} y={h.y} onDone={() => removeHeart(h.id)}/>)}
+      {/* Edit-mode dim overlay */}
+      {editMode && (
+        <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.32)', zIndex:11, pointerEvents:'none' }}/>
+      )}
+
+      {/* Placed room decor items */}
+      {roomLayout.items.map(placed => {
+        const itemDef = ROOM_ITEMS.find(r => r.id === placed.id);
+        if (!itemDef) return null;
+        return (
+          <DraggableRoomItem
+            key={placed.id}
+            item={itemDef}
+            x={placed.x} y={placed.y}
+            editMode={editMode}
+            onMove={(nx, ny) => handleMoveDecor(placed.id, nx, ny)}
+            onRemove={() => handleRemoveDecor(placed.id)}
+          />
+        );
+      })}
+
+      {/* Floating hearts / particles */}
+      {hearts.map(h => <FloatingHeart key={h.id} id={h.id} x={h.x} y={h.y} onDone={() => removeHeart(h.id)} emoji={h.emoji}/>)}
 
       {/* ── HEADER ── */}
       <div style={{ position:'relative', zIndex:20, padding:'12px 16px 0' }}>
@@ -1586,7 +1927,15 @@ function App() {
               <span style={{ fontSize:15 }}>🪙</span>
               <span style={{ fontSize:14, fontWeight:900, color:'#f5dfc0' }}>{coins}</span>
             </div>
-            <button onClick={() => { setScreen('shop'); setActiveNav('shop'); }} style={{ width:38, height:38, borderRadius:12, background:'rgba(20,8,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 2px 10px rgba(0,0,0,0.45)', cursor:'pointer', fontSize:18, border:'1.5px solid rgba(255,255,255,0.12)' }}>🛒</button>
+            {/* Edit mode button */}
+            <button onClick={() => setEditMode(e => !e)}
+              style={{ width:38, height:38, borderRadius:12, background: editMode ? 'rgba(255,200,60,0.25)' : 'rgba(20,8,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 2px 10px rgba(0,0,0,0.45)', cursor:'pointer', fontSize:18, border: editMode ? '1.5px solid rgba(255,200,60,0.6)' : '1.5px solid rgba(255,255,255,0.12)' }}>
+              🎨
+            </button>
+            <button onClick={() => { setScreen('shop'); setActiveNav('shop'); }}
+              style={{ width:38, height:38, borderRadius:12, background:'rgba(20,8,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 2px 10px rgba(0,0,0,0.45)', cursor:'pointer', fontSize:18, border:'1.5px solid rgba(255,255,255,0.12)' }}>
+              🛒
+            </button>
           </div>
         </div>
         {/* XP bar */}
@@ -1604,16 +1953,25 @@ function App() {
         <ThoughtBubble emoji={thoughtEmoji}/>
       </div>
 
-      {/* Walking / tapped cat */}
+      {/* Emotion glow ring behind cat */}
+      {catEmoCfg.glow !== 'none' && (
+        <div style={{ position:'absolute', zIndex:14, bottom: PANEL_H + 30, left: catX + 10, width:108, height:80, borderRadius:'50%', background:catEmoCfg.glow, filter:'blur(22px)', pointerEvents:'none', transition:'left 0.1s linear' }}/>
+      )}
+
+      {/* Walking / tapped cat — emotion animation + filter */}
       <div onClick={handleCatClick}
            style={{ position:'absolute', zIndex:15, bottom: PANEL_H + 24, left: catX, width:130, cursor:'pointer', transition: showGif ? 'left 0.25s ease-out' : 'none' }}>
-        <div style={{ transform:`scaleX(${catFacing})`, transformOrigin:'center', filter:'drop-shadow(0 8px 22px rgba(0,0,0,0.65))', animation: showGif ? 'none' : 'catWalkBob 0.48s ease-in-out infinite', position:'relative' }}>
-          <img src={CAT} alt="кот" style={{ width:'100%', display:'block', userSelect:'none', pointerEvents:'none', opacity: showGif ? 0 : 1, transition:'opacity 0.2s' }} draggable="false"/>
-          {showGif && (
-            <img src={GIF} alt="анимация"
-                 style={{ position:'absolute', inset:0, width:'100%', display:'block', userSelect:'none', pointerEvents:'none' }}
-                 draggable="false"/>
-          )}
+        {/* Outer div handles scaleX (facing direction) */}
+        <div style={{ transform:`scaleX(${catFacing})`, transformOrigin:'center' }}>
+          {/* Inner div handles emotion animation + filter */}
+          <div style={{ filter: catFilterStr, animation: catAnimStyle, position:'relative' }}>
+            <img src={CAT} alt="кот" style={{ width:'100%', display:'block', userSelect:'none', pointerEvents:'none', opacity: showGif ? 0 : 1, transition:'opacity 0.2s' }} draggable="false"/>
+            {showGif && (
+              <img src={GIF} alt="анимация"
+                   style={{ position:'absolute', inset:0, width:'100%', display:'block', userSelect:'none', pointerEvents:'none' }}
+                   draggable="false"/>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1624,9 +1982,21 @@ function App() {
         </div>
       )}
 
-      {/* Bottom panel */}
-      <BottomPanel fills={fills} isCrit={isCrit} onPawClick={handlePawClick} activeNav={activeNav} setActiveNav={setActiveNav}
-        canClaimDaily={showDailyModal || (dailyMissions.missions || []).some(m => m.completed && !m.claimed)}/>
+      {/* Bottom panel (hidden in edit mode, replaced by RoomEditPanel) */}
+      {!editMode && (
+        <BottomPanel fills={fills} isCrit={isCrit} onPawClick={handlePawClick} activeNav={activeNav} setActiveNav={setActiveNav}
+          canClaimDaily={showDailyModal || (dailyMissions.missions || []).some(m => m.completed && !m.claimed)}/>
+      )}
+
+      {/* Room edit panel */}
+      {editMode && (
+        <RoomEditPanel
+          ownedDecor={ownedDecor}
+          roomLayout={roomLayout}
+          onPlace={handlePlaceDecor}
+          onDone={() => setEditMode(false)}
+        />
+      )}
 
       {/* Toast */}
       {toast && <Toast key={toastKey} msg={toast}/>}
@@ -1635,9 +2005,9 @@ function App() {
       {achToast && <AchievementToastBanner achievement={achToast} onDone={() => setAchToast(null)}/>}
 
       {/* Modals */}
-      {showDailyModal && <DailyRewardModal streak={pendingStreak} onClaim={handleClaimDaily}/>}
-      {levelUpModal   && <LevelUpModal     level={levelUpModal}  onClose={() => setLevelUpModal(null)}/>}
-      {complaint      && <ComplaintOverlay text={complaint}       onClose={() => setComplaint(null)}/>}
+      {showDailyModal && !returnData && <DailyRewardModal streak={pendingStreak} onClaim={handleClaimDaily}/>}
+      {levelUpModal   && !returnData && <LevelUpModal     level={levelUpModal}  onClose={() => setLevelUpModal(null)}/>}
+      {returnData     && <ReturnModal returnData={returnData} onClaim={handleClaimReturn}/>}
     </div>
   );
 }

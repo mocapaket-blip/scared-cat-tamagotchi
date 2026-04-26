@@ -40,6 +40,9 @@ function defaultState() {
     highScores:   { catch: 0, memory: 0 },
     actionCounts: defaultActionCounts(),
     dailyMissions: getOrUpdateDailyMissions(null),
+    roomLayout:   defaultRoomLayout(),
+    ownedDecor:   {},
+    ownedBgs:     ['bg_default'],
   };
 }
 
@@ -89,12 +92,19 @@ const _INIT = (() => {
   try {
     const saved = loadState();
     if (saved && saved.stats) {
-      const now       = Date.now();
-      const minsAway  = Math.max(0, (now - (saved.lastUpdate || now)) / 60000);
-      const xp        = saved.xp || 0;
-      const lv        = levelFromXP(xp);
-      const stats     = applyDecay(saved.stats, minsAway, lv);
-      const daily     = checkDailyReward(saved.lastDaily, saved.dailyStreak || 0);
+      const now        = Date.now();
+      const rawMins    = Math.max(0, (now - (saved.lastUpdate || now)) / 60000);
+      const minsAway   = Math.min(rawMins, 480); // cap offline at 8 h
+      const xp         = saved.xp || 0;
+      const lv         = levelFromXP(xp);
+      const statsBefore = { ...saved.stats };
+      const stats      = applyDecay(saved.stats, minsAway, lv);
+      const daily      = checkDailyReward(saved.lastDaily, saved.dailyStreak || 0);
+      const bonus      = calcReturnBonus(rawMins);
+      // Show ReturnModal only if away ≥ 30 min
+      const returnData = rawMins >= 30
+        ? { minsAway: rawMins, statsBefore, statsAfter: stats, bonus }
+        : null;
       return {
         stats,
         coins:       saved.coins        ?? 125,
@@ -108,9 +118,13 @@ const _INIT = (() => {
         highScores:    saved.highScores    || { catch: 0, memory: 0 },
         actionCounts:  { ...defaultActionCounts(), ...(saved.actionCounts || {}) },
         dailyMissions: getOrUpdateDailyMissions(saved.dailyMissions || null),
-        complaint:     buildComplaint(stats, minsAway),
+        roomLayout:    saved.roomLayout  || defaultRoomLayout(),
+        ownedDecor:    saved.ownedDecor  || {},
+        ownedBgs:      saved.ownedBgs    || ['bg_default'],
+        complaint:     null,
         canClaimDaily: daily.canClaim,
         pendingStreak: daily.newStreak,
+        returnData,
       };
     }
   } catch (e) {
@@ -126,5 +140,6 @@ const _INIT = (() => {
     pendingStreak: 1,
     actionCounts:  defaultActionCounts(),
     dailyMissions: getOrUpdateDailyMissions(null),
+    returnData:    null,
   };
 })();
