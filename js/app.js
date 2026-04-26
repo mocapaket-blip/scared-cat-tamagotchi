@@ -1887,7 +1887,8 @@ function NFTSkinScreen({ walletAddress, ownedNFTs, activeNFT, onConnect, onDisco
    ROOT APP
    ══════════════════════════════════════════════════ */
 function App() {
-  // ── Core state ──
+  // ─────────────────── ALL useState HOOKS (must be first, no code between) ───────────────────
+  // Core state
   const [screen,      setScreen]      = useState('home');
   const [stats,       setStats]       = useState(_INIT.stats);
   const [coins,       setCoins]       = useState(_INIT.coins);
@@ -1900,18 +1901,12 @@ function App() {
   const [highScores,    setHighScores]    = useState(_INIT.highScores);
   const [actionCounts,  setActionCounts]  = useState(_INIT.actionCounts);
   const [dailyMissions, setDailyMissions] = useState(_INIT.dailyMissions);
-  // Phase 3 state
   const [roomLayout,  setRoomLayout]  = useState(_INIT.roomLayout  || defaultRoomLayout());
   const [ownedDecor,  setOwnedDecor]  = useState(_INIT.ownedDecor  || {});
   const [ownedBgs,    setOwnedBgs]    = useState(_INIT.ownedBgs    || ['bg_default']);
   const [editMode,    setEditMode]    = useState(false);
   const [returnData,  setReturnData]  = useState(_INIT.returnData  || null);
-
-  // ── Derived ──
-  const level   = levelFromXP(xp);
-  const xpProg  = xpProgress(xp);
-
-  // ── UI state ──
+  // UI state
   const [complaint,      setComplaint]      = useState(null);
   const [showDailyModal, setShowDailyModal] = useState(_INIT.canClaimDaily);
   const [pendingStreak,  setPendingStreak]  = useState(_INIT.pendingStreak);
@@ -1923,24 +1918,24 @@ function App() {
   const [showGif,        setShowGif]        = useState(false);
   const [actionDone,     setActionDone]     = useState(false);
   const [cooldowns,      setCooldowns]      = useState({});
-  // ── NFT Skin System ──
+  // NFT Skin System
   const [walletAddress,  setWalletAddress]  = useState(_INIT.walletAddress || null);
   const [ownedNFTs,      setOwnedNFTs]      = useState(_INIT.ownedNFTs     || []);
   const [activeNFT,      setActiveNFT]      = useState(_INIT.activeNFT     || null);
   const [nftLoading,     setNftLoading]     = useState(false);
   const [skinFlash,      setSkinFlash]      = useState(false);
-
-  // ── NFT bonus (must be after activeNFT state declaration) ──
-  const nftBonus = calcNFTBonus(activeNFT); // { decayMult, earnMult, tier, tierCfg }
-
-  // Apply active NFT skin image globally
-  CAT = activeNFT?.image || CAT_DEFAULT;
-  GIF = activeNFT?.image || GIF_DEFAULT;
-
+  // Toast/queue
   const [toast,          setToast]          = useState(null);
   const [toastKey,       setToastKey]       = useState(0);
   const [achToast,       setAchToast]       = useState(null);
   const [achQueue,       setAchQueue]       = useState([]);
+
+  // ─────────────────── DERIVED VALUES (after all hooks) ───────────────────
+  const level    = levelFromXP(xp);
+  const xpProg   = xpProgress(xp);
+  const nftBonus = calcNFTBonus(activeNFT);
+  CAT = activeNFT ? activeNFT.image : CAT_DEFAULT;
+  GIF = activeNFT ? activeNFT.image : GIF_DEFAULT;
 
   const createdAt  = useRef(_INIT.createdAt);
   const walkRef    = useRef({ x: 111, dir: 1 });
