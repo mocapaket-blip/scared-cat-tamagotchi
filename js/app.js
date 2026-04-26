@@ -39,9 +39,15 @@ async function fetchScaredCatNFTs(walletAddress) {
     const nfts = (data.nft_items || []).filter(n => {
       const colAddr = (n.collection?.address || '').toLowerCase();
       const colName = (n.collection?.name   || '').toLowerCase();
+      const nftName = (n.metadata?.name     || '').toLowerCase();
       const target  = SCARED_CAT_COLLECTION_ADDRESS.toLowerCase();
-      // Match by raw address OR by collection name containing "scared"
-      return colAddr === target || colName.includes('scared');
+      // 3 ways to match — covers all tonapi response formats:
+      // 1. raw address match   (0:13b9...)
+      // 2. collection name     ("Scared Cats")
+      // 3. individual NFT name ("Scared Cat #16356") — most reliable fallback
+      return colAddr === target
+          || colName.includes('scared')
+          || nftName.startsWith('scared cat');
     });
     return nfts.map(n => {
       const attrs = (n.metadata?.attributes || []).reduce((m, a) => {
