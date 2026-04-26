@@ -8,15 +8,21 @@ const SAVE_KEY = 'scared_cat_v3';
 
 // ─── STAT DECAY RATES (per real-world minute) ───
 // hunger/fatigue/toilet INCREASE toward 100 (bad)
-// mood DECREASES toward 0 (bad)
+// mood/health DECREASE toward 0 (bad)
+// Tuned to match My Talking Tom feel: 3–6 check-ins/day
+//   Голод     → critical in ~5.5 h  (fastest)
+//   Настроение→ critical in ~6.5 h  (very fast)
+//   Гигиена   → critical in ~11.5 h (medium)
+//   Сон       → critical in ~15 h   (slow)
+//   Здоровье  → very slow solo, fast under crisis (2+ crit)
 const RATES = {
-  hunger:  0.14,
-  fatigue: 0.09,
-  toilet:  0.07,
-  mood:   -0.05,
+  hunger:  0.22,   // 🍔 Голод — fastest
+  fatigue: 0.07,   // 😴 Сон   — slowest
+  toilet:  0.11,   // 🚽 Гигиена — medium
+  mood:   -0.16,   // 🎮 Настроение — very fast
 };
-const HEALTH_RATE_NORMAL = -0.015;
-const HEALTH_RATE_CRISIS  = -0.12; // 2+ stats critical
+const HEALTH_RATE_NORMAL = -0.02;   // ❤️ normal: ~57 h alone
+const HEALTH_RATE_CRISIS  = -0.18;  // ❤️ crisis (2+ bad): ~8.5 h
 
 // ─── UTILITY ───
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
@@ -140,11 +146,11 @@ const ACTION_XP = {
 // ─── ROOM CONFIG ───
 // Used to render paw nav labels and route paw-clicks
 const PAW_CONFIG = [
-  { id: 'kitchen',  icon: '🍔', label: 'Кухня'   },
-  { id: 'bathroom', icon: '🚽', label: 'Ванная'  },
-  { id: 'rest',     icon: '😴', label: 'Спальня' },
-  { id: 'yard',     icon: '🎮', label: 'Игровая' },
-  { id: 'clinic',   icon: '🏥', label: 'Клиника' },
+  { id: 'kitchen',  icon: '🍔', label: 'Голод'      },
+  { id: 'bathroom', icon: '🚽', label: 'Гигиена'    },
+  { id: 'rest',     icon: '😴', label: 'Сон'        },
+  { id: 'yard',     icon: '🎮', label: 'Настроение' },
+  { id: 'clinic',   icon: '🏥', label: 'Здоровье'   },
 ];
 
 // ─── THOUGHT BUBBLE EMOJIS ───
@@ -345,10 +351,10 @@ function buildComplaint(stats, minutes) {
 // ─── PHASE 3: RETURN BONUS ───
 function calcReturnBonus(minsAway) {
   if (minsAway < 30) return { coins: 0, xp: 0 };
-  const t = Math.min(minsAway / 480, 1); // 0..1 over 8 h
+  const t = Math.min(minsAway / 720, 1); // 0..1 over 12 h
   return {
-    coins: Math.round(50 + t * 100),  // 50 → 150
-    xp:    Math.round(20 + t * 60),   // 20 → 80
+    coins: Math.round(50 + t * 130),  // 50 → 180
+    xp:    Math.round(20 + t * 80),   // 20 → 100
   };
 }
 
@@ -368,16 +374,29 @@ const CAT_STATES = {
 };
 
 function getCatState(stats, level) {
-  if (stats.health  <= 20)                                              return 'veryScared';
-  if (stats.hunger  >= 85 || stats.toilet >= 85 || stats.fatigue >= 85)return 'scared';
-  if (stats.health  <= 40)                                              return 'sick';
-  if (stats.hunger  >= 70)                                              return 'hungry';
-  if (stats.fatigue >= 70)                                              return 'tired';
-  if (stats.toilet  >= 70)                                              return 'dirty';
-  if (stats.mood    <= 25)                                              return 'sad';
-  if (level >= 10 && stats.mood >= 80 && stats.health >= 90)            return 'special';
-  if (stats.mood >= 80)                                                 return 'happy';
-  if (stats.mood >= 65)                                                 return 'playful';
+  // Count how many stats are in a bad zone (not yet critical but concerning)
+  const badCount = [
+    stats.hunger  >= 65,
+    stats.toilet  >= 65,
+    stats.fatigue >= 65,
+    stats.mood    <= 35,
+    stats.health  <= 35,
+  ].filter(Boolean).length;
+
+  // Desperate: health near zero OR 4+ stats bad simultaneously
+  if (stats.health <= 18 || badCount >= 4)                              return 'veryScared';
+  // Scared: 2+ stats bad, OR any single one deeply critical
+  if (badCount >= 2 || stats.hunger >= 80 || stats.toilet >= 80 || stats.fatigue >= 80) return 'scared';
+  // Individual negatives (lower thresholds for faster reactions)
+  if (stats.health  <= 38)  return 'sick';
+  if (stats.hunger  >= 58)  return 'hungry';
+  if (stats.mood    <= 30)  return 'sad';
+  if (stats.fatigue >= 62)  return 'tired';
+  if (stats.toilet  >= 62)  return 'dirty';
+  // Positives
+  if (level >= 10 && stats.mood >= 80 && stats.health >= 85)            return 'special';
+  if (stats.mood >= 78 && stats.health >= 65)                           return 'happy';
+  if (stats.mood >= 62)                                                 return 'playful';
   return 'neutral';
 }
 

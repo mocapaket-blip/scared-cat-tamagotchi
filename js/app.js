@@ -622,10 +622,10 @@ function BottomPanel({ fills, isCrit, onPawClick, activeNav, setActiveNav, canCl
   return (
     <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'linear-gradient(180deg,#f8f0e2,#f2e8d4)', borderRadius:'26px 26px 0 0', boxShadow:'0 -6px 32px rgba(0,0,0,0.4)', padding:'12px 12px 0', zIndex:20, height:192, display:'flex', flexDirection:'column' }}>
       <div style={{ background:'rgba(255,255,255,0.5)', borderRadius:18, padding:'8px 4px', display:'flex', justifyContent:'space-around', alignItems:'flex-end', border:'1.5px solid rgba(255,255,255,0.85)', flex:1, marginBottom:10 }}>
-        <PawIndicator pawId="ph"  icon="🍔" label="Кухня"   fill={fills.hunger}  critical={isCrit(fills.hunger)}  onClick={() => onPawClick('kitchen')}/>
-        <PawIndicator pawId="pt"  icon="🚽" label="Ванная"  fill={fills.toilet}  critical={isCrit(fills.toilet)}  onClick={() => onPawClick('bathroom')}/>
-        <PawIndicator pawId="pf"  icon="😴" label="Спальня" fill={fills.fatigue} critical={isCrit(fills.fatigue)} onClick={() => onPawClick('rest')}/>
-        <PawIndicator pawId="pm"  icon="🎮" label="Игровая" fill={fills.mood}    critical={isCrit(fills.mood)}    onClick={() => onPawClick('yard')}/>
+        <PawIndicator pawId="ph"  icon="🍔" label="Голод"      fill={fills.hunger}  critical={isCrit(fills.hunger)}  onClick={() => onPawClick('kitchen')}/>
+        <PawIndicator pawId="pt"  icon="🚽" label="Гигиена"   fill={fills.toilet}  critical={isCrit(fills.toilet)}  onClick={() => onPawClick('bathroom')}/>
+        <PawIndicator pawId="pf"  icon="😴" label="Сон"       fill={fills.fatigue} critical={isCrit(fills.fatigue)} onClick={() => onPawClick('rest')}/>
+        <PawIndicator pawId="pm"  icon="🎮" label="Настроение" fill={fills.mood}    critical={isCrit(fills.mood)}    onClick={() => onPawClick('yard')}/>
         <PawIndicator pawId="phh" icon="🏥" label="Клиника" fill={fills.health}  critical={isCrit(fills.health)}  onClick={() => onPawClick('clinic')}/>
       </div>
       <div style={{ display:'flex', borderTop:'1.5px solid rgba(0,0,0,0.07)', background:'rgba(255,255,255,0.65)', marginLeft:-12, marginRight:-12, paddingBottom:10, flexShrink:0 }}>
@@ -893,7 +893,7 @@ function KitchenScreen({ inventory, coins, level, fills, isCrit, activeNav, setA
       {/* Header */}
       <div style={{ position:'absolute', top:0, left:0, right:0, zIndex:60, display:'flex', alignItems:'center', gap:12, padding:'14px 16px 0' }}>
         <button onClick={onBack} style={{ background:'rgba(20,8,0,0.6)', border:'1.5px solid rgba(255,255,255,0.15)', borderRadius:12, width:38, height:38, cursor:'pointer', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', color:'white' }}>←</button>
-        <span style={{ fontSize:18, fontWeight:900, color:'#f5dfc0', textShadow:'0 1px 6px rgba(0,0,0,0.6)' }}>🍽️ Кухня</span>
+        <span style={{ fontSize:18, fontWeight:900, color:'#f5dfc0', textShadow:'0 1px 6px rgba(0,0,0,0.6)' }}>🍔 Голод</span>
       </div>
       {/* Cat */}
       <div style={{ position:'absolute', bottom:PANEL_H+22, left:catX, width:115, filter:'drop-shadow(0 6px 16px rgba(0,0,0,0.7))', transform:`scaleX(${catFacing})`, transformOrigin:'center', pointerEvents:'none' }}>
@@ -948,7 +948,7 @@ function YardScreen({ inventory, fills, isCrit, activeNav, setActiveNav, onPawCl
       {hearts.map(h => <FloatingHeart key={h.id} id={h.id} x={h.x} y={h.y} onDone={() => removeHeart(h.id)} emoji={h.emoji}/>)}
       <div style={{ position:'absolute', top:0, left:0, right:0, zIndex:60, display:'flex', alignItems:'center', gap:12, padding:'14px 16px 0' }}>
         <button onClick={onBack} style={{ background:'rgba(20,8,0,0.6)', border:'1.5px solid rgba(255,255,255,0.15)', borderRadius:12, width:38, height:38, cursor:'pointer', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', color:'white' }}>←</button>
-        <span style={{ fontSize:18, fontWeight:900, color:'#f5dfc0', textShadow:'0 1px 6px rgba(0,0,0,0.6)' }}>🎮 Игровая</span>
+        <span style={{ fontSize:18, fontWeight:900, color:'#f5dfc0', textShadow:'0 1px 6px rgba(0,0,0,0.6)' }}>🎮 Настроение</span>
       </div>
       <div style={{ position:'absolute', bottom:PANEL_H+22, left:catX, width:115, filter:'drop-shadow(0 6px 16px rgba(0,0,0,0.7))', transform:`scaleX(${catFacing})`, transformOrigin:'center', pointerEvents:'none' }}>
         <img src={CAT} alt="кот" style={{ width:'100%', display:'block' }} draggable="false"/>
@@ -1045,22 +1045,39 @@ function ReturnModal({ returnData, onClaim }) {
   const m = Math.floor(minsAway % 60);
   const timeStr = h > 0 ? `${h} ч${m > 0 ? ' ' + m + ' мин' : ''}` : `${m} мин`;
 
+  // Derive severity label for the title
+  const rawMinsTotal = minsAway;
+  const titleText = rawMinsTotal >= 360
+    ? 'Кот очень соскучился! 😢'
+    : rawMinsTotal >= 120
+    ? 'Пока тебя не было... 😿'
+    : 'Кот тебя ждал! 🐱';
+
   const STAT_CFG = [
-    { key:'hunger',  icon:'🍔', label:'Голод',       neg:true  },
-    { key:'fatigue', icon:'😴', label:'Усталость',   neg:true  },
-    { key:'toilet',  icon:'🚽', label:'Туалет',      neg:true  },
-    { key:'mood',    icon:'🎮', label:'Настроение',  neg:false },
-    { key:'health',  icon:'🏥', label:'Здоровье',    neg:false },
+    { key:'hunger',  icon:'🍔', label:'Голод',        neg:true  },
+    { key:'fatigue', icon:'😴', label:'Сон',          neg:true  },
+    { key:'toilet',  icon:'🚽', label:'Гигиена',      neg:true  },
+    { key:'mood',    icon:'🎮', label:'Настроение',   neg:false },
+    { key:'health',  icon:'🏥', label:'Здоровье',     neg:false },
   ];
 
   return (
     <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.82)', zIndex:300, display:'flex', alignItems:'center', justifyContent:'center', padding:18, backdropFilter:'blur(8px)' }}>
       <div style={{ background:'linear-gradient(160deg,#1c0a00,#301800)', border:'2px solid rgba(255,180,60,0.38)', borderRadius:28, padding:'24px 20px 26px', maxWidth:340, width:'100%', boxShadow:'0 14px 60px rgba(0,0,0,0.75)', animation:'returnModalIn 0.4s cubic-bezier(0.34,1.56,0.64,1)', textAlign:'center' }}>
-        {/* Scared cat */}
-        <div style={{ animation:'catShakeStrong 0.22s linear infinite', display:'inline-block', marginBottom:10 }}>
-          <img src={CAT} alt="кот" style={{ width:100 }} draggable="false"/>
+
+        {/* Sad cat — gentle float, desaturated, NOT shaking */}
+        <div style={{ position:'relative', display:'inline-block', marginBottom:6 }}>
+          <div style={{ animation:'floatY 2.8s ease-in-out infinite', display:'inline-block' }}>
+            <img src={CAT} alt="кот"
+              style={{ width:110, filter:'saturate(0.35) brightness(0.78)', display:'block' }}
+              draggable="false"/>
+          </div>
+          {/* Tear drops */}
+          <div style={{ position:'absolute', bottom:8, left:'20%', fontSize:18, animation:'floatY 2s ease-in-out infinite 0.4s', pointerEvents:'none' }}>💧</div>
+          <div style={{ position:'absolute', bottom:4, right:'18%', fontSize:14, animation:'floatY 2.2s ease-in-out infinite 0.9s', pointerEvents:'none' }}>💧</div>
         </div>
-        <div style={{ fontSize:20, fontWeight:900, color:'#f5dfc0', marginBottom:4 }}>Кот тебя ждал! 😿</div>
+
+        <div style={{ fontSize:19, fontWeight:900, color:'#f5dfc0', marginBottom:4 }}>{titleText}</div>
         <div style={{ fontSize:13, color:'#c8a060', marginBottom:16 }}>
           Тебя не было <strong style={{ color:'#ffd060' }}>{timeStr}</strong>
         </div>
@@ -1072,12 +1089,18 @@ function ReturnModal({ returnData, onClaim }) {
             const delta = Math.round(statsAfter[key] - statsBefore[key]);
             if (Math.abs(delta) < 2) return null;
             const isBad = neg ? delta > 0 : delta < 0;
+            // Show as fill-bar change (invert sign for neg stats so "-60%" means "lost 60% of bar")
+            const fillDelta = neg ? -delta : delta;
             return (
-              <div key={key} style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
-                <span style={{ fontSize:15, width:20 }}>{icon}</span>
+              <div key={key} style={{ display:'flex', alignItems:'center', gap:8, marginBottom:7 }}>
+                <span style={{ fontSize:16, width:22 }}>{icon}</span>
                 <span style={{ fontSize:12, color:'rgba(255,255,255,0.65)', flex:1 }}>{label}</span>
-                <span style={{ fontSize:13, fontWeight:900, color: isBad ? '#ff7060' : '#70e060' }}>
-                  {delta > 0 ? '+' : ''}{delta}%
+                {/* Mini bar */}
+                <div style={{ width:52, height:6, background:'rgba(255,255,255,0.12)', borderRadius:99, overflow:'hidden', flexShrink:0 }}>
+                  <div style={{ height:'100%', width:`${Math.max(0, Math.min(100, 100 + fillDelta))}%`, background: isBad ? '#ff6050' : '#60d040', borderRadius:99, transition:'width 0.6s ease' }}/>
+                </div>
+                <span style={{ fontSize:12, fontWeight:900, color: isBad ? '#ff7060' : '#70e060', width:36, textAlign:'right' }}>
+                  {fillDelta > 0 ? '+' : ''}{fillDelta}%
                 </span>
               </div>
             );
@@ -1087,7 +1110,7 @@ function ReturnModal({ returnData, onClaim }) {
         {/* Return bonus */}
         {bonus.coins > 0 && (
           <div style={{ background:'linear-gradient(135deg,rgba(255,210,60,0.14),rgba(255,130,20,0.14))', border:'1.5px solid rgba(255,210,60,0.38)', borderRadius:16, padding:'12px 16px', marginBottom:16, display:'flex', alignItems:'center', gap:14 }}>
-            <div style={{ fontSize:36 }}>🎁</div>
+            <div style={{ fontSize:36, animation:'dailyBounce 1.4s ease-in-out infinite' }}>🎁</div>
             <div style={{ textAlign:'left' }}>
               <div style={{ fontSize:11, color:'#ffd060', fontWeight:800, textTransform:'uppercase', letterSpacing:0.4 }}>Бонус за ожидание</div>
               <div style={{ fontSize:17, fontWeight:900, color:'#f5dfc0' }}>+{bonus.coins} 🪙 &nbsp;+{bonus.xp} XP</div>
@@ -1095,7 +1118,7 @@ function ReturnModal({ returnData, onClaim }) {
           </div>
         )}
 
-        <button onClick={onClaim} style={{ background:'linear-gradient(155deg,#ffd060,#f0a020)', border:'none', borderRadius:18, padding:'15px 36px', fontSize:17, fontWeight:900, color:'white', cursor:'pointer', boxShadow:'0 5px 0 #c07808', width:'100%', fontFamily:"'Nunito',sans-serif", animation:'actionPop 0.4s ease' }}>
+        <button onClick={onClaim} style={{ background:'linear-gradient(155deg,#ffd060,#f0a020)', border:'none', borderRadius:18, padding:'15px 36px', fontSize:17, fontWeight:900, color:'white', cursor:'pointer', boxShadow:'0 5px 0 #c07808', width:'100%', fontFamily:"'Nunito',sans-serif" }}>
           Я дома! 🏠
         </button>
       </div>
@@ -1846,9 +1869,9 @@ function App() {
 
   // Generic room screens (bathroom, rest, clinic)
   const ROOM_CONFIGS = {
-    bathroom: { RoomComp: BathroomRoom, catX: 60,  catFacing: 1, name: '🚿 Ванная',   emoji:'🚿', label:'Убраться',  color:'blue',   changes:{ toilet:-24, mood:3 },  xp:5,  base:5,  roomKey:'bathroomCount' },
-    rest:     { RoomComp: RestRoom,     catX: 100, catFacing: 1, name: '🛏️ Спальня',  emoji:'😴', label:'Поспать',   color:'purple', changes:{ fatigue:-38, mood:5 }, xp:8,  base:8,  roomKey:'sleepCount'    },
-    clinic:   { RoomComp: ClinicRoom,   catX: 115, catFacing: 1, name: '🏥 Клиника',  emoji:'💉', label:'Лечиться',  color:'teal',   changes:{ health:30 },           xp:15, base:5,  roomKey:'clinicCount'   },
+    bathroom: { RoomComp: BathroomRoom, catX: 60,  catFacing: 1, name: '🚿 Гигиена',  emoji:'🚿', label:'Убраться',  color:'blue',   changes:{ toilet:-24, mood:3 },  xp:5,  base:5,  roomKey:'bathroomCount' },
+    rest:     { RoomComp: RestRoom,     catX: 100, catFacing: 1, name: '🛏️ Сон',      emoji:'😴', label:'Поспать',   color:'purple', changes:{ fatigue:-38, mood:5 }, xp:8,  base:8,  roomKey:'sleepCount'    },
+    clinic:   { RoomComp: ClinicRoom,   catX: 115, catFacing: 1, name: '🏥 Здоровье', emoji:'💉', label:'Лечиться',  color:'teal',   changes:{ health:30 },           xp:15, base:5,  roomKey:'clinicCount'   },
   };
   const roomCfg = ROOM_CONFIGS[screen];
   if (roomCfg) return (

@@ -94,7 +94,7 @@ const _INIT = (() => {
     if (saved && saved.stats) {
       const now        = Date.now();
       const rawMins    = Math.max(0, (now - (saved.lastUpdate || now)) / 60000);
-      const minsAway   = Math.min(rawMins, 480); // cap offline at 8 h
+      const minsAway   = Math.min(rawMins, 720); // cap offline at 12 h
       const xp         = saved.xp || 0;
       const lv         = levelFromXP(xp);
       const statsBefore = { ...saved.stats };
