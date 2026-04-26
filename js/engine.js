@@ -45,6 +45,10 @@ function defaultState() {
     roomLayout:   defaultRoomLayout(),
     ownedDecor:   {},
     ownedBgs:     ['bg_default'],
+    // NFT Skin System
+    walletAddress: null,
+    ownedNFTs:    [],
+    activeNFT:    null,
   };
 }
 
@@ -123,6 +127,9 @@ const _INIT = (() => {
         roomLayout:    saved.roomLayout  || defaultRoomLayout(),
         ownedDecor:    saved.ownedDecor  || {},
         ownedBgs:      saved.ownedBgs    || ['bg_default'],
+        walletAddress: saved.walletAddress || null,
+        ownedNFTs:     saved.ownedNFTs    || [],
+        activeNFT:     saved.activeNFT    || null,
         complaint:     null,
         canClaimDaily: daily.canClaim,
         pendingStreak: daily.newStreak,

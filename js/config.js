@@ -223,6 +223,128 @@ const MISSIONS_POOL = [
   { id:'m_shop',      icon:'🛒', desc:'Купи что-нибудь в магазине',  target:1, coins:35, actionKey:'buyCount'      },
 ];
 
+// ═══════════════════════════════════════════════════════════════
+// NFT SKIN SYSTEM — Scared Cat Collection on TON
+// ═══════════════════════════════════════════════════════════════
+
+// Replace with the real collection address from tonviewer.com
+const SCARED_CAT_COLLECTION_ADDRESS = 'EQBRu1MamaOBAAAAAAAAAAAAAAAAAAAAAAAAAAAA'; // ← TODO: set real address
+
+// ─── All 50 models with exact rarity ───
+const SCARED_CAT_MODELS = {
+  // Ultra Rare — 0.5%
+  'Misty Ash':    { rarity: 0.005, tier: 'ultra_rare' },
+  'Azuki Siam':   { rarity: 0.005, tier: 'ultra_rare' },
+  'Garfield':     { rarity: 0.005, tier: 'ultra_rare' },
+  'Bubblegum':    { rarity: 0.005, tier: 'ultra_rare' },
+  'Mentos':       { rarity: 0.005, tier: 'ultra_rare' },
+  'Fern':         { rarity: 0.005, tier: 'ultra_rare' },
+  // Very Rare — 1%
+  'Vampkitty':    { rarity: 0.010, tier: 'very_rare'  },
+  'Yolkster':     { rarity: 0.010, tier: 'very_rare'  },
+  'Cookie':       { rarity: 0.010, tier: 'very_rare'  },
+  'Chili Whisk':  { rarity: 0.010, tier: 'very_rare'  },
+  'Cake':         { rarity: 0.010, tier: 'very_rare'  },
+  'Caramel':      { rarity: 0.010, tier: 'very_rare'  },
+  'Vice Kitty':   { rarity: 0.010, tier: 'very_rare'  },
+  'Oreo':         { rarity: 0.010, tier: 'very_rare'  },
+  'Salem':        { rarity: 0.010, tier: 'very_rare'  },
+  'Purrrple':     { rarity: 0.010, tier: 'very_rare'  },
+  'Cat2O':        { rarity: 0.010, tier: 'very_rare'  },
+  'Jaddy':        { rarity: 0.010, tier: 'very_rare'  },
+  'Ranni':        { rarity: 0.010, tier: 'very_rare'  },
+  // Rare — 1.5%
+  'Goodbye Kitty':{ rarity: 0.015, tier: 'rare'       },
+  'Jeopard':      { rarity: 0.015, tier: 'rare'       },
+  'Blitzo':       { rarity: 0.015, tier: 'rare'       },
+  'Bipolar Cat':  { rarity: 0.015, tier: 'rare'       },
+  'Ruby':         { rarity: 0.015, tier: 'rare'       },
+  'Phantom':      { rarity: 0.015, tier: 'rare'       },
+  'Copperclaw':   { rarity: 0.015, tier: 'rare'       },
+  'El Tigre':     { rarity: 0.015, tier: 'rare'       },
+  'Gecko Cat':    { rarity: 0.015, tier: 'rare'       },
+  'Silver Napper':{ rarity: 0.015, tier: 'rare'       },
+  // Uncommon — 2%
+  'Obelisk':      { rarity: 0.020, tier: 'uncommon'   },
+  // Uncommon — 2.5%
+  'Meowdas':      { rarity: 0.025, tier: 'uncommon'   },
+  'Esmeralda':    { rarity: 0.025, tier: 'uncommon'   },
+  'Niko':         { rarity: 0.025, tier: 'uncommon'   },
+  'Nebula':       { rarity: 0.025, tier: 'uncommon'   },
+  // Common — 3%
+  'Pepe Paws':    { rarity: 0.030, tier: 'common'     },
+  'Endercat':     { rarity: 0.030, tier: 'common'     },
+  'Cathulhu':     { rarity: 0.030, tier: 'common'     },
+  'Celestia':     { rarity: 0.030, tier: 'common'     },
+  'Caustic':      { rarity: 0.030, tier: 'common'     },
+  'Weedcat':      { rarity: 0.030, tier: 'common'     },
+  // Common — 3.5%
+  'Purrlion':     { rarity: 0.035, tier: 'common'     },
+  'Creeper':      { rarity: 0.035, tier: 'common'     },
+  'Torracat':     { rarity: 0.035, tier: 'common'     },
+  'Nyan Cat':     { rarity: 0.035, tier: 'common'     },
+  'Instacat':     { rarity: 0.035, tier: 'common'     },
+  'Cat Nukem':    { rarity: 0.035, tier: 'common'     },
+  // Common — 4%
+  'Puss in Boots':{ rarity: 0.040, tier: 'common'     },
+  'Voodoo':       { rarity: 0.040, tier: 'common'     },
+  'Virus':        { rarity: 0.040, tier: 'common'     },
+  'Vapurr':       { rarity: 0.040, tier: 'common'     },
+};
+
+// ─── Tier bonuses ───
+// decayMult < 1 = slower stat decay (beneficial)
+// earnMult  > 1 = more coins/XP earned
+const NFT_TIER_BONUSES = {
+  ultra_rare: { decayMult: 0.80, earnMult: 1.40, label: '⭐⭐⭐⭐⭐ Ultra Rare', color: '#ff6090', glow: '#ff40a0' },
+  very_rare:  { decayMult: 0.84, earnMult: 1.30, label: '⭐⭐⭐⭐ Very Rare',   color: '#c060ff', glow: '#a020ff' },
+  rare:       { decayMult: 0.88, earnMult: 1.20, label: '⭐⭐⭐ Rare',          color: '#4090ff', glow: '#2060e0' },
+  uncommon:   { decayMult: 0.92, earnMult: 1.12, label: '⭐⭐ Uncommon',        color: '#40d080', glow: '#20b060' },
+  common:     { decayMult: 0.95, earnMult: 1.08, label: '⭐ Common',            color: '#c0c0c0', glow: '#909090' },
+};
+
+// ─── Trait bonuses (applied on top of tier bonus) ───
+// backdrop_rarity / symbol_rarity come from NFT metadata attributes
+const NFT_TRAIT_BONUSES = {
+  backdrop: {
+    very_rare: { decayMult: 0.88, earnMult: 1.15 }, // <1% backdrop
+    rare:      { decayMult: 0.92, earnMult: 1.00 }, // <2% backdrop
+  },
+  symbol: {
+    very_rare: { decayMult: 1.00, earnMult: 1.18 }, // <1% symbol
+    rare:      { decayMult: 1.00, earnMult: 1.12 }, // <2% symbol
+  },
+};
+
+// ─── Calculate combined NFT bonus ───
+// activeNFT = { name, image, traits: { backdrop, symbol, backdrop_rarity, symbol_rarity } }
+function calcNFTBonus(activeNFT) {
+  if (!activeNFT) return { decayMult: 1.0, earnMult: 1.0, tier: null, tierCfg: null };
+
+  const model   = SCARED_CAT_MODELS[activeNFT.name];
+  const tierKey = model ? model.tier : 'common';
+  const tierCfg = NFT_TIER_BONUSES[tierKey] || NFT_TIER_BONUSES.common;
+
+  let decayMult = tierCfg.decayMult;
+  let earnMult  = tierCfg.earnMult;
+
+  // Backdrop trait bonus
+  const bdr = parseFloat(activeNFT.traits?.backdrop_rarity || 1);
+  if (bdr < 0.01)      { decayMult *= NFT_TRAIT_BONUSES.backdrop.very_rare.decayMult; earnMult *= NFT_TRAIT_BONUSES.backdrop.very_rare.earnMult; }
+  else if (bdr < 0.02) { decayMult *= NFT_TRAIT_BONUSES.backdrop.rare.decayMult; }
+
+  // Symbol trait bonus
+  const sym = parseFloat(activeNFT.traits?.symbol_rarity || 1);
+  if (sym < 0.01)      { earnMult *= NFT_TRAIT_BONUSES.symbol.very_rare.earnMult; }
+  else if (sym < 0.02) { earnMult *= NFT_TRAIT_BONUSES.symbol.rare.earnMult; }
+
+  return {
+    decayMult: clamp(decayMult, 0.65, 1.00),
+    earnMult:  clamp(earnMult,  1.00, 1.65),
+    tier: tierKey, tierCfg,
+  };
+}
+
 // Seeded deterministic RNG (based on date) so missions are same per calendar day
 function seededRng(seed) {
   let s = seed;

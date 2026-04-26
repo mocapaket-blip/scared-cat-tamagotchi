@@ -4,8 +4,50 @@
    ═══════════════════════════════════════════════ */
 
 const { useState, useEffect, useRef, useCallback } = React;
-const CAT = window.CAT_PNG || 'cat.png';
-const GIF = window.CAT_GIF || 'cat-anim.gif';
+const CAT_DEFAULT = window.CAT_PNG || 'cat.png';
+const GIF_DEFAULT = window.CAT_GIF || 'cat-anim.gif';
+// These are overridden by the active NFT skin; use useCatSkin() hook below
+let CAT = CAT_DEFAULT;
+let GIF = GIF_DEFAULT;
+
+// ── TON Connect singleton ──
+let _tonConnectUI = null;
+function getTonConnect() {
+  if (_tonConnectUI) return _tonConnectUI;
+  try {
+    const TONCUI = window.TON_CONNECT_UI;
+    if (!TONCUI) return null;
+    _tonConnectUI = new TONCUI.TonConnectUI({
+      manifestUrl: 'https://mocapaket-blip.github.io/scared-cat-tamagotchi/tonconnect-manifest.json',
+    });
+  } catch (e) { console.warn('[TON] init error', e); }
+  return _tonConnectUI;
+}
+
+// ── Fetch user's Scared Cat NFTs via tonapi.io ──
+async function fetchScaredCatNFTs(walletAddress) {
+  try {
+    const url = `https://tonapi.io/v2/accounts/${encodeURIComponent(walletAddress)}/nfts?limit=200&indirect_ownership=false`;
+    const res  = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    const data = await res.json();
+    const nfts = (data.nft_items || []).filter(n => {
+      const col = n.collection?.address || '';
+      return col === SCARED_CAT_COLLECTION_ADDRESS || col.toLowerCase().includes('scared');
+    });
+    return nfts.map(n => {
+      const attrs = (n.metadata?.attributes || []).reduce((m, a) => {
+        m[a.trait_type?.toLowerCase() || a.trait_type] = a.value;
+        return m;
+      }, {});
+      return {
+        address:  n.address,
+        name:     n.metadata?.name || 'Scared Cat',
+        image:    (n.metadata?.image || '').replace('ipfs://', 'https://ipfs.io/ipfs/'),
+        traits:   attrs,
+      };
+    });
+  } catch (e) { console.warn('[TON] NFT fetch error', e); return []; }
+}
 
 // ── Backend URL (fill in after Railway deploy) ──
 const BACKEND_URL = window.SCARED_CAT_BACKEND || 'https://scared-cat-tamagotchi-production.up.railway.app';
@@ -1688,6 +1730,160 @@ function AchievementsScreen({ onBack, canClaimDaily, onShowDaily, achievements, 
 }
 
 /* ══════════════════════════════════════════════════
+   NFT SKIN SCREEN — wallet + gallery
+   ══════════════════════════════════════════════════ */
+function NFTSkinScreen({ walletAddress, ownedNFTs, activeNFT, onConnect, onDisconnect, onSelectNFT, onBack, loading }) {
+  const [tab, setTab] = useState(walletAddress ? 'gallery' : 'connect');
+
+  const tierCfg = activeNFT ? (NFT_TIER_BONUSES[SCARED_CAT_MODELS[activeNFT.name]?.tier] || NFT_TIER_BONUSES.common) : null;
+
+  return (
+    <div style={{ position:'absolute', inset:0, background:'linear-gradient(180deg,#0a0820,#140a30)', animation:'screenFade 0.3s ease', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      {/* Header */}
+      <div style={{ display:'flex', alignItems:'center', gap:12, padding:'16px 16px 0', flexShrink:0 }}>
+        <button onClick={onBack} style={{ background:'rgba(255,255,255,0.1)', border:'1.5px solid rgba(255,255,255,0.2)', borderRadius:12, width:38, height:38, cursor:'pointer', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', color:'white' }}>←</button>
+        <span style={{ fontSize:19, fontWeight:900, color:'white', flex:1 }}>🎨 NFT Скины</span>
+        {walletAddress && (
+          <button onClick={onDisconnect} style={{ background:'rgba(255,60,60,0.15)', border:'1.5px solid rgba(255,60,60,0.4)', borderRadius:12, padding:'6px 10px', cursor:'pointer', fontSize:11, fontWeight:800, color:'#ff8080', fontFamily:"'Nunito',sans-serif" }}>
+            Отключить
+          </button>
+        )}
+      </div>
+
+      {/* Wallet status strip */}
+      <div style={{ margin:'14px 16px 0', padding:'12px 16px', borderRadius:18,
+        background: walletAddress ? 'rgba(60,255,120,0.1)' : 'rgba(255,255,255,0.06)',
+        border: `1.5px solid ${walletAddress ? 'rgba(60,255,120,0.35)' : 'rgba(255,255,255,0.15)'}`,
+        display:'flex', alignItems:'center', gap:12 }}>
+        <div style={{ fontSize:28 }}>{walletAddress ? '👛' : '🔗'}</div>
+        <div style={{ flex:1 }}>
+          <div style={{ fontSize:13, fontWeight:900, color: walletAddress ? '#60ff90' : '#c0b0ff' }}>
+            {walletAddress ? 'Кошелёк подключён' : 'Кошелёк не подключён'}
+          </div>
+          <div style={{ fontSize:10, color:'rgba(255,255,255,0.45)', marginTop:2, fontFamily:'monospace', wordBreak:'break-all' }}>
+            {walletAddress ? `${walletAddress.slice(0,8)}...${walletAddress.slice(-6)}` : 'Подключи TON-кошелёк для выбора NFT скина'}
+          </div>
+        </div>
+      </div>
+
+      {/* Active skin badge */}
+      {activeNFT && tierCfg && (
+        <div style={{ margin:'10px 16px 0', padding:'10px 14px', borderRadius:16,
+          background:`linear-gradient(135deg,${tierCfg.glow}22,${tierCfg.color}18)`,
+          border:`1.5px solid ${tierCfg.color}55`,
+          display:'flex', alignItems:'center', gap:12 }}>
+          <img src={activeNFT.image} alt={activeNFT.name}
+            style={{ width:44, height:44, borderRadius:10, objectFit:'cover', border:`2px solid ${tierCfg.color}` }}
+            onError={e => { e.target.src = CAT_DEFAULT; }}/>
+          <div style={{ flex:1 }}>
+            <div style={{ fontSize:12, fontWeight:900, color:'white' }}>✅ Активный скин</div>
+            <div style={{ fontSize:14, fontWeight:900, color: tierCfg.color }}>{activeNFT.name}</div>
+            <div style={{ fontSize:10, color: tierCfg.color, opacity:0.85 }}>{tierCfg.label}</div>
+          </div>
+          <div style={{ fontSize:10, color:'rgba(255,255,255,0.6)', textAlign:'right', lineHeight:1.5 }}>
+            <div>−{Math.round((1-calcNFTBonus(activeNFT).decayMult)*100)}% распад</div>
+            <div>+{Math.round((calcNFTBonus(activeNFT).earnMult-1)*100)}% монеты</div>
+          </div>
+        </div>
+      )}
+
+      {/* Main content */}
+      <div style={{ flex:1, overflowY:'auto', padding:'12px 16px 24px' }}>
+        {!walletAddress ? (
+          /* ── Connect screen ── */
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:300, gap:20, textAlign:'center' }}>
+            <div style={{ fontSize:72 }}>🐱</div>
+            <div style={{ fontSize:16, fontWeight:900, color:'white' }}>Подключи TON кошелёк</div>
+            <div style={{ fontSize:13, color:'rgba(255,255,255,0.55)', lineHeight:1.7 }}>
+              Если у тебя есть NFT из коллекции<br/>
+              <span style={{ color:'#c080ff', fontWeight:800 }}>Scared Cat</span>, выбери его как скин!<br/>
+              Редкие коты дают пассивные бонусы 🔮
+            </div>
+            {/* Rarity table */}
+            <div style={{ background:'rgba(255,255,255,0.06)', borderRadius:16, padding:'14px 18px', width:'100%', textAlign:'left' }}>
+              {Object.entries(NFT_TIER_BONUSES).map(([k, t]) => (
+                <div key={k} style={{ display:'flex', alignItems:'center', gap:10, padding:'5px 0', borderBottom:'1px solid rgba(255,255,255,0.07)' }}>
+                  <div style={{ width:10, height:10, borderRadius:99, background:t.color, boxShadow:`0 0 6px ${t.glow}` }}/>
+                  <div style={{ fontSize:11, color:'white', fontWeight:800, flex:1 }}>{t.label}</div>
+                  <div style={{ fontSize:10, color:'rgba(255,255,255,0.5)' }}>−{Math.round((1-t.decayMult)*100)}% / +{Math.round((t.earnMult-1)*100)}%</div>
+                </div>
+              ))}
+            </div>
+            <button onClick={onConnect} disabled={loading}
+              style={{ background:'linear-gradient(135deg,#6040ff,#a060ff)', border:'none', borderRadius:22, padding:'16px 48px', fontSize:17, fontWeight:900, color:'white', cursor:loading?'default':'pointer', boxShadow:'0 6px 0 #3020a0', width:'100%', fontFamily:"'Nunito',sans-serif", opacity:loading?0.7:1 }}>
+              {loading ? '⏳ Подключаем...' : '👛 Подключить кошелёк'}
+            </button>
+          </div>
+        ) : loading ? (
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:250, gap:16 }}>
+            <div style={{ fontSize:48, animation:'dailyBounce 1s ease-in-out infinite' }}>🔍</div>
+            <div style={{ fontSize:14, fontWeight:800, color:'rgba(255,255,255,0.7)' }}>Ищем твоих котов...</div>
+          </div>
+        ) : ownedNFTs.length === 0 ? (
+          /* ── No NFTs ── */
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:250, gap:16, textAlign:'center' }}>
+            <div style={{ fontSize:56 }}>😿</div>
+            <div style={{ fontSize:15, fontWeight:900, color:'white' }}>NFT не найдены</div>
+            <div style={{ fontSize:12, color:'rgba(255,255,255,0.5)', lineHeight:1.7 }}>
+              В этом кошельке нет NFT из коллекции<br/>Scared Cat. Возможно, они в другом кошельке?
+            </div>
+            <button onClick={onDisconnect} style={{ background:'rgba(255,255,255,0.1)', border:'1.5px solid rgba(255,255,255,0.2)', borderRadius:16, padding:'12px 32px', fontSize:14, fontWeight:800, color:'white', cursor:'pointer', fontFamily:"'Nunito',sans-serif" }}>
+              Сменить кошелёк
+            </button>
+          </div>
+        ) : (
+          /* ── NFT Gallery ── */
+          <div>
+            <div style={{ fontSize:12, color:'rgba(255,255,255,0.45)', fontWeight:700, marginBottom:10 }}>
+              Найдено котов: {ownedNFTs.length} — выбери активный скин
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:10 }}>
+              {ownedNFTs.map(nft => {
+                const model  = SCARED_CAT_MODELS[nft.name];
+                const tKey   = model?.tier || 'common';
+                const tCfg   = NFT_TIER_BONUSES[tKey];
+                const isActive = activeNFT?.address === nft.address;
+                const bonus  = calcNFTBonus(nft);
+                return (
+                  <div key={nft.address}
+                    onPointerDown={() => onSelectNFT(isActive ? null : nft)}
+                    style={{ borderRadius:18, overflow:'hidden', cursor:'pointer',
+                      border:`2.5px solid ${isActive ? tCfg.color : 'rgba(255,255,255,0.12)'}`,
+                      background: isActive ? `${tCfg.color}18` : 'rgba(255,255,255,0.06)',
+                      boxShadow: isActive ? `0 0 18px ${tCfg.glow}60` : 'none',
+                      transition:'all 0.2s', userSelect:'none', touchAction:'none' }}>
+                    {/* NFT image */}
+                    <div style={{ position:'relative', aspectRatio:'1', overflow:'hidden', background:'#111' }}>
+                      <img src={nft.image} alt={nft.name}
+                        style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}
+                        onError={e => { e.target.src = CAT_DEFAULT; }}/>
+                      {isActive && (
+                        <div style={{ position:'absolute', top:6, right:6, background:tCfg.color, borderRadius:99, width:22, height:22, display:'flex', alignItems:'center', justifyContent:'center', fontSize:13 }}>✅</div>
+                      )}
+                      {/* Tier badge */}
+                      <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'linear-gradient(transparent,rgba(0,0,0,0.75))', padding:'18px 8px 6px' }}>
+                        <div style={{ fontSize:9, fontWeight:800, color:tCfg.color }}>{tCfg.label}</div>
+                      </div>
+                    </div>
+                    {/* Info */}
+                    <div style={{ padding:'8px 10px' }}>
+                      <div style={{ fontSize:12, fontWeight:900, color:'white', marginBottom:3 }}>{nft.name}</div>
+                      <div style={{ fontSize:10, color:'rgba(255,255,255,0.5)' }}>
+                        −{Math.round((1-bonus.decayMult)*100)}% распад · +{Math.round((bonus.earnMult-1)*100)}% монеты
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════
    ROOT APP
    ══════════════════════════════════════════════════ */
 function App() {
@@ -1712,8 +1908,13 @@ function App() {
   const [returnData,  setReturnData]  = useState(_INIT.returnData  || null);
 
   // ── Derived ──
-  const level  = levelFromXP(xp);
-  const xpProg = xpProgress(xp);
+  const level   = levelFromXP(xp);
+  const xpProg  = xpProgress(xp);
+  const nftBonus = calcNFTBonus(activeNFT); // { decayMult, earnMult, tier, tierCfg }
+
+  // Apply active NFT skin image globally
+  CAT = activeNFT?.image || CAT_DEFAULT;
+  GIF = activeNFT?.image || GIF_DEFAULT;
 
   // ── UI state ──
   const [complaint,      setComplaint]      = useState(null);
@@ -1727,6 +1928,13 @@ function App() {
   const [showGif,        setShowGif]        = useState(false);
   const [actionDone,     setActionDone]     = useState(false);
   const [cooldowns,      setCooldowns]      = useState({});
+  // ── NFT Skin System ──
+  const [walletAddress,  setWalletAddress]  = useState(_INIT.walletAddress || null);
+  const [ownedNFTs,      setOwnedNFTs]      = useState(_INIT.ownedNFTs     || []);
+  const [activeNFT,      setActiveNFT]      = useState(_INIT.activeNFT     || null);
+  const [nftLoading,     setNftLoading]     = useState(false);
+  const [skinFlash,      setSkinFlash]      = useState(false);
+
   const [toast,          setToast]          = useState(null);
   const [toastKey,       setToastKey]       = useState(0);
   const [achToast,       setAchToast]       = useState(null);
@@ -1737,7 +1945,9 @@ function App() {
   const gifTimer   = useRef(null);
   const heartId    = useRef(0);
   const toastTimer = useRef(null);
-  const wasCritRef = useRef({ hunger: false, fatigue: false, toilet: false, mood: false, health: false });
+  const wasCritRef  = useRef({ hunger: false, fatigue: false, toilet: false, mood: false, health: false });
+  const nftBonusRef = useRef(nftBonus);
+  nftBonusRef.current = nftBonus; // always fresh inside callbacks
 
   const day = Math.max(1, Math.floor((Date.now() - createdAt.current) / 86400000) + 1);
 
@@ -1756,8 +1966,9 @@ function App() {
       inventory, equipped, achievements, highScores,
       actionCounts, dailyMissions,
       roomLayout, ownedDecor, ownedBgs,
+      walletAddress, ownedNFTs, activeNFT,
     });
-  }, [stats, coins, xp, lastDaily, dailyStreak, inventory, equipped, actionCounts, dailyMissions, roomLayout, ownedDecor, ownedBgs]);
+  }, [stats, coins, xp, lastDaily, dailyStreak, inventory, equipped, actionCounts, dailyMissions, roomLayout, ownedDecor, ownedBgs, walletAddress, ownedNFTs, activeNFT]);
 
   // ── Achievement checking (runs after actionCounts or level changes) ──
   useEffect(() => {
@@ -1794,7 +2005,8 @@ function App() {
   useEffect(() => {
     const t = setInterval(() => {
       setStats(p => {
-        const next = applyDecay(p, 10 / 60, level);
+        // NFT bonus: multiply decay minutes by nftBonus.decayMult (<1 = slower decay)
+        const next = applyDecay(p, (10 / 60) * nftBonus.decayMult, level);
         // HapticFeedback when a stat first crosses into critical
         const wc = wasCritRef.current;
         const nowCrit = {
@@ -1952,6 +2164,50 @@ function App() {
     setTimeout(() => { setScreen('home'); setActionDone(false); }, 1800);
   }, [level, applyXP, afterAction, spawnHearts, showToast]);
 
+  // ── NFT Wallet handlers ──
+  const handleConnectWallet = useCallback(async () => {
+    const tc = getTonConnect();
+    if (!tc) { showToast('TON Connect недоступен 😿'); return; }
+    setNftLoading(true);
+    try {
+      await tc.openModal();
+      // Listen for connection
+      const unsub = tc.onStatusChange(async wallet => {
+        if (wallet) {
+          unsub();
+          const addr = wallet.account.address;
+          setWalletAddress(addr);
+          const nfts = await fetchScaredCatNFTs(addr);
+          setOwnedNFTs(nfts);
+          setNftLoading(false);
+          showToast(nfts.length > 0 ? `🎉 Найдено котов: ${nfts.length}` : '😿 NFT Scared Cat не найдены');
+        }
+      });
+    } catch (e) { setNftLoading(false); showToast('Ошибка подключения 😿'); }
+  }, [showToast]);
+
+  const handleDisconnectWallet = useCallback(async () => {
+    const tc = getTonConnect();
+    try { await tc?.disconnect(); } catch(_) {}
+    setWalletAddress(null);
+    setOwnedNFTs([]);
+    setActiveNFT(null);
+    showToast('Кошелёк отключён');
+  }, [showToast]);
+
+  const handleSelectNFT = useCallback((nft) => {
+    setActiveNFT(nft);
+    if (nft) {
+      setSkinFlash(true);
+      setTimeout(() => setSkinFlash(false), 800);
+      const tier = SCARED_CAT_MODELS[nft.name]?.tier || 'common';
+      const tCfg = NFT_TIER_BONUSES[tier];
+      showToast(`✨ Скин "${nft.name}" активирован! ${tCfg.label}`);
+    } else {
+      showToast('Скин сброшен — обычный кот');
+    }
+  }, [showToast]);
+
   // ── Tap-object handler for new interactive rooms ──
   const handleTapObject = useCallback(({ cdKey, cooldownMs, delta, xp, useItem, msg, actionKey, premiumFed, goToShop }) => {
     if (goToShop) { setScreen('shop'); setActiveNav('shop'); return; }
@@ -1964,9 +2220,9 @@ function App() {
     });
     // Inventory
     if (useItem) setInventory(prev => ({ ...prev, [useItem]: Math.max(0,(prev[useItem]||0)-1) }));
-    // XP + coins
+    // XP + coins (with NFT earn bonus)
     if (xp > 0) applyXP(xp);
-    const coinReward = earnCoins(Math.ceil((xp||0)/2), level);
+    const coinReward = Math.round(earnCoins(Math.ceil((xp||0)/2), level) * nftBonusRef.current.earnMult);
     if (coinReward > 0) setCoins(c => c + coinReward);
     // Action tracking
     if (actionKey) afterAction(actionKey);
@@ -1980,7 +2236,8 @@ function App() {
   }, [level, applyXP, afterAction, spawnHearts, showToast]);
 
   const handleMinigameComplete = useCallback((earnedCoins, xpGain, hungerReduce = 0, bonusItem = null) => {
-    setCoins(c => c + earnedCoins);
+    const finalCoins = Math.round(earnedCoins * nftBonusRef.current.earnMult);
+    setCoins(c => c + finalCoins);
     applyXP(xpGain);
     if (hungerReduce > 0) setStats(prev => ({ ...prev, hunger: clamp(prev.hunger - hungerReduce, 0, 100) }));
     if (bonusItem)        setInventory(prev => ({ ...prev, [bonusItem]: (prev[bonusItem] || 0) + 1 }));
@@ -2127,6 +2384,22 @@ function App() {
     <MemoryGameScreen level={level} onComplete={handleMinigameComplete} onBack={() => setScreen('yard')}/>
   );
 
+  // NFT Skins
+  if (screen === 'nft_skins') return (
+    <div style={{ width:'100%', height:'100%', position:'relative', overflow:'hidden' }}>
+      <NFTSkinScreen
+        walletAddress={walletAddress}
+        ownedNFTs={ownedNFTs}
+        activeNFT={activeNFT}
+        loading={nftLoading}
+        onConnect={handleConnectWallet}
+        onDisconnect={handleDisconnectWallet}
+        onSelectNFT={handleSelectNFT}
+        onBack={() => setScreen('home')}/>
+      {toast && <Toast key={toastKey} msg={toast}/>}
+    </div>
+  );
+
   // Shop
   if (screen === 'shop') return (
     <div style={{ width:'100%', height:'100%', position:'relative', overflow:'hidden' }}>
@@ -2234,6 +2507,17 @@ function App() {
               <span style={{ fontSize:15 }}>🪙</span>
               <span style={{ fontSize:14, fontWeight:900, color:'#f5dfc0' }}>{coins}</span>
             </div>
+            {/* NFT / Wallet button */}
+            <button onClick={() => { setScreen('nft_skins'); setActiveNav(''); }}
+              style={{ width:38, height:38, borderRadius:12, background: activeNFT ? `rgba(${activeNFT ? '80,40,160' : '20,8,0'},0.7)` : 'rgba(20,8,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow: activeNFT ? '0 2px 10px rgba(120,60,255,0.5)' : '0 2px 10px rgba(0,0,0,0.45)', cursor:'pointer', fontSize:18, border: walletAddress ? '1.5px solid rgba(120,80,255,0.6)' : '1.5px solid rgba(255,255,255,0.12)', position:'relative', overflow:'hidden' }}>
+              {activeNFT
+                ? <img src={activeNFT.image} alt="NFT" style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:10 }}/>
+                : <span>👛</span>
+              }
+              {walletAddress && !activeNFT && (
+                <div style={{ position:'absolute', bottom:2, right:2, width:8, height:8, borderRadius:'50%', background:'#60ff90', border:'1px solid rgba(0,0,0,0.5)' }}/>
+              )}
+            </button>
             {/* Edit mode button */}
             <button onClick={() => setEditMode(e => !e)}
               style={{ width:38, height:38, borderRadius:12, background: editMode ? 'rgba(255,200,60,0.25)' : 'rgba(20,8,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 2px 10px rgba(0,0,0,0.45)', cursor:'pointer', fontSize:18, border: editMode ? '1.5px solid rgba(255,200,60,0.6)' : '1.5px solid rgba(255,255,255,0.12)' }}>
@@ -2277,6 +2561,10 @@ function App() {
               <img src={GIF} alt="анимация"
                    style={{ position:'absolute', inset:0, width:'100%', display:'block', userSelect:'none', pointerEvents:'none' }}
                    draggable="false"/>
+            )}
+            {/* NFT skin-switch sparkle flash */}
+            {skinFlash && (
+              <div style={{ position:'absolute', inset:'-20%', borderRadius:'50%', background:'radial-gradient(circle, rgba(180,100,255,0.9) 0%, rgba(80,200,255,0.5) 50%, transparent 75%)', animation:'nftFlash 0.6s ease-out forwards', pointerEvents:'none', zIndex:10 }}/>
             )}
           </div>
         </div>

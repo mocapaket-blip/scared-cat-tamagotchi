@@ -192,6 +192,12 @@ html, body { justify-content: flex-start; }
   88%       { transform: translateX(-3px); }
 }
 
+@keyframes nftFlash {
+  0%   { opacity: 1; transform: scale(0.6); }
+  40%  { opacity: 0.85; transform: scale(1.2); }
+  100% { opacity: 0; transform: scale(1.6); }
+}
+
 /* ─── SHOP TABS ─── */
 
 .shop-tab-active {
