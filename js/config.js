@@ -228,7 +228,7 @@ const MISSIONS_POOL = [
 // ═══════════════════════════════════════════════════════════════
 
 // Replace with the real collection address from tonviewer.com
-const SCARED_CAT_COLLECTION_ADDRESS = 'EQBRu1MamaOBAAAAAAAAAAAAAAAAAAAAAAAAAAAA'; // ← TODO: set real address
+const SCARED_CAT_COLLECTION_ADDRESS = 'EQATuUGdvrjLvTWE5ppVFOVCqU2dlCLUnKTsu0n1JYm9la10';
 
 // ─── All 50 models with exact rarity ───
 const SCARED_CAT_MODELS = {

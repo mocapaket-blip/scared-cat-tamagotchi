@@ -37,8 +37,10 @@ async function fetchScaredCatNFTs(walletAddress) {
     const res  = await fetch(url, { headers: { 'Accept': 'application/json' } });
     const data = await res.json();
     const nfts = (data.nft_items || []).filter(n => {
-      const col = n.collection?.address || '';
-      return col === SCARED_CAT_COLLECTION_ADDRESS || col.toLowerCase().includes('scared');
+      const colAddr = (n.collection?.address || '').toLowerCase();
+      const colName = (n.collection?.name   || '').toLowerCase();
+      const target  = SCARED_CAT_COLLECTION_ADDRESS.toLowerCase();
+      return colAddr === target || colName.includes('scared cat');
     });
     return nfts.map(n => {
       const attrs = (n.metadata?.attributes || []).reduce((m, a) => {
