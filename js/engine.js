@@ -22,6 +22,8 @@ function defaultInventory() {
     toy_ball:     0,
     toy_feather:  0,
     toy_laser:    0,
+    med_basic:    0,
+    med_premium:  0,
   };
 }
 

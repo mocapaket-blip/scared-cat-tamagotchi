@@ -125,6 +125,12 @@ const TOY_ITEMS = [
   },
 ];
 
+// ─── SHOP: MEDICINES ───
+const MED_ITEMS = [
+  { id:'med_basic',   emoji:'💊', name:'Таблетки',  desc:'Восстанавливает здоровье',     cost:40,  health:22, xp:8  },
+  { id:'med_premium', emoji:'🧪', name:'Микстура',  desc:'Мощное исцеление + настроение', cost:80,  health:40, mood:5, xp:15 },
+];
+
 // ─── SHOP: ACCESSORIES (cosmetic) ───
 const ACC_ITEMS = [
   { id: 'acc_hat',     emoji: '🎩', name: 'Цилиндр',  desc: 'Стильная шляпа', cost: 100, slot: 'hat'  },

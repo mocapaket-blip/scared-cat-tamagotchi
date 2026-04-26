@@ -475,12 +475,13 @@ function ShopScreen({ coins, inventory, equipped, achievements, onBuy, onEquip, 
   const [tab, setTab] = useState('food');
   const tabs = [
     { id:'food',  label:'🍽️ Еда'      },
+    { id:'med',   label:'💊 Аптека'   },
     { id:'toys',  label:'🎮 Игрушки'  },
     { id:'acc',   label:'🎀 Аксессуары'},
     { id:'room',  label:'🏠 Комната'  },
   ];
 
-  const itemsByTab = { food: FOOD_ITEMS, toys: TOY_ITEMS, acc: ACC_ITEMS };
+  const itemsByTab = { food: FOOD_ITEMS, med: MED_ITEMS, toys: TOY_ITEMS, acc: ACC_ITEMS };
   const items = itemsByTab[tab] || [];
 
   return (
@@ -1055,171 +1056,237 @@ function ClinicRoom() {
 }
 
 /* ══════════════════════════════════════════════════
-   ACTION BUTTON (reusable)
+   INTERACTIVE HOTSPOT — pulsing tap target
    ══════════════════════════════════════════════════ */
-function ActionBtn({ emoji, label, color, onClick, done, disabled }) {
-  const grads = {
-    orange:'linear-gradient(155deg,#ffd060,#f0a020)',
-    blue:  'linear-gradient(155deg,#80d0f8,#40a8e0)',
-    purple:'linear-gradient(155deg,#d0a8f8,#a070e0)',
-    green: 'linear-gradient(155deg,#80e890,#40c050)',
-    teal:  'linear-gradient(155deg,#70e8d8,#30c0a8)',
-    red:   'linear-gradient(155deg,#f09080,#e05040)',
-  };
-  const shadows = {
-    orange:'0 6px 0 #c07808', blue:'0 6px 0 #2878b0', purple:'0 6px 0 #7040b0',
-    green:'0 6px 0 #208030',  teal:'0 6px 0 #108878',   red:'0 6px 0 #a03020',
-  };
-  const [pressed, setPressed] = useState(false);
-  const isDisabled = done || disabled;
+function Hotspot({ emoji, label, posX, posY, initCdMs, onTap }) {
+  const [cdMs, setCdMs] = useState(initCdMs || 0);
+  useEffect(() => { setCdMs(initCdMs || 0); }, [initCdMs]);
+  useEffect(() => {
+    if (cdMs <= 0) return;
+    const t = setInterval(() => setCdMs(c => Math.max(0, c - 1000)), 1000);
+    return () => clearInterval(t);
+  }, [cdMs > 0]);
+  const cd = cdMs > 0;
+  const cdLabel = cdMs > 90000 ? `${Math.ceil(cdMs/60000)}м` : `${Math.ceil(cdMs/1000)}с`;
   return (
-    <button disabled={isDisabled}
-      onPointerDown={() => setPressed(true)}
-      onPointerUp={() => { setPressed(false); if (!isDisabled) onClick?.(); }}
-      onPointerLeave={() => setPressed(false)}
-      style={{ background: isDisabled ? '#c8c0b8' : grads[color] || grads.orange, border:'none', borderRadius:22, padding:'14px 32px', cursor: isDisabled ? 'default' : 'pointer', display:'flex', alignItems:'center', gap:10, boxShadow: (pressed || isDisabled) ? 'none' : (shadows[color] || shadows.orange), transform: pressed ? 'translateY(5px)' : 'translateY(0)', transition:'all 0.12s', fontFamily:"'Nunito',sans-serif" }}>
-      <span style={{ fontSize:28 }}>{done ? '✅' : emoji}</span>
-      <span style={{ fontSize:15, fontWeight:900, color:'white', textShadow:'0 2px 4px rgba(0,0,0,0.25)' }}>{done ? 'Готово!' : label}</span>
-    </button>
+    <div onPointerDown={e => { e.stopPropagation(); e.preventDefault(); if (!cd) onTap(); }}
+      style={{ position:'absolute', left:posX, top:posY, transform:'translate(-50%,-50%)',
+        width:66, height:66, borderRadius:99,
+        background: cd ? 'rgba(0,0,0,0.58)' : 'rgba(255,255,255,0.17)',
+        border: `2.5px solid ${cd ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.78)'}`,
+        backdropFilter:'blur(6px)',
+        display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+        cursor: cd ? 'default' : 'pointer',
+        animation: cd ? 'none' : 'thoughtBounce 2.2s ease-in-out infinite',
+        boxShadow: cd ? 'none' : '0 0 22px rgba(255,255,180,0.42), 0 4px 12px rgba(0,0,0,0.45)',
+        filter: cd ? 'grayscale(0.65)' : 'none',
+        userSelect:'none', touchAction:'none', zIndex:12,
+        transition:'all 0.2s' }}>
+      <div style={{ fontSize:30, lineHeight:1 }}>{emoji}</div>
+      <div style={{ fontSize: cd ? 12 : 9, fontWeight:800, marginTop:2, fontFamily:"'Nunito',sans-serif",
+        color: cd ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.92)' }}>
+        {cd ? cdLabel : label}
+      </div>
+    </div>
   );
 }
 
 /* ══════════════════════════════════════════════════
-   KITCHEN SCREEN — food choices + minigame
+   ROOM DEFINITIONS — all 5 interactive locations
    ══════════════════════════════════════════════════ */
-function KitchenScreen({ inventory, coins, level, fills, isCrit, activeNav, setActiveNav, onPawClick, hearts, removeHeart, thoughtEmoji, onFeed, onMinigame, onBack }) {
-  const PANEL_H = 192;
-  const catX = 82, catFacing = 1;
+const ROOM_DEFS = {
+  kitchen: {
+    RoomComp: KitchenRoom, bgColor:'#3a2008', roomName:'🍔 Голод', catDefaultX:'52%',
+    minigameScreen:'minigame_catch', minigameLabel:'🎯 Поймай еду',
+    objects:[
+      { id:'bowl',   emoji:'🥣', label:'Миска',    posX:'38%', posY:'80%', catTargetX:'30%', thought:'😋', cooldownMin:5,  isCatTap:false,
+        getEffect:(inv)=>{
+          const f = ['food_premium','food_tasty','food_basic'].find(k=>inv[k]>0);
+          if (!f) return { ok:false, msg:'Нет еды! Купи в магазине 🛒' };
+          const it = FOOD_ITEMS.find(i=>i.id===f);
+          return { ok:true, useItem:f, delta:{ hunger:it.hunger, mood:it.mood||0, health:it.health||0 }, xp:it.xp, particles:'🍖', msg:`${it.emoji} Кот поел!`, actionKey:'feedCount', premiumFed: f==='food_premium' };
+        }},
+      { id:'faucet', emoji:'🚰', label:'Водичка',  posX:'13%', posY:'37%', catTargetX:'8%',  thought:'💧', cooldownMin:2,  isCatTap:false,
+        getEffect:()=>({ ok:true, delta:{ hunger:-5, mood:2 }, xp:1, particles:'💧', msg:'💧 Кот попил водички!' })},
+      { id:'cat_k',  emoji:'🐾', label:'Котик',    posX:null,  posY:null,                    thought:'😺', cooldownMin:1,  isCatTap:true,
+        getEffect:()=>({ ok:true, delta:{ mood:3 }, xp:0, particles:'💕', msg:'Мурр~ 💕' })},
+    ]
+  },
+  bathroom: {
+    RoomComp: BathroomRoom, bgColor:'#0a1f3a', roomName:'🚿 Гигиена', catDefaultX:'48%',
+    objects:[
+      { id:'bathtub', emoji:'🛁', label:'Купаться', posX:'68%', posY:'54%', catTargetX:'62%', thought:'🛁', cooldownMin:8,  isCatTap:false,
+        getEffect:()=>({ ok:true, delta:{ toilet:-28, mood:5 }, xp:7, particles:'💦', msg:'🛁 Кот помылся!', actionKey:'bathroomCount' })},
+      { id:'litter',  emoji:'🚽', label:'Лоток',    posX:'22%', posY:'66%', catTargetX:'16%', thought:'🚽', cooldownMin:4,  isCatTap:false,
+        getEffect:()=>({ ok:true, delta:{ toilet:-15 }, xp:3, particles:'✨', msg:'🚽 Кот сходил!', actionKey:'bathroomCount' })},
+      { id:'cat_b',  emoji:'🐾', label:'Котик',    posX:null,  posY:null,                    thought:'😺', cooldownMin:1,  isCatTap:true,
+        getEffect:()=>({ ok:true, delta:{ mood:2 }, xp:0, particles:'💕', msg:'Мурр~ 💕' })},
+    ]
+  },
+  rest: {
+    RoomComp: RestRoom, bgColor:'#0e0820', roomName:'🛏️ Сон', catDefaultX:'42%',
+    objects:[
+      { id:'bed',     emoji:'🛏️', label:'Поспать',  posX:'20%', posY:'65%', catTargetX:'13%', thought:'💤', cooldownMin:10, isCatTap:false,
+        getEffect:()=>({ ok:true, delta:{ fatigue:-38, mood:6 }, xp:8, particles:'💤', msg:'💤 Кот поспал!', actionKey:'sleepCount' })},
+      { id:'curtain', emoji:'🌙', label:'Шторы',    posX:'70%', posY:'27%', catTargetX:'65%', thought:'🌙', cooldownMin:20, isCatTap:false,
+        getEffect:()=>({ ok:true, delta:{ fatigue:-10 }, xp:2, particles:'🌙', msg:'🌙 Шторы закрыты!' })},
+      { id:'cat_r',  emoji:'🐾', label:'Котик',    posX:null,  posY:null,                    thought:'😴', cooldownMin:1,  isCatTap:true,
+        getEffect:()=>({ ok:true, delta:{ mood:2 }, xp:0, particles:'💕', msg:'Кот зевает~ 😴' })},
+    ]
+  },
+  yard: {
+    RoomComp: YardRoom, bgColor:'#082010', roomName:'🎮 Настроение', catDefaultX:'48%',
+    minigameScreen:'minigame_memory', minigameLabel:'🧩 Карточки',
+    objects:[
+      { id:'ball',  emoji:'⚽', label:'Мяч',     posX:'22%', posY:'68%', catTargetX:'16%', thought:'⚽', cooldownMin:3, isCatTap:false,
+        getEffect:()=>({ ok:true, delta:{ mood:10, fatigue:3 }, xp:5, particles:'⭐', msg:'⚽ Кот играет!', actionKey:'playCount' })},
+      { id:'yarn',  emoji:'🧶', label:'Клубок',  posX:'72%', posY:'63%', catTargetX:'67%', thought:'🧶', cooldownMin:3, isCatTap:false,
+        getEffect:()=>({ ok:true, delta:{ mood:7 }, xp:4, particles:'💛', msg:'🧶 Кот играет!', actionKey:'playCount' })},
+      { id:'cat_y', emoji:'🐾', label:'Котик',   posX:null,  posY:null,                    thought:'😻', cooldownMin:1, isCatTap:true,
+        getEffect:()=>({ ok:true, delta:{ mood:3 }, xp:0, particles:'💕', msg:'Мурр~ 💕' })},
+    ]
+  },
+  clinic: {
+    RoomComp: ClinicRoom, bgColor:'#081828', roomName:'🏥 Здоровье', catDefaultX:'38%',
+    objects:[
+      { id:'cabinet', emoji:'🗄️', label:'Аптечка', posX:'75%', posY:'42%', catTargetX:'68%', thought:'💊', cooldownMin:0, isCatTap:false,
+        getEffect:(inv)=>{
+          const m = ['med_premium','med_basic'].find(k=>inv[k]>0);
+          if (!m) return { ok:false, needShop:true, msg:'Нет лекарств! Купи в магазине 🛒' };
+          const it = MED_ITEMS.find(i=>i.id===m);
+          return { ok:true, useItem:m, delta:{ health:it.health, mood:it.mood||0 }, xp:it.xp, particles:'💊', msg:`💊 Кот вылечен! +${it.health}HP`, actionKey:'clinicCount' };
+        }},
+      { id:'cat_cl', emoji:'🐾', label:'Котик', posX:null, posY:null, thought:'🤧', cooldownMin:1, isCatTap:true,
+        getEffect:()=>({ ok:true, delta:{ mood:2 }, xp:0, particles:'💕', msg:'Апчхи! 🤧' })},
+    ]
+  },
+};
+
+/* ══════════════════════════════════════════════════
+   UNIFIED ROOM SCREEN
+   ══════════════════════════════════════════════════ */
+function RoomScreen({ roomId, fills, isCrit, activeNav, setActiveNav, onPawClick,
+                      hearts, removeHeart, inventory, stats, level,
+                      cooldowns, onObjectAction, onMinigame, onBack }) {
+  const def      = ROOM_DEFS[roomId];
+  const PANEL_H  = 192;
+
+  const [catLeft,    setCatLeft]    = useState(def.catDefaultX);
+  const [catFacing,  setCatFacing]  = useState(1);
+  const [catThought, setCatThought] = useState(null);
+  const [catWalking, setCatWalking] = useState(false);
+  const [particles,  setParticles]  = useState([]);
+  const pId      = useRef(0);
+  const walkTimer= useRef(null);
+  useEffect(() => () => clearTimeout(walkTimer.current), []);
+
+  // Reset cat on room change
+  useEffect(() => {
+    setCatLeft(def.catDefaultX); setCatFacing(1);
+    setCatThought(null); setCatWalking(false);
+  }, [roomId]);
+
+  function spawnPtc(emoji) {
+    const id = ++pId.current;
+    setParticles(p => [...p, { id, emoji }]);
+    setTimeout(() => setParticles(p => p.filter(x=>x.id!==id)), 1100);
+  }
+
+  function handleTap(obj) {
+    const cdKey = `${roomId}_${obj.id}`;
+    if ((cooldowns[cdKey] || 0) > Date.now()) return;
+    const result = obj.getEffect(inventory, stats);
+    if (!result.ok) {
+      setCatThought('😿');
+      setTimeout(() => setCatThought(null), 1400);
+      onObjectAction({ msg: result.msg, goToShop: result.needShop });
+      return;
+    }
+    clearTimeout(walkTimer.current);
+    if (!obj.isCatTap && obj.catTargetX) {
+      const tNum = parseFloat(obj.catTargetX);
+      const cNum = parseFloat(catLeft);
+      setCatFacing(tNum > cNum ? 1 : -1);
+      setCatLeft(obj.catTargetX);
+    }
+    setCatWalking(true);
+    const delay = obj.isCatTap ? 80 : 520;
+    setTimeout(() => {
+      setCatThought(obj.thought);
+      spawnPtc(result.particles || '✨');
+      onObjectAction({
+        cdKey, cooldownMs: obj.cooldownMin * 60000,
+        delta: result.delta, xp: result.xp,
+        useItem: result.useItem, msg: result.msg,
+        actionKey: result.actionKey,
+        premiumFed: result.premiumFed || false,
+      });
+    }, delay);
+    if (!obj.isCatTap) {
+      walkTimer.current = setTimeout(() => {
+        setCatLeft(def.catDefaultX); setCatFacing(1); setCatWalking(false);
+        setTimeout(() => setCatThought(null), 700);
+      }, 1650);
+    } else {
+      setCatWalking(false);
+      setTimeout(() => setCatThought(null), 1200);
+    }
+  }
 
   return (
-    <div style={{ position:'absolute', inset:0, animation:'screenFade 0.3s ease', background:'#5a3010' }}>
-      <div style={{ position:'absolute', top:0, left:0, right:0, bottom:PANEL_H }}>
-        <KitchenRoom/>
+    <div style={{ position:'absolute', inset:0, background:def.bgColor, animation:'screenFade 0.3s ease' }}>
+      {/* Room + hotspots */}
+      <div style={{ position:'absolute', top:0, left:0, right:0, bottom:PANEL_H, overflow:'hidden' }}>
+        <def.RoomComp/>
+        {def.objects.filter(o=>!o.isCatTap && o.posX).map(obj => {
+          const cdKey = `${roomId}_${obj.id}`;
+          const initCd = Math.max(0, (cooldowns[cdKey]||0) - Date.now());
+          return <Hotspot key={obj.id} emoji={obj.emoji} label={obj.label} posX={obj.posX} posY={obj.posY} initCdMs={initCd} onTap={()=>handleTap(obj)}/>;
+        })}
       </div>
-      {hearts.map(h => <FloatingHeart key={h.id} id={h.id} x={h.x} y={h.y} onDone={() => removeHeart(h.id)} emoji={h.emoji}/>)}
+
+      {/* Floating hearts */}
+      {hearts.map(h => <FloatingHeart key={h.id} id={h.id} x={h.x} y={h.y} onDone={()=>removeHeart(h.id)} emoji={h.emoji}/>)}
+
+      {/* Particles near cat */}
+      {particles.map(p => (
+        <div key={p.id} style={{ position:'absolute', left:catLeft, bottom:PANEL_H+148, transform:'translateX(-50%)', fontSize:26, pointerEvents:'none', zIndex:35, animation:'heartPop 1s ease-out forwards' }}>{p.emoji}</div>
+      ))}
+
+      {/* Cat — also tappable for the cat-tap hotspot */}
+      <div
+        onPointerDown={() => { const o=def.objects.find(x=>x.isCatTap); if(o) handleTap(o); }}
+        style={{ position:'absolute', bottom:PANEL_H+18, left:catLeft, width:112,
+          filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.7))',
+          transform:`scaleX(${catFacing})`, transformOrigin:'center',
+          transition:'left 0.55s ease-in-out',
+          animation: catWalking ? 'catWalkBob 0.38s linear infinite' : 'floatY 2.5s ease-in-out infinite',
+          cursor:'pointer', zIndex:16, userSelect:'none', touchAction:'none' }}>
+        <img src={CAT} alt="кот" style={{ width:'100%', display:'block' }} draggable="false"/>
+      </div>
+
+      {/* Thought bubble follows cat */}
+      {catThought && (
+        <div style={{ position:'absolute', bottom:PANEL_H+150,
+          left:`calc(${catLeft} + ${catFacing===1?'75px':'-46px'})`,
+          transition:'left 0.55s ease-in-out', pointerEvents:'none', zIndex:62 }}>
+          <ThoughtBubble emoji={catThought}/>
+        </div>
+      )}
+
       {/* Header */}
-      <div style={{ position:'absolute', top:0, left:0, right:0, zIndex:60, display:'flex', alignItems:'center', gap:12, padding:'14px 16px 0' }}>
-        <button onClick={onBack} style={{ background:'rgba(20,8,0,0.6)', border:'1.5px solid rgba(255,255,255,0.15)', borderRadius:12, width:38, height:38, cursor:'pointer', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', color:'white' }}>←</button>
-        <span style={{ fontSize:18, fontWeight:900, color:'#f5dfc0', textShadow:'0 1px 6px rgba(0,0,0,0.6)' }}>🍔 Голод</span>
+      <div style={{ position:'absolute', top:0, left:0, right:0, zIndex:60, display:'flex', alignItems:'center', gap:10, padding:'14px 14px 0' }}>
+        <button onClick={onBack}
+          style={{ background:'rgba(0,0,0,0.55)', border:'1.5px solid rgba(255,255,255,0.18)', borderRadius:12, width:38, height:38, cursor:'pointer', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', color:'white', flexShrink:0 }}>←</button>
+        <span style={{ fontSize:17, fontWeight:900, color:'#f5dfc0', textShadow:'0 1px 6px rgba(0,0,0,0.6)', flex:1 }}>{def.roomName}</span>
+        {onMinigame && (
+          <button onClick={onMinigame}
+            style={{ background:'rgba(255,210,60,0.18)', border:'1.5px solid rgba(255,210,60,0.55)', borderRadius:14, padding:'7px 11px', cursor:'pointer', fontSize:11, fontWeight:900, color:'#ffd060', fontFamily:"'Nunito',sans-serif", flexShrink:0 }}>
+            {def.minigameLabel || '🎮 Мини-игра'}
+          </button>
+        )}
       </div>
-      {/* Cat */}
-      <div style={{ position:'absolute', bottom:PANEL_H+22, left:catX, width:115, filter:'drop-shadow(0 6px 16px rgba(0,0,0,0.7))', transform:`scaleX(${catFacing})`, transformOrigin:'center', pointerEvents:'none' }}>
-        <img src={CAT} alt="кот" style={{ width:'100%', display:'block' }} draggable="false"/>
-      </div>
-      {/* Thought bubble */}
-      {thoughtEmoji && (
-        <div style={{ position:'absolute', bottom:PANEL_H+130, left: catX + (catFacing===1 ? 90 : -55), pointerEvents:'none', zIndex:62 }}>
-          <ThoughtBubble emoji={thoughtEmoji}/>
-        </div>
-      )}
-      {/* Food action panel */}
-      <div style={{ position:'absolute', bottom:PANEL_H+10, left:0, right:0, padding:'0 12px', zIndex:55, animation:'slideUp 0.4s ease' }}>
-        <div style={{ display:'flex', gap:8 }}>
-          {FOOD_ITEMS.map(item => {
-            const count = inventory[item.id] || 0;
-            return (
-              <div key={item.id} style={{ flex:1, background:'rgba(0,0,0,0.55)', borderRadius:18, padding:'10px 6px', textAlign:'center', border:'1.5px solid rgba(255,255,255,0.12)', backdropFilter:'blur(4px)' }}>
-                <div style={{ fontSize:28 }}>{item.emoji}</div>
-                <div style={{ fontSize:11, fontWeight:800, color:'#f5dfc0', marginTop:2 }}>{item.name}</div>
-                <div style={{ fontSize:10, color: count > 0 ? '#a0e060' : '#ff8060', fontWeight:700 }}>×{count}</div>
-                <button onClick={() => count > 0 && onFeed(item)}
-                  style={{ marginTop:6, width:'100%', padding:'7px 0', borderRadius:12, border:'none', cursor: count > 0 ? 'pointer' : 'default', fontSize:12, fontWeight:900, fontFamily:"'Nunito',sans-serif", background: count > 0 ? 'linear-gradient(135deg,#ffd060,#f0a020)' : 'rgba(255,255,255,0.15)', color: count > 0 ? 'white' : 'rgba(255,255,255,0.4)', boxShadow: count > 0 ? '0 3px 0 #c07808' : 'none' }}>
-                  {count > 0 ? 'Дать' : '—'}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-        {/* Mini-game button */}
-        <button onClick={onMinigame} style={{ marginTop:8, width:'100%', padding:'10px', borderRadius:16, border:'1.5px solid rgba(255,255,255,0.15)', background:'rgba(0,0,0,0.45)', cursor:'pointer', fontSize:13, fontWeight:900, color:'#ffd060', fontFamily:"'Nunito',sans-serif", backdropFilter:'blur(4px)' }}>
-          🎯 Мини-игра: Поймай еду  (+монеты)
-        </button>
-      </div>
-      <BottomPanel fills={fills} isCrit={isCrit} onPawClick={onPawClick} activeNav={activeNav} setActiveNav={setActiveNav} canClaimDaily={false}/>
-    </div>
-  );
-}
 
-/* ══════════════════════════════════════════════════
-   YARD SCREEN — toy choices + minigame
-   ══════════════════════════════════════════════════ */
-function YardScreen({ inventory, fills, isCrit, activeNav, setActiveNav, onPawClick, hearts, removeHeart, thoughtEmoji, onUseToy, onMinigame, onBack }) {
-  const PANEL_H = 192;
-  const catX = 145, catFacing = -1;
-
-  return (
-    <div style={{ position:'absolute', inset:0, animation:'screenFade 0.3s ease', background:'#1a4010' }}>
-      <div style={{ position:'absolute', top:0, left:0, right:0, bottom:PANEL_H }}>
-        <YardRoom/>
-      </div>
-      {hearts.map(h => <FloatingHeart key={h.id} id={h.id} x={h.x} y={h.y} onDone={() => removeHeart(h.id)} emoji={h.emoji}/>)}
-      <div style={{ position:'absolute', top:0, left:0, right:0, zIndex:60, display:'flex', alignItems:'center', gap:12, padding:'14px 16px 0' }}>
-        <button onClick={onBack} style={{ background:'rgba(20,8,0,0.6)', border:'1.5px solid rgba(255,255,255,0.15)', borderRadius:12, width:38, height:38, cursor:'pointer', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', color:'white' }}>←</button>
-        <span style={{ fontSize:18, fontWeight:900, color:'#f5dfc0', textShadow:'0 1px 6px rgba(0,0,0,0.6)' }}>🎮 Настроение</span>
-      </div>
-      <div style={{ position:'absolute', bottom:PANEL_H+22, left:catX, width:115, filter:'drop-shadow(0 6px 16px rgba(0,0,0,0.7))', transform:`scaleX(${catFacing})`, transformOrigin:'center', pointerEvents:'none' }}>
-        <img src={CAT} alt="кот" style={{ width:'100%', display:'block' }} draggable="false"/>
-      </div>
-      {thoughtEmoji && (
-        <div style={{ position:'absolute', bottom:PANEL_H+130, left: catX + (catFacing===1 ? 90 : -55), pointerEvents:'none', zIndex:62 }}>
-          <ThoughtBubble emoji={thoughtEmoji}/>
-        </div>
-      )}
-      <div style={{ position:'absolute', bottom:PANEL_H+10, left:0, right:0, padding:'0 12px', zIndex:55, animation:'slideUp 0.4s ease' }}>
-        <div style={{ display:'flex', gap:8 }}>
-          {TOY_ITEMS.map(item => {
-            const count = inventory[item.id] || 0;
-            return (
-              <div key={item.id} style={{ flex:1, background:'rgba(0,0,0,0.55)', borderRadius:18, padding:'10px 6px', textAlign:'center', border:'1.5px solid rgba(255,255,255,0.12)', backdropFilter:'blur(4px)' }}>
-                <div style={{ fontSize:28 }}>{item.emoji}</div>
-                <div style={{ fontSize:11, fontWeight:800, color:'#f5dfc0', marginTop:2 }}>{item.name}</div>
-                <div style={{ fontSize:10, color: count > 0 ? '#a0e060' : '#ff8060', fontWeight:700 }}>×{count}</div>
-                <button onClick={() => count > 0 && onUseToy(item)}
-                  style={{ marginTop:6, width:'100%', padding:'7px 0', borderRadius:12, border:'none', cursor: count > 0 ? 'pointer' : 'default', fontSize:12, fontWeight:900, fontFamily:"'Nunito',sans-serif", background: count > 0 ? 'linear-gradient(135deg,#80e890,#40c050)' : 'rgba(255,255,255,0.15)', color: count > 0 ? 'white' : 'rgba(255,255,255,0.4)', boxShadow: count > 0 ? '0 3px 0 #208030' : 'none' }}>
-                  {count > 0 ? 'Играть' : '—'}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-        <button onClick={onMinigame} style={{ marginTop:8, width:'100%', padding:'10px', borderRadius:16, border:'1.5px solid rgba(255,255,255,0.15)', background:'rgba(0,0,0,0.45)', cursor:'pointer', fontSize:13, fontWeight:900, color:'#a0e060', fontFamily:"'Nunito',sans-serif", backdropFilter:'blur(4px)' }}>
-          🧩 Мини-игра: Карточки  (+монеты)
-        </button>
-      </div>
-      <BottomPanel fills={fills} isCrit={isCrit} onPawClick={onPawClick} activeNav={activeNav} setActiveNav={setActiveNav} canClaimDaily={false}/>
-    </div>
-  );
-}
-
-/* ══════════════════════════════════════════════════
-   GENERIC LOCATION SCREEN (bathroom, rest, clinic)
-   ══════════════════════════════════════════════════ */
-function LocationScreen({ screen, onBack, onAction, actionDone, catX, catFacing, RoomComp, actionEmoji, actionLabel, actionColor, locationName, fills, isCrit, activeNav, setActiveNav, onPawClick, hearts, removeHeart, thoughtEmoji }) {
-  const PANEL_H = 192;
-  return (
-    <div key={screen} style={{ position:'absolute', inset:0, animation:'screenFade 0.3s ease', zIndex:50, background:'#3a2010' }}>
-      <div style={{ position:'absolute', top:0, left:0, right:0, bottom:PANEL_H }}>
-        <RoomComp/>
-      </div>
-      {hearts.map(h => <FloatingHeart key={h.id} id={h.id} x={h.x} y={h.y} onDone={() => removeHeart(h.id)} emoji={h.emoji}/>)}
-      <div style={{ position:'absolute', top:0, left:0, right:0, zIndex:60, display:'flex', alignItems:'center', gap:12, padding:'14px 16px 0' }}>
-        <button onClick={onBack} style={{ background:'rgba(20,8,0,0.6)', border:'1.5px solid rgba(255,255,255,0.15)', borderRadius:12, width:38, height:38, cursor:'pointer', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', color:'white' }}>←</button>
-        <span style={{ fontSize:18, fontWeight:900, color:'#f5dfc0', textShadow:'0 1px 6px rgba(0,0,0,0.6)' }}>{locationName}</span>
-      </div>
-      <div style={{ position:'absolute', bottom:PANEL_H+22, left:catX, width:115, filter:'drop-shadow(0 6px 16px rgba(0,0,0,0.7))', transform:`scaleX(${catFacing})`, transformOrigin:'center', pointerEvents:'none' }}>
-        <img src={CAT} alt="кот" style={{ width:'100%', display:'block' }} draggable="false"/>
-      </div>
-      {thoughtEmoji && (
-        <div style={{ position:'absolute', bottom:PANEL_H+130, left: catX + (catFacing===1 ? 90 : -55), pointerEvents:'none', zIndex:62 }}>
-          <ThoughtBubble emoji={thoughtEmoji}/>
-        </div>
-      )}
-      <div style={{ position:'absolute', bottom:PANEL_H+16, left:0, right:0, display:'flex', justifyContent:'center', zIndex:55, animation:'slideUp 0.4s ease' }}>
-        {!actionDone
-          ? <ActionBtn emoji={actionEmoji} label={actionLabel} color={actionColor} onClick={onAction}/>
-          : <div style={{ fontSize:14, fontWeight:800, color:'white', textShadow:'0 2px 6px rgba(0,0,0,0.8)', animation:'slideUp 0.3s ease', background:'rgba(0,0,0,0.5)', borderRadius:16, padding:'12px 24px' }}>Всё готово! ✨</div>
-        }
-      </div>
       <BottomPanel fills={fills} isCrit={isCrit} onPawClick={onPawClick} activeNav={activeNav} setActiveNav={setActiveNav} canClaimDaily={false}/>
     </div>
   );
@@ -1659,6 +1726,7 @@ function App() {
   const [catFacing,      setCatFacing]      = useState(1);
   const [showGif,        setShowGif]        = useState(false);
   const [actionDone,     setActionDone]     = useState(false);
+  const [cooldowns,      setCooldowns]      = useState({});
   const [toast,          setToast]          = useState(null);
   const [toastKey,       setToastKey]       = useState(0);
   const [achToast,       setAchToast]       = useState(null);
@@ -1884,6 +1952,33 @@ function App() {
     setTimeout(() => { setScreen('home'); setActionDone(false); }, 1800);
   }, [level, applyXP, afterAction, spawnHearts, showToast]);
 
+  // ── Tap-object handler for new interactive rooms ──
+  const handleTapObject = useCallback(({ cdKey, cooldownMs, delta, xp, useItem, msg, actionKey, premiumFed, goToShop }) => {
+    if (goToShop) { setScreen('shop'); setActiveNav('shop'); return; }
+    if (!delta) { showToast(msg || '...'); return; }
+    // Stats
+    setStats(prev => {
+      const s = { ...prev };
+      Object.entries(delta).forEach(([k, v]) => { s[k] = clamp((s[k]||0)+v, 0, 100); });
+      return s;
+    });
+    // Inventory
+    if (useItem) setInventory(prev => ({ ...prev, [useItem]: Math.max(0,(prev[useItem]||0)-1) }));
+    // XP + coins
+    if (xp > 0) applyXP(xp);
+    const coinReward = earnCoins(Math.ceil((xp||0)/2), level);
+    if (coinReward > 0) setCoins(c => c + coinReward);
+    // Action tracking
+    if (actionKey) afterAction(actionKey);
+    if (premiumFed) afterAction('premiumFed');
+    // Cooldown
+    if (cdKey && cooldownMs > 0) setCooldowns(prev => ({ ...prev, [cdKey]: Date.now() + cooldownMs }));
+    // Feedback
+    spawnHearts(2, 140);
+    playSound('action');
+    showToast(msg || '✨');
+  }, [level, applyXP, afterAction, spawnHearts, showToast]);
+
   const handleMinigameComplete = useCallback((earnedCoins, xpGain, hungerReduce = 0, bonusItem = null) => {
     setCoins(c => c + earnedCoins);
     applyXP(xpGain);
@@ -2065,65 +2160,20 @@ function App() {
     </div>
   );
 
-  // Kitchen screen
-  if (screen === 'kitchen') return (
+  // ── All 5 interactive room screens ──
+  if (ROOM_DEFS[screen]) return (
     <div style={{ width:'100%', height:'100%', position:'relative', overflow:'hidden' }}>
-      <KitchenScreen
-        inventory={inventory} coins={coins} level={level}
+      <RoomScreen
+        roomId={screen}
         fills={fills} isCrit={isCrit}
         activeNav={activeNav} setActiveNav={setActiveNav}
         onPawClick={handlePawClick}
         hearts={hearts} removeHeart={removeHeart}
-        thoughtEmoji={thoughtEmoji}
-        onFeed={handleFeed}
-        onMinigame={() => setScreen('minigame_catch')}
+        inventory={inventory} stats={stats} level={level}
+        cooldowns={cooldowns}
+        onObjectAction={handleTapObject}
+        onMinigame={ROOM_DEFS[screen].minigameScreen ? () => setScreen(ROOM_DEFS[screen].minigameScreen) : null}
         onBack={() => { setScreen('home'); setActiveNav('home'); }}/>
-      {toast && <Toast key={toastKey} msg={toast}/>}
-      {complaint && <ComplaintOverlay text={complaint} onClose={() => setComplaint(null)}/>}
-    </div>
-  );
-
-  // Yard screen
-  if (screen === 'yard') return (
-    <div style={{ width:'100%', height:'100%', position:'relative', overflow:'hidden' }}>
-      <YardScreen
-        inventory={inventory}
-        fills={fills} isCrit={isCrit}
-        activeNav={activeNav} setActiveNav={setActiveNav}
-        onPawClick={handlePawClick}
-        hearts={hearts} removeHeart={removeHeart}
-        thoughtEmoji={thoughtEmoji}
-        onUseToy={handleUseToy}
-        onMinigame={() => setScreen('minigame_memory')}
-        onBack={() => { setScreen('home'); setActiveNav('home'); }}/>
-      {toast && <Toast key={toastKey} msg={toast}/>}
-      {complaint && <ComplaintOverlay text={complaint} onClose={() => setComplaint(null)}/>}
-    </div>
-  );
-
-  // Generic room screens (bathroom, rest, clinic)
-  const ROOM_CONFIGS = {
-    bathroom: { RoomComp: BathroomRoom, catX: 60,  catFacing: 1, name: '🚿 Гигиена',  emoji:'🚿', label:'Убраться',  color:'blue',   changes:{ toilet:-24, mood:3 },  xp:5,  base:5,  roomKey:'bathroomCount' },
-    rest:     { RoomComp: RestRoom,     catX: 100, catFacing: 1, name: '🛏️ Сон',      emoji:'😴', label:'Поспать',   color:'purple', changes:{ fatigue:-38, mood:5 }, xp:8,  base:8,  roomKey:'sleepCount'    },
-    clinic:   { RoomComp: ClinicRoom,   catX: 115, catFacing: 1, name: '🏥 Здоровье', emoji:'💉', label:'Лечиться',  color:'teal',   changes:{ health:30 },           xp:15, base:5,  roomKey:'clinicCount'   },
-  };
-  const roomCfg = ROOM_CONFIGS[screen];
-  if (roomCfg) return (
-    <div style={{ width:'100%', height:'100%', position:'relative', overflow:'hidden', background:'#3a2010' }}>
-      <LocationScreen
-        screen={screen}
-        onBack={() => { setScreen('home'); setActiveNav('home'); setActionDone(false); }}
-        onAction={() => handleRoomAction(roomCfg.changes, roomCfg.xp, roomCfg.base, roomCfg.roomKey)}
-        actionDone={actionDone}
-        catX={roomCfg.catX} catFacing={roomCfg.catFacing}
-        RoomComp={roomCfg.RoomComp}
-        actionEmoji={roomCfg.emoji} actionLabel={roomCfg.label} actionColor={roomCfg.color}
-        locationName={roomCfg.name}
-        fills={fills} isCrit={isCrit}
-        activeNav={activeNav} setActiveNav={setActiveNav}
-        onPawClick={handlePawClick}
-        hearts={hearts} removeHeart={removeHeart}
-        thoughtEmoji={thoughtEmoji}/>
       {toast && <Toast key={toastKey} msg={toast}/>}
       {complaint && <ComplaintOverlay text={complaint} onClose={() => setComplaint(null)}/>}
     </div>
