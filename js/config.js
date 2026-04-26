@@ -22,7 +22,7 @@ const RATES = {
   mood:   -0.16,   // 🎮 Настроение — very fast
 };
 const HEALTH_RATE_NORMAL = -0.02;   // ❤️ normal: ~57 h alone
-const HEALTH_RATE_CRISIS  = -0.18;  // ❤️ crisis (2+ bad): ~8.5 h
+const HEALTH_RATE_CRISIS  = -0.10;  // ❤️ crisis (2+ bad): ~12 h — falls mainly from combo
 
 // ─── UTILITY ───
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }

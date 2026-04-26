@@ -11,114 +11,301 @@ const GIF = window.CAT_GIF || 'cat-anim.gif';
    MINI-GAME 1 — Catch the Food 🍚
    ══════════════════════════════════════════════════ */
 function CatchGameScreen({ level, onComplete, onBack }) {
-  const DURATION = 30;
-  const FOOD_EMOJIS = ['🍚','🍗','🐟','🍖','🧁','🐾'];
-  const [timeLeft, setTimeLeft] = useState(DURATION);
-  const [score, setScore] = useState(0);
-  const [items, setItems] = useState([]);
-  const [gameOver, setGameOver] = useState(false);
-  const nextId = useRef(0);
-  const gameOverRef = useRef(false);
+  const DURATION = 35;
 
+  // ── Item catalogue ──
+  const ITEM_DEFS = [
+    { type:'normal',  emojis:['🥩','🍱'], pts: 1, hunger: 3,  weight: 40 },
+    { type:'tasty',   emojis:['🐟','🍗'], pts: 3, hunger: 6,  weight: 28 },
+    { type:'premium', emojis:['🌭'],       pts: 6, hunger: 10, weight: 8,  coins: 3, glow:'#ffd700' },
+    { type:'bad',     emojis:['👟','🧅','🌀'], pts: -2, hunger: 0, weight: 14 },
+    { type:'mouse',   emojis:['🐭'],       pts: 8, hunger: 8,  weight: 4,  coins: 5 },
+    { type:'freeze',  emojis:['❄️'],       pts: 0, hunger: 0,  weight: 3 },
+    { type:'energy',  emojis:['⚡'],       pts:10, hunger: 0,  weight: 3 },
+  ];
+
+  function pickItem(lv) {
+    const boost = lv >= 10 ? 6 : 0;
+    const pool = ITEM_DEFS.map(d => ({
+      ...d,
+      w: d.type === 'premium' ? d.weight + boost : d.type === 'bad' ? Math.max(4, d.weight - boost/2) : d.weight
+    }));
+    const total = pool.reduce((s, d) => s + d.w, 0);
+    let r = Math.random() * total;
+    for (const d of pool) { r -= d.w; if (r <= 0) return d; }
+    return pool[0];
+  }
+
+  // ── State ──
+  const [timeLeft,    setTimeLeft]    = useState(DURATION);
+  const [score,       setScore]       = useState(0);
+  const [items,       setItems]       = useState([]);
+  const [particles,   setParticles]   = useState([]);
+  const [flash,       setFlash]       = useState(null);   // { text, color }
+  const [comboText,   setComboText]   = useState(null);
+  const [catMood,     setCatMood]     = useState('happy'); // happy | scared | excited
+  const [shaking,     setShaking]     = useState(false);
+  const [frozen,      setFrozen]      = useState(false);
+  const [gameOver,    setGameOver]    = useState(false);
+
+  const refs = useRef({
+    nextId: 0, particleId: 0,
+    combo: 0, wave: 0,
+    frozen: false, over: false,
+    hungerSum: 0, bonusCoins: 0,
+    score: 0,
+    flashTimer: null, comboTimer: null, catMoodTimer: null,
+  });
+
+  // keep refs.score in sync
+  useEffect(() => { refs.current.score = score; }, [score]);
+  useEffect(() => { refs.current.frozen = frozen; }, [frozen]);
+
+  // ── Timer countdown ──
   useEffect(() => {
     if (gameOver) return;
     const t = setInterval(() => {
       setTimeLeft(prev => {
-        if (prev <= 1) { gameOverRef.current = true; setGameOver(true); return 0; }
+        if (prev <= 1) { refs.current.over = true; setGameOver(true); return 0; }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(t);
   }, [gameOver]);
 
-  // Spawn falling items
+  // ── Wave escalation (every 9s) ──
   useEffect(() => {
     if (gameOver) return;
     const t = setInterval(() => {
-      if (gameOverRef.current) return;
-      setItems(prev => [...prev, {
-        id:    ++nextId.current,
-        emoji: FOOD_EMOJIS[Math.floor(Math.random() * FOOD_EMOJIS.length)],
-        x:     15 + Math.random() * 310,
-        y:     -60,
-        speed: 3 + Math.random() * 2.5,
-        size:  30 + Math.floor(Math.random() * 18),
-      }]);
-    }, 750);
+      if (refs.current.over) return;
+      refs.current.wave = Math.min(refs.current.wave + 1, 5);
+    }, 9000);
     return () => clearInterval(t);
   }, [gameOver]);
 
-  // Move items down
+  // ── Spawn items ──
   useEffect(() => {
     if (gameOver) return;
     const t = setInterval(() => {
+      if (refs.current.over) return;
+      const wave = refs.current.wave;
+      const count = 1 + Math.floor(wave / 2); // 1-3 items per tick
+      for (let i = 0; i < count; i++) {
+        const def = pickItem(level);
+        const emoji = def.emojis[Math.floor(Math.random() * def.emojis.length)];
+        const baseSpeed = 2.8 + wave * 0.5 + (level > 5 ? 0.4 : 0);
+        setItems(prev => [...prev, {
+          id:    ++refs.current.nextId,
+          emoji, def,
+          x:     18 + Math.random() * 330,
+          y:     -60 - i * 80,
+          speed: baseSpeed + Math.random() * 1.2,
+          size:  def.type === 'premium' || def.type === 'mouse' ? 42 : 34,
+        }]);
+      }
+    }, Math.max(320, 750 - refs.current.wave * 60));
+    return () => clearInterval(t);
+  }, [gameOver, level]);
+
+  // ── Move items down ──
+  useEffect(() => {
+    if (gameOver) return;
+    const t = setInterval(() => {
+      if (refs.current.frozen) return;
       setItems(prev => prev
-        .map(it => ({ ...it, y: it.y + it.speed * 2.5 }))
-        .filter(it => it.y < 680)
+        .map(it => ({ ...it, y: it.y + it.speed * 2.8 }))
+        .filter(it => it.y < 720)
       );
-    }, 30);
+    }, 28);
     return () => clearInterval(t);
   }, [gameOver]);
 
-  const catchItem = useCallback((id) => {
-    setItems(prev => prev.filter(it => it.id !== id));
-    setScore(prev => prev + 1);
+  // ── Add particle ──
+  const addParticle = useCallback((x, y, emoji) => {
+    const id = ++refs.current.particleId;
+    setParticles(prev => [...prev, { id, x, y, emoji }]);
+    setTimeout(() => setParticles(prev => prev.filter(p => p.id !== id)), 900);
   }, []);
 
-  const baseCoins = Math.min(score * 6, 120);
-  const earnedCoins = earnCoins(baseCoins, level);
-  const xpGain = ACTION_XP.minigame_base + Math.floor(score * 2);
+  // ── Catch item handler ──
+  const catchItem = useCallback((id, e) => {
+    if (refs.current.over) return;
+    if (e) { e.stopPropagation(); e.preventDefault(); }
 
+    setItems(prev => {
+      const it = prev.find(i => i.id === id);
+      if (!it) return prev;
+      const def = it.def;
+      const x = it.x, y = it.y;
+
+      // Powerup: freeze
+      if (def.type === 'freeze') {
+        setFrozen(true);
+        setFlash({ text:'❄️ Заморозка!', color:'#60cfff' });
+        setTimeout(() => setFrozen(false), 5000);
+        addParticle(x, y, '❄️');
+        return prev.filter(i => i.id !== id);
+      }
+
+      // Powerup: energy
+      if (def.type === 'energy') {
+        setScore(s => { refs.current.score = s + 10; return s + 10; });
+        setFlash({ text:'⚡ +10!', color:'#ffe040' });
+        addParticle(x, y, '⚡');
+        return prev.filter(i => i.id !== id);
+      }
+
+      // Bad item
+      if (def.type === 'bad') {
+        refs.current.combo = 0;
+        setScore(s => { const n = Math.max(0, s + def.pts); refs.current.score = n; return n; });
+        setShaking(true); setTimeout(() => setShaking(false), 520);
+        setCatMood('scared');
+        clearTimeout(refs.current.catMoodTimer);
+        refs.current.catMoodTimer = setTimeout(() => setCatMood('happy'), 1500);
+        setFlash({ text:'👟 Фу! ' + def.pts, color:'#ff6060' });
+        addParticle(x, y, '💢');
+        try { window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium'); } catch(_) {}
+        return prev.filter(i => i.id !== id);
+      }
+
+      // Good item
+      refs.current.combo = (refs.current.combo || 0) + 1;
+      const combo = refs.current.combo;
+      const mult  = combo >= 4 ? 4 : combo >= 3 ? 3 : combo >= 2 ? 2 : 1;
+      const gained = def.pts * mult;
+      refs.current.score = (refs.current.score || 0) + gained;
+      setScore(s => s + gained);
+
+      // Bonus coins for premium/mouse
+      if (def.coins) refs.current.bonusCoins += def.coins;
+      // Hunger reduction
+      if (def.hunger) refs.current.hungerSum += def.hunger;
+
+      // Particles
+      addParticle(x, y, def.type === 'premium' ? '✨' : def.type === 'mouse' ? '🌟' : '💛');
+      if (mult >= 2) {
+        setComboText(`×${mult} КОМБО!`);
+        clearTimeout(refs.current.comboTimer);
+        refs.current.comboTimer = setTimeout(() => setComboText(null), 900);
+        setCatMood('excited');
+        clearTimeout(refs.current.catMoodTimer);
+        refs.current.catMoodTimer = setTimeout(() => setCatMood('happy'), 1200);
+      }
+
+      const flashMsg = def.type === 'premium' ? `🌭 +${gained}` : def.type === 'mouse' ? `🐭 +${gained}!` : `+${gained}`;
+      setFlash({ text: flashMsg, color: def.type === 'premium' ? '#ffd700' : def.type === 'mouse' ? '#ff9f40' : '#a0ff80' });
+      try { window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light'); } catch(_) {}
+      return prev.filter(i => i.id !== id);
+    });
+  }, [addParticle]);
+
+  // ── Compute rewards ──
+  const tier = score >= 300 ? 'gold' : score >= 150 ? 'silver' : 'bronze';
+  const tierEmoji = tier === 'gold' ? '🥇' : tier === 'silver' ? '🥈' : '🥉';
+  const tierLabel = tier === 'gold' ? 'Золото!' : tier === 'silver' ? 'Серебро!' : 'Бронза!';
+  const baseCoins = tier === 'gold' ? 90 : tier === 'silver' ? 50 : 20;
+  const earnedCoins = earnCoins(baseCoins + refs.current.bonusCoins, level);
+  const xpGain = ACTION_XP.minigame_base + Math.min(Math.floor(score / 5) * 4, 80);
+  const hungerReduce = Math.min(refs.current.hungerSum, 40);
+  const bonusItem = tier === 'gold' ? 'food_premium' : null;
+
+  // ── Circular SVG timer ──
+  const R = 22, CIRC = 2 * Math.PI * R;
+  const timerPct = timeLeft / DURATION;
+  const timerColor = timerPct > 0.5 ? '#38d060' : timerPct > 0.25 ? '#f0a020' : '#e03030';
+
+  // ── Game Over screen ──
   if (gameOver) return (
-    <div style={{ position:'absolute', inset:0, background:'linear-gradient(180deg,#1a0d00,#2d1500)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:20, padding:32, animation:'screenFade 0.3s ease' }}>
-      <div style={{ fontSize:64 }}>🏆</div>
-      <div style={{ fontSize:26, fontWeight:900, color:'#f5dfc0', textAlign:'center' }}>
-        {score >= 15 ? 'Отлично!' : score >= 8 ? 'Неплохо!' : 'В следующий раз лучше!'}
-      </div>
-      <div style={{ background:'rgba(255,255,255,0.1)', borderRadius:20, padding:'18px 36px', textAlign:'center' }}>
-        <div style={{ fontSize:16, color:'#c8a060', fontWeight:700 }}>Поймано: {score} 🐾</div>
-        <div style={{ fontSize:22, fontWeight:900, color:'#ffd060', marginTop:6 }}>+{earnedCoins} 🪙</div>
+    <div style={{ position:'absolute', inset:0, background:'linear-gradient(180deg,#1a0d00,#2d1500)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16, padding:28, animation:'screenFade 0.35s ease' }}>
+      <div style={{ fontSize:58 }}>{tierEmoji}</div>
+      <div style={{ fontSize:28, fontWeight:900, color:'#f5dfc0', textAlign:'center' }}>{tierLabel}</div>
+      <div style={{ fontSize:16, color:'#c8a870', fontWeight:700 }}>Очки: {score}</div>
+      <div style={{ background:'rgba(255,255,255,0.09)', borderRadius:22, padding:'18px 32px', width:'100%', textAlign:'center', display:'flex', flexDirection:'column', gap:6 }}>
+        <div style={{ fontSize:22, fontWeight:900, color:'#ffd060' }}>+{earnedCoins} 🪙</div>
         <div style={{ fontSize:15, color:'#a0c880', fontWeight:700 }}>+{xpGain} XP</div>
+        {hungerReduce > 0 && <div style={{ fontSize:14, color:'#f0c060', fontWeight:700 }}>🍔 Голод −{Math.round(hungerReduce)}%</div>}
+        {bonusItem && <div style={{ fontSize:14, color:'#ffd060', fontWeight:800 }}>🎁 Премиум-еда ×1!</div>}
       </div>
-      <button onClick={() => onComplete(earnedCoins, xpGain)} style={{ background:'linear-gradient(155deg,#ffd060,#f0a020)', border:'none', borderRadius:22, padding:'16px 48px', fontSize:18, fontWeight:900, color:'white', cursor:'pointer', boxShadow:'0 6px 0 #c07808', width:'100%', maxWidth:260 }}>
+      <button
+        onClick={() => onComplete(earnedCoins, xpGain, hungerReduce, bonusItem)}
+        style={{ background:'linear-gradient(155deg,#ffd060,#f0a020)', border:'none', borderRadius:22, padding:'16px 0', fontSize:18, fontWeight:900, color:'white', cursor:'pointer', boxShadow:'0 6px 0 #c07808', width:'100%', maxWidth:280 }}>
         Забрать! 🎉
       </button>
     </div>
   );
 
+  // ── Gameplay ──
   return (
-    <div style={{ position:'absolute', inset:0, background:'linear-gradient(180deg,#1a0d00 0%,#2d1500 40%,#3a1e08 100%)', overflow:'hidden', touchAction:'none' }}>
-      {/* Header bar */}
-      <div style={{ position:'absolute', top:0, left:0, right:0, zIndex:10, display:'flex', justifyContent:'space-between', alignItems:'center', padding:'14px 18px 0' }}>
-        <button onClick={onBack} style={{ background:'rgba(20,8,0,0.7)', border:'1.5px solid rgba(255,255,255,0.15)', borderRadius:12, width:38, height:38, cursor:'pointer', fontSize:18, color:'white', display:'flex', alignItems:'center', justifyContent:'center' }}>←</button>
-        <div style={{ display:'flex', gap:16, alignItems:'center' }}>
-          <div style={{ fontSize:16, fontWeight:900, color:'#f5dfc0' }}>⏱ {timeLeft}с</div>
-          <div style={{ fontSize:16, fontWeight:900, color:'#ffd060' }}>🎯 {score}</div>
+    <div
+      style={{ position:'absolute', inset:0, background:'linear-gradient(180deg,#0d1a00 0%,#1a2d00 40%,#101800 100%)', overflow:'hidden', touchAction:'none',
+        animation: shaking ? 'screenShake 0.52s ease' : 'none' }}>
+
+      {/* Header */}
+      <div style={{ position:'absolute', top:0, left:0, right:0, zIndex:20, display:'flex', justifyContent:'space-between', alignItems:'center', padding:'14px 16px 6px' }}>
+        <button onPointerDown={e => { e.stopPropagation(); onBack(); }}
+          style={{ background:'rgba(0,0,0,0.5)', border:'1.5px solid rgba(255,255,255,0.18)', borderRadius:12, width:38, height:38, cursor:'pointer', fontSize:18, color:'white', display:'flex', alignItems:'center', justifyContent:'center' }}>←</button>
+
+        {/* Circular timer */}
+        <div style={{ position:'relative', width:52, height:52 }}>
+          <svg width="52" height="52" style={{ transform:'rotate(-90deg)' }}>
+            <circle cx="26" cy="26" r={R} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="4"/>
+            <circle cx="26" cy="26" r={R} fill="none" stroke={timerColor} strokeWidth="4"
+              strokeDasharray={CIRC} strokeDashoffset={CIRC * (1 - timerPct)} strokeLinecap="round"
+              style={{ transition:'stroke-dashoffset 1s linear, stroke 0.5s' }}/>
+          </svg>
+          <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:900, color:'white' }}>{timeLeft}</div>
         </div>
+
+        <div style={{ fontSize:20, fontWeight:900, color:'#ffd060' }}>🎯 {score}</div>
       </div>
-      {/* Timer bar */}
-      <div style={{ position:'absolute', top:58, left:16, right:16, height:6, background:'rgba(255,255,255,0.15)', borderRadius:99 }}>
-        <div style={{ height:'100%', borderRadius:99, background:'linear-gradient(90deg,#ffd060,#f06020)', width:`${(timeLeft/DURATION)*100}%`, transition:'width 1s linear' }}/>
-      </div>
-      {/* Instructions */}
-      {score === 0 && timeLeft >= 28 && (
-        <div style={{ position:'absolute', top:'50%', left:0, right:0, textAlign:'center', color:'rgba(255,255,255,0.4)', fontSize:14, fontWeight:700, pointerEvents:'none' }}>
-          Нажимай на еду! 👆
-        </div>
-      )}
+
+      {/* Freeze overlay */}
+      {frozen && <div style={{ position:'absolute', inset:0, background:'rgba(80,200,255,0.08)', pointerEvents:'none', zIndex:5, borderRadius:0 }}/>}
+
+      {/* Flash message */}
+      {flash && <div key={flash.text + score} style={{ position:'absolute', top:'18%', left:'50%', transform:'translateX(-50%)', fontSize:20, fontWeight:900, color: flash.color, textShadow:'0 2px 8px rgba(0,0,0,0.8)', pointerEvents:'none', zIndex:30, animation:'slideUp 0.25s ease, toastIn 0.9s ease forwards', whiteSpace:'nowrap' }}>{flash.text}</div>}
+
+      {/* Combo display */}
+      {comboText && <div style={{ position:'absolute', top:'28%', left:0, right:0, textAlign:'center', fontSize:22, fontWeight:900, color:'#ffe040', textShadow:'0 0 16px #ffa000', pointerEvents:'none', zIndex:31, animation:'pulseCrit 0.4s ease infinite' }}>{comboText}</div>}
+
+      {/* Particles */}
+      {particles.map(p => (
+        <div key={p.id} style={{ position:'absolute', left:p.x, top:p.y, fontSize:22, pointerEvents:'none', zIndex:25, animation:'heartPop 0.9s ease-out forwards' }}>{p.emoji}</div>
+      ))}
+
       {/* Falling items */}
       {items.map(it => (
-        <div key={it.id} className="catch-item"
-          style={{ left: it.x, top: it.y, fontSize: it.size }}
-          onClick={() => catchItem(it.id)}
-          onTouchStart={(e) => { e.preventDefault(); catchItem(it.id); }}>
+        <div key={it.id}
+          onPointerDown={e => catchItem(it.id, e)}
+          style={{ position:'absolute', left:it.x, top:it.y, fontSize:it.size, cursor:'pointer', userSelect:'none', touchAction:'none',
+            filter: it.def.glow ? `drop-shadow(0 0 10px ${it.def.glow})` : 'drop-shadow(0 4px 6px rgba(0,0,0,0.5))',
+            zIndex:10 }}>
           {it.emoji}
         </div>
       ))}
-      {/* Cat at bottom */}
-      <div style={{ position:'absolute', bottom:30, left:'50%', transform:'translateX(-50%)', width:90, filter:'drop-shadow(0 6px 14px rgba(0,0,0,0.7))', pointerEvents:'none' }}>
+
+      {/* Cat mood corner */}
+      <div style={{ position:'absolute', bottom:18, right:14, width:70, pointerEvents:'none', zIndex:15,
+        filter:'drop-shadow(0 4px 12px rgba(0,0,0,0.7))',
+        animation: catMood === 'scared' ? 'catShakeStrong 0.5s linear infinite' : catMood === 'excited' ? 'catFloat 1s ease-in-out infinite' : 'floatY 2.5s ease-in-out infinite' }}>
         <img src={CAT} alt="кот" style={{ width:'100%', display:'block' }} draggable="false"/>
+        <div style={{ textAlign:'center', fontSize:16, marginTop:2 }}>
+          {catMood === 'scared' ? '😨' : catMood === 'excited' ? '🤩' : '😊'}
+        </div>
       </div>
+
+      {/* Wave indicator */}
+      <div style={{ position:'absolute', bottom:24, left:16, fontSize:11, color:'rgba(255,255,255,0.45)', fontWeight:700, pointerEvents:'none' }}>
+        Волна {refs.current.wave + 1}/6
+      </div>
+
+      {/* Hint on start */}
+      {score === 0 && timeLeft >= DURATION - 2 && (
+        <div style={{ position:'absolute', top:'50%', left:0, right:0, textAlign:'center', color:'rgba(255,255,255,0.38)', fontSize:14, fontWeight:700, pointerEvents:'none' }}>
+          Нажимай на еду! 👆
+        </div>
+      )}
     </div>
   );
 }
@@ -567,7 +754,11 @@ function PawShape({ fillColor, baseColor, clipId }) {
 }
 
 function PawIndicator({ pawId, icon, label, fill, critical, onClick }) {
-  const fillColor = critical ? '#ff2828' : fill > 58 ? '#42cc78' : fill > 28 ? '#f5a020' : '#ff5840';
+  // Smooth 4-step gradient: green → yellow → orange → red
+  const fillColor = fill > 60 ? '#38c060'
+                  : fill > 40 ? '#d4a010'
+                  : fill > 20 ? '#e06020'
+                  :             '#e02020';
   const baseColor = critical ? '#ffc8c8' : '#ddd0c0';
   const clipY = 92 * (1 - fill / 100);
   const clipH = Math.max(0, 92 * fill / 100);
@@ -581,7 +772,8 @@ function PawIndicator({ pawId, icon, label, fill, critical, onClick }) {
           <defs><clipPath id={pawId}><rect x="0" y={clipY} width="80" height={clipH}/></clipPath></defs>
           <PawShape fillColor={fillColor} baseColor={baseColor} clipId={pawId}/>
         </svg>
-        <div style={{ position:'absolute', left:'50%', bottom:4, transform:'translateX(-50%)', fontSize:15, lineHeight:1, pointerEvents:'none', filter:'drop-shadow(0 1px 2px rgba(0,0,0,0.35))' }}>{icon}</div>
+        {/* Icon shakes when critical */}
+        <div style={{ position:'absolute', left:'50%', bottom:4, transform:'translateX(-50%)', fontSize:15, lineHeight:1, pointerEvents:'none', filter:'drop-shadow(0 1px 2px rgba(0,0,0,0.35))', animation: critical ? 'pawShake 0.42s linear infinite' : 'none', display:'inline-block' }}>{icon}</div>
       </div>
       <span style={{ fontSize:8, fontWeight:800, color:'#2a1008', letterSpacing:0.1 }}>{label}</span>
     </div>
@@ -621,12 +813,12 @@ function NavItem({ icon, label, active, dot, onClick }) {
 function BottomPanel({ fills, isCrit, onPawClick, activeNav, setActiveNav, canClaimDaily }) {
   return (
     <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'linear-gradient(180deg,#f8f0e2,#f2e8d4)', borderRadius:'26px 26px 0 0', boxShadow:'0 -6px 32px rgba(0,0,0,0.4)', padding:'12px 12px 0', zIndex:20, height:192, display:'flex', flexDirection:'column' }}>
-      <div style={{ background:'rgba(255,255,255,0.5)', borderRadius:18, padding:'8px 4px', display:'flex', justifyContent:'space-around', alignItems:'flex-end', border:'1.5px solid rgba(255,255,255,0.85)', flex:1, marginBottom:10 }}>
+      <div style={{ padding:'8px 4px', display:'flex', justifyContent:'space-around', alignItems:'flex-end', flex:1, marginBottom:10 }}>
         <PawIndicator pawId="ph"  icon="🍔" label="Голод"      fill={fills.hunger}  critical={isCrit(fills.hunger)}  onClick={() => onPawClick('kitchen')}/>
         <PawIndicator pawId="pt"  icon="🚽" label="Гигиена"   fill={fills.toilet}  critical={isCrit(fills.toilet)}  onClick={() => onPawClick('bathroom')}/>
         <PawIndicator pawId="pf"  icon="😴" label="Сон"       fill={fills.fatigue} critical={isCrit(fills.fatigue)} onClick={() => onPawClick('rest')}/>
         <PawIndicator pawId="pm"  icon="🎮" label="Настроение" fill={fills.mood}    critical={isCrit(fills.mood)}    onClick={() => onPawClick('yard')}/>
-        <PawIndicator pawId="phh" icon="🏥" label="Клиника" fill={fills.health}  critical={isCrit(fills.health)}  onClick={() => onPawClick('clinic')}/>
+        <PawIndicator pawId="phh" icon="🏥" label="Здоровье"  fill={fills.health}  critical={isCrit(fills.health)}  onClick={() => onPawClick('clinic')}/>
       </div>
       <div style={{ display:'flex', borderTop:'1.5px solid rgba(0,0,0,0.07)', background:'rgba(255,255,255,0.65)', marginLeft:-12, marginRight:-12, paddingBottom:10, flexShrink:0 }}>
         <NavItem icon="🏠" label="Дом"      active={activeNav==='home'}    onClick={() => { setActiveNav('home'); onPawClick('home'); }}/>
@@ -1457,11 +1649,12 @@ function App() {
   const [achToast,       setAchToast]       = useState(null);
   const [achQueue,       setAchQueue]       = useState([]);
 
-  const createdAt = useRef(_INIT.createdAt);
-  const walkRef   = useRef({ x: 111, dir: 1 });
-  const gifTimer  = useRef(null);
-  const heartId   = useRef(0);
+  const createdAt  = useRef(_INIT.createdAt);
+  const walkRef    = useRef({ x: 111, dir: 1 });
+  const gifTimer   = useRef(null);
+  const heartId    = useRef(0);
   const toastTimer = useRef(null);
+  const wasCritRef = useRef({ hunger: false, fatigue: false, toilet: false, mood: false, health: false });
 
   const day = Math.max(1, Math.floor((Date.now() - createdAt.current) / 86400000) + 1);
 
@@ -1517,7 +1710,24 @@ function App() {
   // ── In-app decay tick (every 10 seconds) ──
   useEffect(() => {
     const t = setInterval(() => {
-      setStats(p => applyDecay(p, 10 / 60, level));
+      setStats(p => {
+        const next = applyDecay(p, 10 / 60, level);
+        // HapticFeedback when a stat first crosses into critical
+        const wc = wasCritRef.current;
+        const nowCrit = {
+          hunger:  next.hunger  >= 75,
+          fatigue: next.fatigue >= 75,
+          toilet:  next.toilet  >= 75,
+          mood:    next.mood    <= 25,
+          health:  next.health  <= 25,
+        };
+        const newCrit = Object.keys(nowCrit).some(k => nowCrit[k] && !wc[k]);
+        if (newCrit) {
+          try { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('warning'); } catch(_) {}
+        }
+        wasCritRef.current = nowCrit;
+        return next;
+      });
     }, 10000);
     return () => clearInterval(t);
   }, [level]);
@@ -1652,12 +1862,14 @@ function App() {
     setTimeout(() => { setScreen('home'); setActionDone(false); }, 1800);
   }, [level, applyXP, afterAction, spawnHearts, showToast]);
 
-  const handleMinigameComplete = useCallback((earnedCoins, xpGain) => {
+  const handleMinigameComplete = useCallback((earnedCoins, xpGain, hungerReduce = 0, bonusItem = null) => {
     setCoins(c => c + earnedCoins);
     applyXP(xpGain);
+    if (hungerReduce > 0) setStats(prev => ({ ...prev, hunger: clamp(prev.hunger - hungerReduce, 0, 100) }));
+    if (bonusItem)        setInventory(prev => ({ ...prev, [bonusItem]: (prev[bonusItem] || 0) + 1 }));
     afterAction('minigameWins');
     playSound('coin');
-    showToast(`🎉 +${earnedCoins}🪙 +${xpGain}XP`);
+    showToast(`🎉 +${earnedCoins}🪙 +${xpGain}XP${bonusItem ? ' +🎁' : ''}`);
     setScreen('home');
   }, [applyXP, afterAction, showToast]);
 

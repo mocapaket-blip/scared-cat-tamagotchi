@@ -175,6 +175,22 @@ html, body {
   to   { opacity: 1; transform: scale(1)    translateY(0); }
 }
 
+@keyframes pawShake {
+  0%, 100% { transform: translateX(-50%) rotate(0deg); }
+  20%       { transform: translateX(calc(-50% - 3px)) rotate(-6deg); }
+  50%       { transform: translateX(calc(-50% + 3px)) rotate(6deg); }
+  75%       { transform: translateX(calc(-50% - 2px)) rotate(-3deg); }
+}
+
+@keyframes screenShake {
+  0%, 100% { transform: translateX(0); }
+  18%       { transform: translateX(-9px); }
+  36%       { transform: translateX(9px); }
+  54%       { transform: translateX(-6px); }
+  72%       { transform: translateX(6px); }
+  88%       { transform: translateX(-3px); }
+}
+
 /* ─── SHOP TABS ─── */
 
 .shop-tab-active {
