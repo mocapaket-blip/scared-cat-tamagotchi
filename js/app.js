@@ -7,6 +7,21 @@ const { useState, useEffect, useRef, useCallback } = React;
 const CAT = window.CAT_PNG || 'cat.png';
 const GIF = window.CAT_GIF || 'cat-anim.gif';
 
+// ── Backend URL (fill in after Railway deploy) ──
+const BACKEND_URL = window.SCARED_CAT_BACKEND || '';
+
+// Sync stats to backend so push notifications know the cat's state
+function syncBackend(stats) {
+  if (!BACKEND_URL) return;
+  const chatId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+  if (!chatId) return;
+  fetch(`${BACKEND_URL}/update`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chatId, stats }),
+  }).catch(() => {}); // silent — don't break the game on network errors
+}
+
 /* ══════════════════════════════════════════════════
    MINI-GAME 1 — Catch the Food 🍚
    ══════════════════════════════════════════════════ */
@@ -1731,6 +1746,13 @@ function App() {
     }, 10000);
     return () => clearInterval(t);
   }, [level]);
+
+  // ── Sync stats to backend every 5 min for push notifications ──
+  useEffect(() => {
+    syncBackend(stats);                         // immediate on mount
+    const t = setInterval(() => syncBackend(stats), 5 * 60 * 1000);
+    return () => clearInterval(t);
+  }, [stats]);
 
   // ── Walking cat animation ──
   useEffect(() => {
