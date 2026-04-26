@@ -8,7 +8,7 @@ const CAT = window.CAT_PNG || 'cat.png';
 const GIF = window.CAT_GIF || 'cat-anim.gif';
 
 // ── Backend URL (fill in after Railway deploy) ──
-const BACKEND_URL = window.SCARED_CAT_BACKEND || '';
+const BACKEND_URL = window.SCARED_CAT_BACKEND || 'https://scared-cat-tamagotchi-production.up.railway.app';
 
 // Sync stats to backend so push notifications know the cat's state
 function syncBackend(stats) {
