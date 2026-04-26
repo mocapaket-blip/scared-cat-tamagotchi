@@ -13,14 +13,15 @@ html, body {
 }
 
 #root {
-  width: 390px;
+  width: 100%;
+  max-width: 430px;
   height: 100vh;
   height: calc(var(--tg-viewport-stable-height, 100vh));
   overflow: hidden;
   position: relative;
 }
 
-@media (max-width: 390px) { #root { width: 100vw; } }
+html, body { justify-content: flex-start; }
 
 /* ─── KEYFRAME ANIMATIONS ─── */
 

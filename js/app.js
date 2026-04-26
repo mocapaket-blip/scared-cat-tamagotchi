@@ -253,7 +253,7 @@ function CatchGameScreen({ level, onComplete, onBack }) {
   // ── Gameplay ──
   return (
     <div
-      style={{ position:'absolute', inset:0, background:'linear-gradient(180deg,#0d1a00 0%,#1a2d00 40%,#101800 100%)', overflow:'hidden', touchAction:'none',
+      style={{ position:'absolute', inset:0, background:'linear-gradient(180deg,#0d1a00 0%,#1a2d00 40%,#101800 100%)', overflow:'hidden', touchAction:'none', overscrollBehavior:'none',
         animation: shaking ? 'screenShake 0.52s ease' : 'none' }}>
 
       {/* Header */}
@@ -827,7 +827,7 @@ function NavItem({ icon, label, active, dot, onClick }) {
    ══════════════════════════════════════════════════ */
 function BottomPanel({ fills, isCrit, onPawClick, activeNav, setActiveNav, canClaimDaily }) {
   return (
-    <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'linear-gradient(180deg,#f8f0e2,#f2e8d4)', borderRadius:'26px 26px 0 0', boxShadow:'0 -6px 32px rgba(0,0,0,0.4)', padding:'12px 12px 0', zIndex:20, height:192, display:'flex', flexDirection:'column' }}>
+    <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:'12px 12px 0', zIndex:20, height:192, display:'flex', flexDirection:'column' }}>
       <div style={{ padding:'8px 4px', display:'flex', justifyContent:'space-around', alignItems:'flex-end', flex:1, marginBottom:10 }}>
         <PawIndicator pawId="ph"  icon="🍔" label="Голод"      fill={fills.hunger}  critical={isCrit(fills.hunger)}  onClick={() => onPawClick('kitchen')}/>
         <PawIndicator pawId="pt"  icon="🚽" label="Гигиена"   fill={fills.toilet}  critical={isCrit(fills.toilet)}  onClick={() => onPawClick('bathroom')}/>
