@@ -1910,11 +1910,6 @@ function App() {
   // ── Derived ──
   const level   = levelFromXP(xp);
   const xpProg  = xpProgress(xp);
-  const nftBonus = calcNFTBonus(activeNFT); // { decayMult, earnMult, tier, tierCfg }
-
-  // Apply active NFT skin image globally
-  CAT = activeNFT?.image || CAT_DEFAULT;
-  GIF = activeNFT?.image || GIF_DEFAULT;
 
   // ── UI state ──
   const [complaint,      setComplaint]      = useState(null);
@@ -1934,6 +1929,13 @@ function App() {
   const [activeNFT,      setActiveNFT]      = useState(_INIT.activeNFT     || null);
   const [nftLoading,     setNftLoading]     = useState(false);
   const [skinFlash,      setSkinFlash]      = useState(false);
+
+  // ── NFT bonus (must be after activeNFT state declaration) ──
+  const nftBonus = calcNFTBonus(activeNFT); // { decayMult, earnMult, tier, tierCfg }
+
+  // Apply active NFT skin image globally
+  CAT = activeNFT?.image || CAT_DEFAULT;
+  GIF = activeNFT?.image || GIF_DEFAULT;
 
   const [toast,          setToast]          = useState(null);
   const [toastKey,       setToastKey]       = useState(0);
