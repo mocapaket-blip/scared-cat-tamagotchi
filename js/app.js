@@ -23,7 +23,7 @@ function getTonConnect() {
         // After wallet authorization, Telegram will restore the Mini App
         // instead of leaving the user inside the wallet app
         returnStrategy: 'back',
-        twaReturnUrl:   'https://t.me/ScaredCatBot/app', // ← update if bot/app username differs
+        twaReturnUrl:   'https://t.me/ScaredCatTamagotchibot', // menu-button Mini App
       },
     });
   } catch (e) { console.warn('[TON] init error', e); }
