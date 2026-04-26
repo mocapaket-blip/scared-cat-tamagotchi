@@ -973,26 +973,182 @@ function ComplaintOverlay({ text, onClose }) {
 }
 
 /* ══════════════════════════════════════════════════
-   ACHIEVEMENTS SCREEN (placeholder)
+   PHASE 2 — Achievements, Missions, Stats, Sound
    ══════════════════════════════════════════════════ */
-function AchievementsScreen({ onBack, canClaimDaily, onShowDaily }) {
+/* ══ ACHIEVEMENT TOAST BANNER ══ */
+function AchievementToastBanner({ achievement, onDone }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 3400);
+    return () => clearTimeout(t);
+  }, []);
   return (
-    <div style={{ position:'absolute', inset:0, background:'linear-gradient(180deg,#1a0d00,#2d1800)', animation:'screenFade 0.3s ease', display:'flex', flexDirection:'column', padding:'16px 16px 80px' }}>
-      <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:20 }}>
-        <button onClick={onBack} style={{ background:'rgba(255,255,255,0.1)', border:'1.5px solid rgba(255,255,255,0.15)', borderRadius:12, width:38, height:38, cursor:'pointer', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', color:'white' }}>←</button>
-        <span style={{ fontSize:20, fontWeight:900, color:'#f5dfc0' }}>🏆 Успехи</span>
+    <div style={{ position:'absolute', top:14, left:12, right:12, zIndex:600, background:'linear-gradient(135deg,#1a0e00,#2e1800)', border:'2px solid rgba(255,200,60,0.7)', borderRadius:22, padding:'14px 16px', display:'flex', alignItems:'center', gap:14, boxShadow:'0 8px 32px rgba(0,0,0,0.65)', animation:'achievementIn 3.4s ease forwards', pointerEvents:'none' }}>
+      <div style={{ fontSize:40 }}>{achievement.icon}</div>
+      <div>
+        <div style={{ fontSize:11, color:'#ffd060', fontWeight:800, letterSpacing:0.5, textTransform:'uppercase' }}>🏆 Достижение!</div>
+        <div style={{ fontSize:16, fontWeight:900, color:'#f5dfc0' }}>{achievement.name}</div>
+        <div style={{ fontSize:12, color:'#c8a860' }}>{achievement.desc} · +{achievement.coins} 🪙</div>
       </div>
-      {canClaimDaily && (
-        <div onClick={onShowDaily} style={{ background:'linear-gradient(135deg,rgba(255,210,60,0.2),rgba(255,160,20,0.2))', border:'2px solid rgba(255,210,60,0.5)', borderRadius:20, padding:'16px 20px', marginBottom:16, cursor:'pointer', display:'flex', alignItems:'center', gap:14 }}>
-          <div style={{ fontSize:40 }}>🎁</div>
+    </div>
+  );
+}
+
+/* ══ MISSION CARD ══ */
+function MissionCard({ mission, onClaim }) {
+  const pct  = Math.min(100, Math.round((mission.progress / mission.target) * 100));
+  const done = mission.completed;
+  return (
+    <div style={{ background: done && !mission.claimed ? 'rgba(80,180,60,0.1)' : 'rgba(255,255,255,0.06)', borderRadius:18, padding:'14px 16px', marginBottom:10, border:`1.5px solid ${done ? 'rgba(80,200,60,0.4)' : 'rgba(255,255,255,0.08)'}` }}>
+      <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+        <div style={{ fontSize:34 }}>{mission.icon}</div>
+        <div style={{ flex:1 }}>
+          <div style={{ fontSize:14, fontWeight:800, color:'#f5dfc0' }}>{mission.desc}</div>
+          <div style={{ fontSize:12, color:'#c8a060', marginTop:1 }}>+{mission.coins} 🪙</div>
+          <div style={{ marginTop:7, height:5, background:'rgba(255,255,255,0.1)', borderRadius:99, overflow:'hidden' }}>
+            <div style={{ height:'100%', borderRadius:99, background: done ? '#60c840' : 'linear-gradient(90deg,#ffd060,#f0a020)', width:`${pct}%`, transition:'width 0.4s ease', animation: pct === 0 ? 'none' : 'progressFill 0.5s ease' }}/>
+          </div>
+          <div style={{ fontSize:10, color:'rgba(255,255,255,0.35)', marginTop:2, fontWeight:700 }}>{mission.progress}/{mission.target}</div>
+        </div>
+        {done && !mission.claimed && (
+          <button onClick={() => onClaim(mission)} style={{ padding:'10px 14px', borderRadius:14, border:'none', cursor:'pointer', fontSize:13, fontWeight:900, background:'linear-gradient(135deg,#60c840,#409020)', color:'white', boxShadow:'0 3px 0 #208010', fontFamily:"'Nunito',sans-serif", animation:'missionClaim 0.3s ease', flexShrink:0 }}>
+            Забрать!
+          </button>
+        )}
+        {mission.claimed && <div style={{ fontSize:26 }}>✅</div>}
+        {!done && <div style={{ fontSize:12, color:'rgba(255,255,255,0.3)', fontWeight:700, flexShrink:0 }}>{pct}%</div>}
+      </div>
+    </div>
+  );
+}
+
+/* ══ ACHIEVEMENT CARD ══ */
+function AchievementCard({ achievement, unlocked }) {
+  return (
+    <div style={{ background: unlocked ? 'rgba(255,210,60,0.09)' : 'rgba(255,255,255,0.04)', borderRadius:18, padding:'14px 16px', marginBottom:10, border:`1.5px solid ${unlocked ? 'rgba(255,210,60,0.35)' : 'rgba(255,255,255,0.07)'}`, opacity: unlocked ? 1 : 0.7, display:'flex', alignItems:'center', gap:14 }}>
+      <div style={{ fontSize:36, filter: unlocked ? 'none' : 'grayscale(1)' }}>{achievement.icon}</div>
+      <div style={{ flex:1 }}>
+        <div style={{ fontSize:15, fontWeight:900, color: unlocked ? '#ffd060' : '#c8a060' }}>{achievement.name}</div>
+        <div style={{ fontSize:12, color:'rgba(255,255,255,0.45)', marginTop:1 }}>{achievement.desc}</div>
+        <div style={{ fontSize:12, fontWeight:700, marginTop:3, color: unlocked ? '#80e060' : 'rgba(255,255,255,0.25)' }}>
+          {unlocked ? '✅ Выполнено' : `+${achievement.coins} 🪙`}
+        </div>
+      </div>
+      {unlocked && <div style={{ fontSize:22 }}>🏆</div>}
+      {!unlocked && <div style={{ fontSize:14, fontWeight:900, color:'rgba(255,255,255,0.2)' }}>+{achievement.coins}🪙</div>}
+    </div>
+  );
+}
+
+/* ══ STATISTICS VIEW ══ */
+function StatsView({ actionCounts, level, dailyStreak }) {
+  const rows = [
+    { icon:'🍔', label:'Кормлений',        value: actionCounts.feedCount     || 0 },
+    { icon:'🚿', label:'Уборок туалета',    value: actionCounts.bathroomCount || 0 },
+    { icon:'😴', label:'Снов',              value: actionCounts.sleepCount    || 0 },
+    { icon:'🎮', label:'Игровых сессий',    value: actionCounts.playCount     || 0 },
+    { icon:'🏥', label:'Визитов в клинику', value: actionCounts.clinicCount   || 0 },
+    { icon:'⚽', label:'Использ. игрушек',  value: actionCounts.toyCount      || 0 },
+    { icon:'🏆', label:'Мини-игр сыграно',  value: actionCounts.minigameWins  || 0 },
+    { icon:'🛒', label:'Покупок',           value: actionCounts.buyCount      || 0 },
+    { icon:'🔥', label:'Макс. серия',       value: actionCounts.maxStreak     || 0 },
+    { icon:'⭐', label:'Текущий уровень',   value: level },
+  ];
+  return (
+    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+      {rows.map(r => (
+        <div key={r.label} style={{ background:'rgba(255,255,255,0.06)', borderRadius:16, padding:'14px 12px', display:'flex', alignItems:'center', gap:10, border:'1px solid rgba(255,255,255,0.08)' }}>
+          <span style={{ fontSize:26 }}>{r.icon}</span>
           <div>
-            <div style={{ fontSize:16, fontWeight:900, color:'#ffd060' }}>Ежедневная награда!</div>
-            <div style={{ fontSize:13, color:'#c8a060' }}>Нажми, чтобы забрать 🎁</div>
+            <div style={{ fontSize:22, fontWeight:900, color:'#f5dfc0' }}>{r.value}</div>
+            <div style={{ fontSize:10, color:'rgba(255,255,255,0.38)', fontWeight:700, lineHeight:1.3 }}>{r.label}</div>
           </div>
         </div>
-      )}
-      <div style={{ fontSize:14, color:'rgba(255,255,255,0.4)', textAlign:'center', marginTop:40 }}>
-        Достижения появятся в следующем обновлении! 🚀
+      ))}
+    </div>
+  );
+}
+
+/* ══ FULL ACHIEVEMENTS SCREEN ══ */
+function AchievementsScreen({ onBack, canClaimDaily, onShowDaily, achievements, actionCounts, level, dailyStreak, dailyMissions, onClaimMission }) {
+  const [tab, setTab] = useState('missions');
+  const tabs = [
+    { id:'missions',  label:'📋 Задания'    },
+    { id:'achiev',    label:'🏆 Успехи'     },
+    { id:'stats',     label:'📊 Статистика' },
+  ];
+  const unlockedCount = ACHIEVEMENTS.filter(a => achievements[a.id]).length;
+
+  return (
+    <div style={{ position:'absolute', inset:0, background:'linear-gradient(180deg,#110800,#220f00)', animation:'screenFade 0.3s ease', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      {/* Header */}
+      <div style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px 0', flexShrink:0 }}>
+        <button onClick={onBack} style={{ background:'rgba(255,255,255,0.08)', border:'1.5px solid rgba(255,255,255,0.12)', borderRadius:12, width:38, height:38, cursor:'pointer', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', color:'white' }}>←</button>
+        <span style={{ fontSize:20, fontWeight:900, color:'#f5dfc0', flex:1 }}>Успехи и задания</span>
+        <span style={{ fontSize:13, color:'#ffd060', fontWeight:800 }}>{unlockedCount}/{ACHIEVEMENTS.length} 🏆</span>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display:'flex', gap:8, padding:'12px 16px 8px', flexShrink:0 }}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)}
+            style={{ flex:1, padding:'9px 4px', borderRadius:14, border:'2px solid rgba(255,255,255,0.1)', cursor:'pointer', fontSize:12, fontWeight:800, fontFamily:"'Nunito',sans-serif", background: tab===t.id ? 'linear-gradient(135deg,#ffd060,#f0a020)' : 'rgba(255,255,255,0.07)', color: tab===t.id ? 'white' : 'rgba(255,255,255,0.55)', boxShadow: tab===t.id ? '0 3px 0 #c07808' : 'none', transition:'all 0.15s' }}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      <div style={{ flex:1, overflowY:'auto', padding:'4px 16px 32px' }}>
+
+        {/* ── MISSIONS TAB ── */}
+        {tab === 'missions' && (
+          <div>
+            {/* Daily reward banner */}
+            {canClaimDaily && (
+              <div onClick={onShowDaily} style={{ background:'linear-gradient(135deg,rgba(255,210,60,0.18),rgba(255,150,20,0.18))', border:'2px solid rgba(255,210,60,0.5)', borderRadius:20, padding:'16px 18px', marginBottom:14, cursor:'pointer', display:'flex', alignItems:'center', gap:14, animation:'dailyBounce 2s ease-in-out infinite' }}>
+                <div style={{ fontSize:42 }}>🎁</div>
+                <div>
+                  <div style={{ fontSize:16, fontWeight:900, color:'#ffd060' }}>Ежедневная награда!</div>
+                  <div style={{ fontSize:13, color:'#c8a060' }}>Нажми, чтобы забрать ✨</div>
+                </div>
+                <div style={{ marginLeft:'auto', fontSize:24 }}>→</div>
+              </div>
+            )}
+            {/* Today's missions */}
+            <div style={{ fontSize:13, fontWeight:800, color:'rgba(255,255,255,0.45)', marginBottom:10, letterSpacing:0.5, textTransform:'uppercase' }}>
+              Задания на сегодня
+            </div>
+            {(dailyMissions.missions || []).map(m => (
+              <MissionCard key={m.id} mission={m} onClaim={onClaimMission}/>
+            ))}
+            {/* Tip */}
+            <div style={{ fontSize:12, color:'rgba(255,255,255,0.25)', textAlign:'center', marginTop:12, lineHeight:1.6 }}>
+              Задания обновляются каждый день в 00:00 🌙
+            </div>
+          </div>
+        )}
+
+        {/* ── ACHIEVEMENTS TAB ── */}
+        {tab === 'achiev' && (
+          <div>
+            <div style={{ fontSize:13, fontWeight:800, color:'rgba(255,255,255,0.45)', marginBottom:10, letterSpacing:0.5, textTransform:'uppercase' }}>
+              {unlockedCount} из {ACHIEVEMENTS.length} разблокировано
+            </div>
+            {/* Unlocked first */}
+            {ACHIEVEMENTS.filter(a => achievements[a.id]).map(a => (
+              <AchievementCard key={a.id} achievement={a} unlocked={true}/>
+            ))}
+            {/* Then locked */}
+            {ACHIEVEMENTS.filter(a => !achievements[a.id]).map(a => (
+              <AchievementCard key={a.id} achievement={a} unlocked={false}/>
+            ))}
+          </div>
+        )}
+
+        {/* ── STATS TAB ── */}
+        {tab === 'stats' && (
+          <StatsView actionCounts={actionCounts} level={level} dailyStreak={dailyStreak}/>
+        )}
       </div>
     </div>
   );
@@ -1011,8 +1167,10 @@ function App() {
   const [equipped,    setEquipped]    = useState(_INIT.equipped);
   const [dailyStreak, setDailyStreak] = useState(_INIT.dailyStreak);
   const [lastDaily,   setLastDaily]   = useState(_INIT.lastDaily);
-  const [achievements,setAchievements]= useState(_INIT.achievements);
-  const [highScores,  setHighScores]  = useState(_INIT.highScores);
+  const [achievements,  setAchievements]  = useState(_INIT.achievements);
+  const [highScores,    setHighScores]    = useState(_INIT.highScores);
+  const [actionCounts,  setActionCounts]  = useState(_INIT.actionCounts);
+  const [dailyMissions, setDailyMissions] = useState(_INIT.dailyMissions);
 
   // ── Derived ──
   const level  = levelFromXP(xp);
@@ -1031,6 +1189,8 @@ function App() {
   const [actionDone,     setActionDone]     = useState(false);
   const [toast,          setToast]          = useState(null);
   const [toastKey,       setToastKey]       = useState(0);
+  const [achToast,       setAchToast]       = useState(null);
+  const [achQueue,       setAchQueue]       = useState([]);
 
   const createdAt = useRef(_INIT.createdAt);
   const walkRef   = useRef({ x: 111, dir: 1 });
@@ -1053,8 +1213,40 @@ function App() {
       createdAt: createdAt.current,
       lastDaily, dailyStreak,
       inventory, equipped, achievements, highScores,
+      actionCounts, dailyMissions,
     });
-  }, [stats, coins, xp, lastDaily, dailyStreak, inventory, equipped]);
+  }, [stats, coins, xp, lastDaily, dailyStreak, inventory, equipped, actionCounts, dailyMissions]);
+
+  // ── Achievement checking (runs after actionCounts or level changes) ──
+  useEffect(() => {
+    const newOnes = checkNewAchievements(achievements, actionCounts, level);
+    if (newOnes.length === 0) return;
+    setAchievements(prev => {
+      const upd = { ...prev };
+      newOnes.forEach(a => { upd[a.id] = true; });
+      return upd;
+    });
+    const coinsWon = newOnes.reduce((s, a) => s + a.coins, 0);
+    if (coinsWon > 0) setCoins(c => c + coinsWon);
+    setAchQueue(q => [...q, ...newOnes]);
+    playSound('achievement');
+  }, [actionCounts, level]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Show achievement toasts one at a time ──
+  useEffect(() => {
+    if (!achToast && achQueue.length > 0) {
+      setAchToast(achQueue[0]);
+      setAchQueue(q => q.slice(1));
+    }
+  }, [achToast, achQueue]);
+
+  // ── Refresh daily missions if date changed ──
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0];
+    if (dailyMissions.date !== today) {
+      setDailyMissions(getOrUpdateDailyMissions(null));
+    }
+  }, []);
 
   // ── In-app decay tick (every 10 seconds) ──
   useEffect(() => {
@@ -1093,6 +1285,19 @@ function App() {
   const thoughtEmoji = fills[worstKey] > 65 ? '😺' : (THOUGHT_EMOJIS[worstKey] || '😿');
 
   // ── Helpers ──
+  // ── afterAction: increment lifetime count + update daily missions ──
+  const afterAction = useCallback((key, amount = 1) => {
+    setActionCounts(prev => ({ ...prev, [key]: (prev[key] || 0) + amount }));
+    setDailyMissions(prev => ({
+      ...prev,
+      missions: prev.missions.map(m => {
+        if (m.actionKey !== key || m.completed) return m;
+        const np = Math.min((m.progress || 0) + amount, m.target);
+        return { ...m, progress: np, completed: np >= m.target };
+      }),
+    }));
+  }, []);
+
   const spawnHearts = useCallback((n = 3, baseX = 100) => {
     const hs = Array.from({ length: n }, () => ({
       id: ++heartId.current,
@@ -1133,9 +1338,12 @@ function App() {
     const earned = earnCoins(8, level);
     setCoins(c => c + earned);
     applyXP(item.xp);
+    afterAction('feedCount');
+    if (item.id === 'food_premium') afterAction('premiumFed');
     spawnHearts(3, 80);
+    playSound('feed');
     showToast(`${item.emoji} +${earned}🪙 +${item.xp}XP`);
-  }, [inventory, level, applyXP, spawnHearts, showToast]);
+  }, [inventory, level, applyXP, afterAction, spawnHearts, showToast]);
 
   const handleUseToy = useCallback((item) => {
     const count = inventory[item.id] || 0;
@@ -1149,11 +1357,15 @@ function App() {
     const earned = earnCoins(5, level);
     setCoins(c => c + earned);
     applyXP(item.xp);
+    afterAction('toyCount');
+    afterAction('playCount');
     spawnHearts(4, 100);
+    playSound('toy');
     showToast(`${item.emoji} +${earned}🪙 +${item.xp}XP`);
-  }, [inventory, level, applyXP, spawnHearts, showToast]);
+  }, [inventory, level, applyXP, afterAction, spawnHearts, showToast]);
 
-  const handleRoomAction = useCallback((statChanges, baseXP, baseCoins) => {
+  // roomKey: 'bathroomCount' | 'sleepCount' | 'clinicCount'
+  const handleRoomAction = useCallback((statChanges, baseXP, baseCoins, roomKey) => {
     setStats(prev => {
       const s = { ...prev };
       Object.entries(statChanges).forEach(([k, v]) => { s[k] = clamp((s[k] || 0) + v, 0, 100); });
@@ -1162,22 +1374,28 @@ function App() {
     const earned = earnCoins(baseCoins, level);
     setCoins(c => c + earned);
     applyXP(baseXP);
+    if (roomKey) afterAction(roomKey);
     spawnHearts(3, 120);
+    playSound('action');
     showToast(`+${earned}🪙 +${baseXP}XP`);
     setActionDone(true);
     setTimeout(() => { setScreen('home'); setActionDone(false); }, 1800);
-  }, [level, applyXP, spawnHearts, showToast]);
+  }, [level, applyXP, afterAction, spawnHearts, showToast]);
 
   const handleMinigameComplete = useCallback((earnedCoins, xpGain) => {
     setCoins(c => c + earnedCoins);
     applyXP(xpGain);
+    afterAction('minigameWins');
+    playSound('coin');
     showToast(`🎉 +${earnedCoins}🪙 +${xpGain}XP`);
     setScreen('home');
-  }, [applyXP, showToast]);
+  }, [applyXP, afterAction, showToast]);
 
   const handleShopBuy = useCallback((item) => {
     if (coins < item.cost) { showToast('Недостаточно монет 😿'); return; }
     setCoins(c => c - item.cost);
+    afterAction('buyCount');
+    playSound('buy');
     if (item.id.startsWith('acc_')) {
       setAchievements(prev => ({ ...prev, [item.id]: true }));
       showToast(`${item.emoji} ${item.name} куплено!`);
@@ -1185,14 +1403,28 @@ function App() {
       setInventory(prev => ({ ...prev, [item.id]: (prev[item.id] || 0) + 1 }));
       showToast(`${item.emoji} +1 ${item.name}`);
     }
-  }, [coins, showToast]);
+  }, [coins, afterAction, showToast]);
 
   const handleShopEquip = useCallback((item) => {
-    setEquipped(prev => ({
+    setEquipped(prev => {
+      const wasEquipped = prev[item.slot] === item.id;
+      if (!wasEquipped) {
+        afterAction('equipCount');
+        playSound('tap');
+      }
+      return { ...prev, [item.slot]: wasEquipped ? null : item.id };
+    });
+  }, [afterAction]);
+
+  const handleClaimMission = useCallback((mission) => {
+    setDailyMissions(prev => ({
       ...prev,
-      [item.slot]: prev[item.slot] === item.id ? null : item.id,
+      missions: prev.missions.map(m => m.id === mission.id ? { ...m, claimed: true } : m),
     }));
-  }, []);
+    setCoins(c => c + mission.coins);
+    playSound('mission');
+    showToast(`📋 +${mission.coins}🪙`);
+  }, [showToast]);
 
   const handleClaimDaily = useCallback(() => {
     const rewardIdx = ((pendingStreak || 1) - 1) % 7;
@@ -1200,13 +1432,17 @@ function App() {
     setCoins(c => c + reward.coins);
     applyXP(reward.xp);
     if (reward.bonus) setInventory(prev => ({ ...prev, [reward.bonus]: (prev[reward.bonus] || 0) + 1 }));
+    // Update max streak in actionCounts
+    setActionCounts(prev => ({ ...prev, maxStreak: Math.max(prev.maxStreak || 0, pendingStreak) }));
     setDailyStreak(pendingStreak);
     setLastDaily(Date.now());
     setShowDailyModal(false);
+    playSound('daily');
     showToast(`🎁 +${reward.coins}🪙 +${reward.xp}XP`);
   }, [pendingStreak, applyXP, showToast]);
 
   const handleCatClick = useCallback(() => {
+    playSound('tap');
     walkRef.current.x = 111; walkRef.current.dir = 1;
     setCatX(111); setCatFacing(1);
     if (showGif) return;
@@ -1239,6 +1475,7 @@ function App() {
         onBuy={handleShopBuy} onEquip={handleShopEquip}
         onBack={() => { setScreen('home'); setActiveNav('home'); }}/>
       {toast && <Toast key={toastKey} msg={toast}/>}
+      {achToast && <AchievementToastBanner achievement={achToast} onDone={() => setAchToast(null)}/>}
     </div>
   );
 
@@ -1248,8 +1485,16 @@ function App() {
       <AchievementsScreen
         onBack={() => setActiveNav('home')}
         canClaimDaily={showDailyModal}
-        onShowDaily={() => setShowDailyModal(true)}/>
+        onShowDaily={() => { setShowDailyModal(true); }}
+        achievements={achievements}
+        actionCounts={actionCounts}
+        level={level}
+        dailyStreak={dailyStreak}
+        dailyMissions={dailyMissions}
+        onClaimMission={handleClaimMission}/>
       {showDailyModal && <DailyRewardModal streak={pendingStreak} onClaim={handleClaimDaily}/>}
+      {toast && <Toast key={toastKey} msg={toast}/>}
+      {achToast && <AchievementToastBanner achievement={achToast} onDone={() => setAchToast(null)}/>}
     </div>
   );
 
@@ -1291,9 +1536,9 @@ function App() {
 
   // Generic room screens (bathroom, rest, clinic)
   const ROOM_CONFIGS = {
-    bathroom: { RoomComp: BathroomRoom, catX: 60, catFacing: 1, name: '🚿 Ванная',    emoji:'🚿', label:'Убраться',    color:'blue',   changes:{ toilet:-24, mood:3 }, xp:5,  base:5  },
-    rest:     { RoomComp: RestRoom,     catX:100, catFacing: 1, name: '🛏️ Спальня',    emoji:'😴', label:'Поспать',     color:'purple', changes:{ fatigue:-38, mood:5 }, xp:8,  base:8  },
-    clinic:   { RoomComp: ClinicRoom,   catX:115, catFacing: 1, name: '🏥 Клиника',    emoji:'💉', label:'Лечиться',    color:'teal',   changes:{ health:30 },          xp:15, base:5  },
+    bathroom: { RoomComp: BathroomRoom, catX: 60,  catFacing: 1, name: '🚿 Ванная',   emoji:'🚿', label:'Убраться',  color:'blue',   changes:{ toilet:-24, mood:3 },  xp:5,  base:5,  roomKey:'bathroomCount' },
+    rest:     { RoomComp: RestRoom,     catX: 100, catFacing: 1, name: '🛏️ Спальня',  emoji:'😴', label:'Поспать',   color:'purple', changes:{ fatigue:-38, mood:5 }, xp:8,  base:8,  roomKey:'sleepCount'    },
+    clinic:   { RoomComp: ClinicRoom,   catX: 115, catFacing: 1, name: '🏥 Клиника',  emoji:'💉', label:'Лечиться',  color:'teal',   changes:{ health:30 },           xp:15, base:5,  roomKey:'clinicCount'   },
   };
   const roomCfg = ROOM_CONFIGS[screen];
   if (roomCfg) return (
@@ -1301,7 +1546,7 @@ function App() {
       <LocationScreen
         screen={screen}
         onBack={() => { setScreen('home'); setActiveNav('home'); setActionDone(false); }}
-        onAction={() => handleRoomAction(roomCfg.changes, roomCfg.xp, roomCfg.base)}
+        onAction={() => handleRoomAction(roomCfg.changes, roomCfg.xp, roomCfg.base, roomCfg.roomKey)}
         actionDone={actionDone}
         catX={roomCfg.catX} catFacing={roomCfg.catFacing}
         RoomComp={roomCfg.RoomComp}
@@ -1380,12 +1625,15 @@ function App() {
       )}
 
       {/* Bottom panel */}
-      <BottomPanel fills={fills} isCrit={isCrit} onPawClick={handlePawClick} activeNav={activeNav} setActiveNav={setActiveNav} canClaimDaily={showDailyModal}/>
+      <BottomPanel fills={fills} isCrit={isCrit} onPawClick={handlePawClick} activeNav={activeNav} setActiveNav={setActiveNav}
+        canClaimDaily={showDailyModal || (dailyMissions.missions || []).some(m => m.completed && !m.claimed)}/>
 
       {/* Toast */}
       {toast && <Toast key={toastKey} msg={toast}/>}
 
-      {/* Daily reward dot on achievements nav */}
+      {/* Achievement toast banner */}
+      {achToast && <AchievementToastBanner achievement={achToast} onDone={() => setAchToast(null)}/>}
+
       {/* Modals */}
       {showDailyModal && <DailyRewardModal streak={pendingStreak} onClaim={handleClaimDaily}/>}
       {levelUpModal   && <LevelUpModal     level={levelUpModal}  onClose={() => setLevelUpModal(null)}/>}

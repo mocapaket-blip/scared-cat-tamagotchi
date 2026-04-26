@@ -108,6 +108,23 @@ html, body {
   to   { opacity: 0.7; }
 }
 
+@keyframes achievementIn {
+  0%   { opacity: 0; transform: translateY(-40px) scale(0.88); }
+  12%  { opacity: 1; transform: translateY(0)     scale(1); }
+  80%  { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-18px); }
+}
+
+@keyframes missionClaim {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+@keyframes progressFill {
+  from { width: 0; }
+}
+
 @keyframes cardFlip {
   0%   { transform: rotateY(0deg); }
   100% { transform: rotateY(180deg); }

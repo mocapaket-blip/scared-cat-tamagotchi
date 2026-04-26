@@ -27,17 +27,19 @@ function defaultInventory() {
 
 function defaultState() {
   return {
-    stats:       defaultStats(),
-    coins:       125,
-    xp:          0,
-    createdAt:   Date.now(),
-    lastUpdate:  Date.now(),
-    lastDaily:   null,
-    dailyStreak: 0,
-    inventory:   defaultInventory(),
-    equipped:    { hat: null, neck: null, eyes: null },
+    stats:        defaultStats(),
+    coins:        125,
+    xp:           0,
+    createdAt:    Date.now(),
+    lastUpdate:   Date.now(),
+    lastDaily:    null,
+    dailyStreak:  0,
+    inventory:    defaultInventory(),
+    equipped:     { hat: null, neck: null, eyes: null },
     achievements: {},
-    highScores:  { catch: 0, memory: 0 },
+    highScores:   { catch: 0, memory: 0 },
+    actionCounts: defaultActionCounts(),
+    dailyMissions: getOrUpdateDailyMissions(null),
   };
 }
 
@@ -102,9 +104,11 @@ const _INIT = (() => {
         dailyStreak: saved.dailyStreak  || 0,
         inventory:   { ...defaultInventory(), ...(saved.inventory || {}) },
         equipped:    saved.equipped     || { hat: null, neck: null, eyes: null },
-        achievements: saved.achievements || {},
-        highScores:  saved.highScores   || { catch: 0, memory: 0 },
-        complaint:   buildComplaint(stats, minsAway),
+        achievements:  saved.achievements  || {},
+        highScores:    saved.highScores    || { catch: 0, memory: 0 },
+        actionCounts:  { ...defaultActionCounts(), ...(saved.actionCounts || {}) },
+        dailyMissions: getOrUpdateDailyMissions(saved.dailyMissions || null),
+        complaint:     buildComplaint(stats, minsAway),
         canClaimDaily: daily.canClaim,
         pendingStreak: daily.newStreak,
       };
@@ -120,5 +124,7 @@ const _INIT = (() => {
     complaint:     null,
     canClaimDaily: true,
     pendingStreak: 1,
+    actionCounts:  defaultActionCounts(),
+    dailyMissions: getOrUpdateDailyMissions(null),
   };
 })();

@@ -156,6 +156,169 @@ const THOUGHT_EMOJIS = {
   health:  '🏥',
 };
 
+// ─── ACTION COUNTS DEFAULT ───
+function defaultActionCounts() {
+  return {
+    feedCount:     0,
+    bathroomCount: 0,
+    sleepCount:    0,
+    playCount:     0,
+    clinicCount:   0,
+    toyCount:      0,
+    premiumFed:    0,
+    minigameWins:  0,
+    buyCount:      0,
+    equipCount:    0,
+    maxStreak:     0,
+  };
+}
+
+// ─── ACHIEVEMENTS (15 milestones) ───
+const ACHIEVEMENTS = [
+  { id:'ach_first_meal',  icon:'🍚', name:'Первый обед',      desc:'Покорми кота впервые',          coins: 50,  check:(c)=>c.feedCount>=1       },
+  { id:'ach_fed_10',      icon:'🍗', name:'Гурман',           desc:'Покорми кота 10 раз',           coins:100,  check:(c)=>c.feedCount>=10      },
+  { id:'ach_premium',     icon:'🐟', name:'Деликатес',        desc:'Дай коту премиум еду',          coins: 80,  check:(c)=>c.premiumFed>=1      },
+  { id:'ach_clean_5',     icon:'🚿', name:'Чистюля',          desc:'Убери туалет 5 раз',            coins: 80,  check:(c)=>c.bathroomCount>=5   },
+  { id:'ach_sleep_5',     icon:'😴', name:'Сладкий сон',      desc:'Уложи кота спать 5 раз',       coins: 80,  check:(c)=>c.sleepCount>=5      },
+  { id:'ach_play_5',      icon:'🎮', name:'Игривый',          desc:'Поиграй с котом 5 раз',         coins: 80,  check:(c)=>c.playCount>=5       },
+  { id:'ach_healthy_3',   icon:'🏥', name:'Здоровяк',         desc:'Вылечи кота 3 раза',            coins:100,  check:(c)=>c.clinicCount>=3     },
+  { id:'ach_toy_3',       icon:'⚽', name:'Игрушечник',       desc:'Используй игрушку 3 раза',      coins: 80,  check:(c)=>c.toyCount>=3        },
+  { id:'ach_minigame_1',  icon:'🏆', name:'Игрок',            desc:'Заверши 1 мини-игру',           coins:100,  check:(c)=>c.minigameWins>=1    },
+  { id:'ach_minigame_5',  icon:'🥇', name:'Чемпион',          desc:'Заверши 5 мини-игр',            coins:200,  check:(c)=>c.minigameWins>=5    },
+  { id:'ach_shop_1',      icon:'🛒', name:'Покупатель',       desc:'Купи первый предмет',           coins: 50,  check:(c)=>c.buyCount>=1        },
+  { id:'ach_dressed',     icon:'🎩', name:'Стиляга',          desc:'Надень аксессуар на кота',      coins: 80,  check:(c)=>c.equipCount>=1      },
+  { id:'ach_level_5',     icon:'⭐', name:'Опытный хозяин',   desc:'Достигни 5 уровня',             coins:150,  check:(c,l)=>l>=5               },
+  { id:'ach_level_10',    icon:'🌟', name:'Мастер заботы',    desc:'Достигни 10 уровня',            coins:300,  check:(c,l)=>l>=10              },
+  { id:'ach_streak_7',    icon:'💎', name:'Верный хозяин',    desc:'Войди 7 дней подряд',           coins:300,  check:(c)=>c.maxStreak>=7       },
+];
+
+// Returns array of newly-unlocked achievements (not yet in unlockedMap)
+function checkNewAchievements(unlockedMap, actionCounts, level) {
+  return ACHIEVEMENTS.filter(a => !unlockedMap[a.id] && a.check(actionCounts, level));
+}
+
+// ─── DAILY MISSIONS POOL ───
+const MISSIONS_POOL = [
+  { id:'m_feed_2',    icon:'🍔', desc:'Покорми кота 2 раза',          target:2, coins:30, actionKey:'feedCount'     },
+  { id:'m_feed_5',    icon:'🍗', desc:'Покорми кота 5 раз',           target:5, coins:65, actionKey:'feedCount'     },
+  { id:'m_bathroom',  icon:'🚿', desc:'Убери туалет',                 target:1, coins:25, actionKey:'bathroomCount' },
+  { id:'m_sleep',     icon:'😴', desc:'Уложи кота спать',             target:1, coins:25, actionKey:'sleepCount'    },
+  { id:'m_play',      icon:'🎮', desc:'Поиграй с котом',              target:1, coins:25, actionKey:'playCount'     },
+  { id:'m_minigame',  icon:'🏆', desc:'Сыграй в мини-игру',          target:1, coins:50, actionKey:'minigameWins'  },
+  { id:'m_clinic',    icon:'🏥', desc:'Навести кота в клинике',       target:1, coins:25, actionKey:'clinicCount'   },
+  { id:'m_toy',       icon:'⚽', desc:'Используй игрушку',           target:1, coins:30, actionKey:'toyCount'      },
+  { id:'m_premium',   icon:'🐟', desc:'Дай коту премиум еду',        target:1, coins:40, actionKey:'premiumFed'    },
+  { id:'m_shop',      icon:'🛒', desc:'Купи что-нибудь в магазине',  target:1, coins:35, actionKey:'buyCount'      },
+];
+
+// Seeded deterministic RNG (based on date) so missions are same per calendar day
+function seededRng(seed) {
+  let s = seed;
+  return () => { s = (s * 1664525 + 1013904223) & 0x7fffffff; return s / 0x7fffffff; };
+}
+
+function generateDailyMissions(dateStr) {
+  const seed = dateStr.split('-').reduce((a, n, i) => a + parseInt(n) * (i + 1) * 137, 0);
+  const rng  = seededRng(seed);
+  const pool = [...MISSIONS_POOL];
+  const result = [];
+  while (result.length < 3 && pool.length > 0) {
+    const idx = Math.floor(rng() * pool.length);
+    result.push({ ...pool[idx], progress: 0, completed: false, claimed: false });
+    pool.splice(idx, 1);
+  }
+  return result;
+}
+
+// Returns current day's missions (generates new ones if date changed)
+function getOrUpdateDailyMissions(saved) {
+  const today = new Date().toISOString().split('T')[0];
+  if (saved && saved.date === today) return saved;
+  return { date: today, missions: generateDailyMissions(today) };
+}
+
+// ─── SOUND SYSTEM (Web Audio API — no files needed) ───
+let _audioCtx = null;
+
+function getAudioCtx() {
+  try {
+    const Cls = window.AudioContext || window.webkitAudioContext;
+    if (!Cls) return null;
+    if (!_audioCtx) _audioCtx = new Cls();
+    if (_audioCtx.state === 'suspended') _audioCtx.resume();
+    return _audioCtx;
+  } catch (e) { return null; }
+}
+
+function _note(ctx, freq, start, dur, vol, type) {
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = type || 'triangle';
+  o.frequency.setValueAtTime(freq, start);
+  g.gain.setValueAtTime(vol, start);
+  g.gain.exponentialRampToValueAtTime(0.001, start + dur);
+  o.connect(g); g.connect(ctx.destination);
+  o.start(start); o.stop(start + dur + 0.02);
+}
+
+function playSound(type) {
+  try {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    switch (type) {
+      case 'coin':
+        _note(ctx,  880, t,       0.12, 0.18);
+        _note(ctx, 1320, t+0.12,  0.15, 0.15);
+        break;
+      case 'feed':
+        _note(ctx,  440, t,       0.08, 0.14, 'sine');
+        _note(ctx,  660, t+0.08,  0.12, 0.11, 'sine');
+        break;
+      case 'toy':
+        _note(ctx,  660, t,       0.07, 0.15, 'sine');
+        _note(ctx,  880, t+0.07,  0.07, 0.13, 'sine');
+        _note(ctx,  660, t+0.14,  0.1,  0.1,  'sine');
+        break;
+      case 'action':
+        _note(ctx,  440, t,       0.1,  0.12, 'sine');
+        _note(ctx,  554, t+0.1,   0.12, 0.1,  'sine');
+        break;
+      case 'levelup':
+        _note(ctx,  440, t,       0.12, 0.22);
+        _note(ctx,  554, t+0.12,  0.12, 0.22);
+        _note(ctx,  659, t+0.24,  0.12, 0.22);
+        _note(ctx,  880, t+0.36,  0.38, 0.28);
+        break;
+      case 'achievement':
+        _note(ctx,  659, t,       0.1,  0.22);
+        _note(ctx,  880, t+0.1,   0.1,  0.22);
+        _note(ctx, 1100, t+0.2,   0.1,  0.22);
+        _note(ctx, 1320, t+0.3,   0.38, 0.28);
+        break;
+      case 'daily':
+        _note(ctx,  523, t,       0.12, 0.22);
+        _note(ctx,  659, t+0.12,  0.12, 0.22);
+        _note(ctx,  784, t+0.24,  0.12, 0.22);
+        _note(ctx, 1047, t+0.36,  0.42, 0.28);
+        break;
+      case 'mission':
+        _note(ctx,  659, t,       0.1,  0.2);
+        _note(ctx,  784, t+0.1,   0.14, 0.2);
+        _note(ctx, 1046, t+0.24,  0.32, 0.2);
+        break;
+      case 'tap':
+        _note(ctx,  880, t,       0.06, 0.11, 'sine');
+        break;
+      case 'buy':
+        _note(ctx,  660, t,       0.08, 0.15);
+        _note(ctx,  880, t+0.08,  0.08, 0.13);
+        _note(ctx, 1100, t+0.16,  0.15, 0.15);
+        break;
+    }
+  } catch (e) { /* silently fail */ }
+}
+
 // ─── COMPLAINT MESSAGES ───
 function buildComplaint(stats, minutes) {
   if (minutes < 30) return null;
