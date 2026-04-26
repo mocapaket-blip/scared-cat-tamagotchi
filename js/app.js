@@ -19,6 +19,12 @@ function getTonConnect() {
     if (!TONCUI) return null;
     _tonConnectUI = new TONCUI.TonConnectUI({
       manifestUrl: 'https://mocapaket-blip.github.io/scared-cat-tamagotchi/tonconnect-manifest.json',
+      actionsConfiguration: {
+        // After wallet authorization, Telegram will restore the Mini App
+        // instead of leaving the user inside the wallet app
+        returnStrategy: 'back',
+        twaReturnUrl:   'https://t.me/ScaredCatBot/app', // ← update if bot/app username differs
+      },
     });
   } catch (e) { console.warn('[TON] init error', e); }
   return _tonConnectUI;
@@ -1732,8 +1738,10 @@ function AchievementsScreen({ onBack, canClaimDaily, onShowDaily, achievements, 
 /* ══════════════════════════════════════════════════
    NFT SKIN SCREEN — wallet + gallery
    ══════════════════════════════════════════════════ */
-function NFTSkinScreen({ walletAddress, ownedNFTs, activeNFT, onConnect, onDisconnect, onSelectNFT, onBack, loading }) {
+function NFTSkinScreen({ walletAddress, ownedNFTs, activeNFT, onConnect, onDisconnect, onSelectNFT, onManualAddress, onBack, loading }) {
   const [tab, setTab] = useState(walletAddress ? 'gallery' : 'connect');
+  const [showManual, setShowManual] = useState(false);
+  const [manualInput, setManualInput] = useState('');
 
   const tierCfg = activeNFT ? (NFT_TIER_BONUSES[SCARED_CAT_MODELS[activeNFT.name]?.tier] || NFT_TIER_BONUSES.common) : null;
 
@@ -1813,6 +1821,33 @@ function NFTSkinScreen({ walletAddress, ownedNFTs, activeNFT, onConnect, onDisco
               style={{ background:'linear-gradient(135deg,#6040ff,#a060ff)', border:'none', borderRadius:22, padding:'16px 48px', fontSize:17, fontWeight:900, color:'white', cursor:loading?'default':'pointer', boxShadow:'0 6px 0 #3020a0', width:'100%', fontFamily:"'Nunito',sans-serif", opacity:loading?0.7:1 }}>
               {loading ? '⏳ Подключаем...' : '👛 Подключить кошелёк'}
             </button>
+
+            {/* Manual address fallback */}
+            <div style={{ width:'100%' }}>
+              <button onClick={() => setShowManual(v => !v)}
+                style={{ background:'none', border:'none', color:'rgba(255,255,255,0.4)', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:"'Nunito',sans-serif", textDecoration:'underline', padding:'4px 0' }}>
+                {showManual ? '▲ Скрыть' : '✏️ Ввести адрес вручную'}
+              </button>
+              {showManual && (
+                <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop:6 }}>
+                  <div style={{ fontSize:11, color:'rgba(255,255,255,0.45)', lineHeight:1.5 }}>
+                    Если кошелёк не подключается автоматически — вставь свой TON-адрес:
+                  </div>
+                  <input
+                    value={manualInput}
+                    onChange={e => setManualInput(e.target.value)}
+                    placeholder="EQ... или UQ..."
+                    style={{ background:'rgba(255,255,255,0.1)', border:'1.5px solid rgba(255,255,255,0.2)', borderRadius:14, padding:'12px 14px', fontSize:13, color:'white', fontFamily:'monospace', outline:'none', width:'100%' }}
+                  />
+                  <button
+                    onClick={() => { onManualAddress(manualInput); setShowManual(false); setManualInput(''); }}
+                    disabled={!manualInput.trim() || loading}
+                    style={{ background:'rgba(96,64,255,0.4)', border:'1.5px solid rgba(120,80,255,0.6)', borderRadius:14, padding:'12px', fontSize:14, fontWeight:800, color:'white', cursor:'pointer', fontFamily:"'Nunito',sans-serif", opacity:(!manualInput.trim() || loading)?0.5:1 }}>
+                    🔍 Найти NFT
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         ) : loading ? (
           <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:250, gap:16 }}>
@@ -2178,11 +2213,21 @@ function App() {
     }
 
     // Check if wallet already restored from previous session
-    tc.connectionRestored.then(() => {
-      if (tc.wallet) {
-        onWalletConnected(tc.wallet).catch(() => {});
-      }
-    }).catch(() => {});
+    // (tc.connectionRestored is a Promise that resolves when TON Connect
+    //  has finished reading its own localStorage — works on every app restart)
+    const restored = tc.connectionRestored;
+    if (restored && typeof restored.then === 'function') {
+      restored.then(() => {
+        if (tc.wallet) {
+          onWalletConnected(tc.wallet).catch(() => {});
+        }
+      }).catch(() => {});
+    } else {
+      // Older version: check wallet synchronously after a tiny tick
+      setTimeout(() => {
+        if (tc.wallet) onWalletConnected(tc.wallet).catch(() => {});
+      }, 300);
+    }
 
     // Subscribe to future status changes (fires when user returns from wallet app)
     const unsub = tc.onStatusChange(wallet => {
@@ -2216,6 +2261,22 @@ function App() {
     setOwnedNFTs([]);
     setActiveNFT(null);
     showToast('Кошелёк отключён');
+  }, [showToast]);
+
+  // Manual address fallback — user pastes their TON address directly
+  const handleManualWallet = useCallback(async (addr) => {
+    const clean = (addr || '').trim();
+    if (!clean) return;
+    // Basic TON address sanity check (EQ/UQ prefix or raw hex ≥ 40 chars)
+    const looksLikeTON = /^(EQ|UQ|0:)[A-Za-z0-9_\-]{40,}$/.test(clean) || /^[0-9a-fA-F]{64}$/.test(clean);
+    if (!looksLikeTON) { showToast('Неверный формат адреса 😿'); return; }
+    setWalletAddress(clean);
+    setNftLoading(true);
+    const nfts = await fetchScaredCatNFTs(clean);
+    setOwnedNFTs(nfts);
+    setNftLoading(false);
+    if (nfts.length > 0) showToast(`🎉 Найдено ${nfts.length} NFT!`);
+    else showToast('NFT коллекции не найдены 😿');
   }, [showToast]);
 
   const handleSelectNFT = useCallback((nft) => {
@@ -2418,6 +2479,7 @@ function App() {
         onConnect={handleConnectWallet}
         onDisconnect={handleDisconnectWallet}
         onSelectNFT={handleSelectNFT}
+        onManualAddress={handleManualWallet}
         onBack={() => setScreen('home')}/>
       {toast && <Toast key={toastKey} msg={toast}/>}
     </div>
