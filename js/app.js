@@ -40,17 +40,24 @@ async function fetchScaredCatNFTs(walletAddress) {
       const colAddr = (n.collection?.address || '').toLowerCase();
       const colName = (n.collection?.name   || '').toLowerCase();
       const target  = SCARED_CAT_COLLECTION_ADDRESS.toLowerCase();
-      return colAddr === target || colName.includes('scared cat');
+      // Match by raw address OR by collection name containing "scared"
+      return colAddr === target || colName.includes('scared');
     });
     return nfts.map(n => {
       const attrs = (n.metadata?.attributes || []).reduce((m, a) => {
         m[a.trait_type?.toLowerCase() || a.trait_type] = a.value;
         return m;
       }, {});
+      // Prefer tonapi cached preview (500x500) — works for Fragment/IPFS/any source
+      const preview500 = (n.previews || []).find(p => p.resolution === '500x500');
+      const preview100 = (n.previews || []).find(p => p.resolution === '100x100');
+      const image = preview500?.url
+        || preview100?.url
+        || (n.metadata?.image || '').replace('ipfs://', 'https://ipfs.io/ipfs/');
       return {
         address:  n.address,
         name:     n.metadata?.name || 'Scared Cat',
-        image:    (n.metadata?.image || '').replace('ipfs://', 'https://ipfs.io/ipfs/'),
+        image,
         traits:   attrs,
       };
     });
