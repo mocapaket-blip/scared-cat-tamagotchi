@@ -2162,30 +2162,56 @@ function App() {
   }, [level, applyXP, afterAction, spawnHearts, showToast]);
 
   // ── NFT Wallet handlers ──
+  // ── TON Connect: persistent listener (fires when user returns from wallet app) ──
+  useEffect(() => {
+    const tc = getTonConnect();
+    if (!tc) return;
+
+    // Helper: load NFTs when wallet connects
+    async function onWalletConnected(wallet) {
+      const addr = wallet.account.address;
+      setWalletAddress(addr);
+      setNftLoading(true);
+      const nfts = await fetchScaredCatNFTs(addr);
+      setOwnedNFTs(nfts);
+      setNftLoading(false);
+    }
+
+    // Check if wallet already restored from previous session
+    tc.connectionRestored.then(() => {
+      if (tc.wallet) {
+        onWalletConnected(tc.wallet).catch(() => {});
+      }
+    }).catch(() => {});
+
+    // Subscribe to future status changes (fires when user returns from wallet app)
+    const unsub = tc.onStatusChange(wallet => {
+      if (wallet) {
+        onWalletConnected(wallet).catch(() => {});
+      } else {
+        // User disconnected
+        setWalletAddress(null);
+        setOwnedNFTs([]);
+        setActiveNFT(null);
+      }
+    });
+
+    return () => { try { unsub(); } catch(_) {} };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleConnectWallet = useCallback(async () => {
     const tc = getTonConnect();
     if (!tc) { showToast('TON Connect недоступен 😿'); return; }
-    setNftLoading(true);
     try {
       await tc.openModal();
-      // Listen for connection
-      const unsub = tc.onStatusChange(async wallet => {
-        if (wallet) {
-          unsub();
-          const addr = wallet.account.address;
-          setWalletAddress(addr);
-          const nfts = await fetchScaredCatNFTs(addr);
-          setOwnedNFTs(nfts);
-          setNftLoading(false);
-          showToast(nfts.length > 0 ? `🎉 Найдено котов: ${nfts.length}` : '😿 NFT Scared Cat не найдены');
-        }
-      });
-    } catch (e) { setNftLoading(false); showToast('Ошибка подключения 😿'); }
+      // Status is handled by the persistent useEffect above
+    } catch (e) { showToast('Ошибка подключения 😿'); }
   }, [showToast]);
 
   const handleDisconnectWallet = useCallback(async () => {
     const tc = getTonConnect();
     try { await tc?.disconnect(); } catch(_) {}
+    // State cleared by the persistent onStatusChange listener above
     setWalletAddress(null);
     setOwnedNFTs([]);
     setActiveNFT(null);
