@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCARED CAT — Notification Backend
+   SCARED CAT — Notification + Cloud Sync Backend
    Deploy to Railway: railway up
    ═══════════════════════════════════════════════ */
 'use strict';
@@ -21,40 +21,57 @@ const PORT     = process.env.PORT || 3000;
 const TOKEN    = process.env.BOT_TOKEN;
 const TG_API   = `https://api.telegram.org/bot${TOKEN}`;
 
-// Persist users to disk so data survives Railway restarts
-const DATA_FILE = path.join('/tmp', 'scared_cat_users.json');
-
 if (!TOKEN) { console.error('❌ BOT_TOKEN not set!'); process.exit(1); }
 
-// ── User store (persisted to /tmp/scared_cat_users.json) ──
+// ─── Disk paths ───
+const USERS_FILE = path.join('/tmp', 'scared_cat_users.json');
+const SAVES_FILE = path.join('/tmp', 'scared_cat_saves.json');
+
+// ─── Notification users store ───
 // chatId → { stats, lastSeen, notified: { hunger, toilet, fatigue, mood, health } }
 let users = new Map();
 
 function loadUsers() {
   try {
-    const raw = fs.readFileSync(DATA_FILE, 'utf8');
-    const obj = JSON.parse(raw);
+    const obj = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
     users = new Map(Object.entries(obj));
-    console.log(`[boot] loaded ${users.size} users from disk`);
-  } catch(_) {
-    console.log('[boot] no saved users, starting fresh');
-  }
+    console.log(`[boot] loaded ${users.size} notification users`);
+  } catch(_) { console.log('[boot] no notification users, starting fresh'); }
 }
 
 function saveUsers() {
   try {
     const obj = {};
     for (const [k, v] of users.entries()) obj[k] = v;
-    fs.writeFileSync(DATA_FILE, JSON.stringify(obj));
-  } catch(e) {
-    console.warn('[save] could not write users file:', e.message);
-  }
+    fs.writeFileSync(USERS_FILE, JSON.stringify(obj));
+  } catch(e) { console.warn('[saveUsers]', e.message); }
+}
+
+// ─── Cloud saves store ───
+// chatId → { version, lastUpdate, stats, coins, xp, inventory, ... }
+let saves = new Map();
+
+function loadSaves() {
+  try {
+    const obj = JSON.parse(fs.readFileSync(SAVES_FILE, 'utf8'));
+    saves = new Map(Object.entries(obj));
+    console.log(`[boot] loaded ${saves.size} cloud saves`);
+  } catch(_) { console.log('[boot] no cloud saves, starting fresh'); }
+}
+
+function persistSaves() {
+  try {
+    const obj = {};
+    for (const [k, v] of saves.entries()) obj[k] = v;
+    fs.writeFileSync(SAVES_FILE, JSON.stringify(obj));
+  } catch(e) { console.warn('[persistSaves]', e.message); }
 }
 
 loadUsers();
+loadSaves();
 
 // ── Middleware ──
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -67,14 +84,47 @@ app.use((req, res, next) => {
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ ok: true, users: users.size, uptime: Math.floor(process.uptime()) + 's' });
+  res.json({ ok: true, users: users.size, saves: saves.size, uptime: Math.floor(process.uptime()) + 's' });
 });
 
-// Self-ping to prevent Railway cold starts affecting the schedule
+// Self-ping
 app.get('/ping', (req, res) => res.json({ pong: true }));
 
-// Frontend calls this to register / update stats
-// Body: { chatId: "123456789", stats: { hunger, fatigue, toilet, mood, health } }
+// ── CLOUD SYNC: Save full game state ──
+// Body: { chatId, state: { version, lastUpdate, stats, coins, ... } }
+app.post('/save', (req, res) => {
+  const { chatId, state } = req.body || {};
+  if (!chatId || !state) return res.status(400).json({ error: 'Missing chatId or state' });
+
+  const id       = String(chatId);
+  const existing = saves.get(id);
+  const incomingTs  = state.lastUpdate || 0;
+  const existingTs  = existing?.lastUpdate || 0;
+
+  // Last-write-wins: only overwrite if incoming data is newer
+  if (!existing || incomingTs >= existingTs) {
+    saves.set(id, { ...state, chatId: id });
+    persistSaves();
+    console.log(`[save] user=${id} ts=${incomingTs} coins=${state.coins} xp=${state.xp}`);
+    return res.json({ ok: true, saved: true });
+  }
+
+  // Incoming is older — reject but return current cloud state so client can merge
+  console.log(`[save] user=${id} rejected (cloud newer: ${existingTs} > ${incomingTs})`);
+  res.json({ ok: true, saved: false, serverTs: existingTs });
+});
+
+// ── CLOUD SYNC: Load game state ──
+app.get('/load/:chatId', (req, res) => {
+  const id   = String(req.params.chatId);
+  const data = saves.get(id);
+  if (!data) return res.json({ ok: false, state: null });
+  console.log(`[load] user=${id} ts=${data.lastUpdate}`);
+  res.json({ ok: true, state: data });
+});
+
+// ── NOTIFICATION: Register/update cat stats ──
+// Body: { chatId, stats: { hunger, fatigue, toilet, mood, health } }
 app.post('/update', (req, res) => {
   const { chatId, stats } = req.body || {};
   if (!chatId || !stats) return res.status(400).json({ error: 'Missing chatId or stats' });
@@ -82,13 +132,9 @@ app.post('/update', (req, res) => {
   const id  = String(chatId);
   const old = users.get(id) || { notified: {} };
 
-  users.set(id, {
-    stats:    stats,
-    lastSeen: Date.now(),
-    notified: old.notified || {},
-  });
-
+  users.set(id, { stats, lastSeen: Date.now(), notified: old.notified || {} });
   saveUsers();
+
   console.log(`[update] user=${id} hunger=${stats.hunger} mood=${stats.mood} health=${stats.health}`);
   res.json({ ok: true });
 });
@@ -102,62 +148,41 @@ async function sendMessage(chatId, text) {
       body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' }),
     });
     const json = await res.json();
-    if (!json.ok) console.warn(`[tg] sendMessage failed for ${chatId}:`, json.description);
+    if (!json.ok) console.warn(`[tg] failed for ${chatId}:`, json.description);
     return json.ok;
-  } catch (e) {
-    console.error('[tg] fetch error:', e.message);
-    return false;
-  }
+  } catch (e) { console.error('[tg] error:', e.message); return false; }
 }
 
-// ── Notification checker (runs every 20 min) ──
+// ── Notification checker (every 20 min) ──
 async function checkAndNotify() {
   const now = Date.now();
   console.log(`[notify] checking ${users.size} users at ${new Date().toISOString()}`);
 
   for (const [chatId, data] of users.entries()) {
-    // Skip users not seen for 48 h (probably quit the game)
-    if (now - data.lastSeen > 48 * 3600_000) continue;
+    if (now - data.lastSeen > 48 * 3600_000) continue; // skip inactive >48h
 
     const s = data.stats;
     const n = data.notified;
     const lines = [];
 
-    // ── Check each stat ──
-    if (s.hunger >= 75) {
-      if (!n.hunger) { lines.push('🍔 Кот <b>очень голоден</b>! Покорми его скорее!'); n.hunger = true; }
-    } else if (s.hunger < 55) { n.hunger = false; }
-
-    if (s.toilet >= 75) {
-      if (!n.toilet) { lines.push('🚽 Кот <b>не может терпеть</b>! Срочно в ванную!'); n.toilet = true; }
-    } else if (s.toilet < 55) { n.toilet = false; }
-
-    if (s.fatigue >= 75) {
-      if (!n.fatigue) { lines.push('😴 Кот <b>совсем устал</b> и хочет спать!'); n.fatigue = true; }
-    } else if (s.fatigue < 55) { n.fatigue = false; }
-
-    if (s.mood <= 25) {
-      if (!n.mood) { lines.push('😔 Кот <b>загрустил</b>... Поиграй с ним!'); n.mood = true; }
-    } else if (s.mood > 45) { n.mood = false; }
-
-    if (s.health <= 30) {
-      if (!n.health) { lines.push('🏥 Кот <b>заболевает</b>! Нужна срочная помощь!'); n.health = true; }
-    } else if (s.health > 50) { n.health = false; }
+    if (s.hunger  >= 75) { if (!n.hunger)  { lines.push('🍔 Кот <b>очень голоден</b>! Покорми его скорее!');          n.hunger  = true; } } else if (s.hunger  < 55) { n.hunger  = false; }
+    if (s.toilet  >= 75) { if (!n.toilet)  { lines.push('🚽 Кот <b>не может терпеть</b>! Срочно в ванную!');          n.toilet  = true; } } else if (s.toilet  < 55) { n.toilet  = false; }
+    if (s.fatigue >= 75) { if (!n.fatigue) { lines.push('😴 Кот <b>совсем устал</b> и хочет спать!');                  n.fatigue = true; } } else if (s.fatigue < 55) { n.fatigue = false; }
+    if (s.mood    <= 25) { if (!n.mood)    { lines.push('😔 Кот <b>загрустил</b>... Поиграй с ним!');                  n.mood    = true; } } else if (s.mood    > 45) { n.mood    = false; }
+    if (s.health  <= 30) { if (!n.health)  { lines.push('🏥 Кот <b>заболевает</b>! Нужна срочная помощь!');            n.health  = true; } } else if (s.health  > 50) { n.health  = false; }
 
     if (lines.length > 0) {
       const text = '😿 <b>Твой кот нуждается в тебе!</b>\n\n'
         + lines.join('\n')
         + '\n\n<a href="https://t.me/ScaredCatTamagotchibot">👆 Открой игру и помоги коту!</a>';
       const ok = await sendMessage(chatId, text);
-      if (ok) {
-        console.log(`[notify] sent to ${chatId}: ${lines.length} alert(s)`);
-        saveUsers(); // save updated notified flags
-      }
+      if (ok) { saveUsers(); }
+      console.log(`[notify] sent to ${chatId}: ${lines.length} alert(s)`);
     }
   }
 }
 
-// Self-ping every 14 min to keep the process warm between notify cycles
+// Self-ping every 14 min to stay warm
 function selfPing() {
   const host = process.env.RAILWAY_PUBLIC_DOMAIN
     ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
@@ -165,8 +190,7 @@ function selfPing() {
   fetch(`${host}/ping`).catch(() => {});
 }
 
-// Run notify immediately on start, then every 20 minutes
-setTimeout(checkAndNotify, 5000); // small delay so server is fully up first
+setTimeout(checkAndNotify, 5000);
 setInterval(checkAndNotify, 20 * 60 * 1000);
 setInterval(selfPing, 14 * 60 * 1000);
 
@@ -174,5 +198,5 @@ setInterval(selfPing, 14 * 60 * 1000);
 app.listen(PORT, () => {
   console.log(`✅ Scared Cat backend running on port ${PORT}`);
   console.log(`   Bot token: ${TOKEN ? TOKEN.slice(0, 10) + '...' : '❌ MISSING'}`);
-  console.log(`   Users loaded: ${users.size}`);
+  console.log(`   Users: ${users.size} | Saves: ${saves.size}`);
 });

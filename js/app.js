@@ -82,7 +82,39 @@ function syncBackend(stats) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ chatId, stats }),
-  }).catch(() => {}); // silent — don't break the game on network errors
+  }).catch(() => {});
+}
+
+// ── Cloud Save / Load ──
+const CLOUD_VERSION = 1;
+
+function getChatId() {
+  return String(window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '');
+}
+
+async function cloudSave(chatId, state) {
+  if (!chatId || !BACKEND_URL) return false;
+  try {
+    const res = await fetch(`${BACKEND_URL}/save`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chatId,
+        state: { ...state, version: CLOUD_VERSION, lastUpdate: Date.now() },
+      }),
+    });
+    const json = await res.json();
+    return json.ok === true;
+  } catch(e) { return false; }
+}
+
+async function cloudLoad(chatId) {
+  if (!chatId || !BACKEND_URL) return null;
+  try {
+    const res  = await fetch(`${BACKEND_URL}/load/${encodeURIComponent(chatId)}`);
+    const json = await res.json();
+    return json.ok && json.state ? json.state : null;
+  } catch(e) { return null; }
 }
 
 /* ══════════════════════════════════════════════════
@@ -1974,6 +2006,8 @@ function App() {
   const [activeNFT,      setActiveNFT]      = useState(_INIT.activeNFT     || null);
   const [nftLoading,     setNftLoading]     = useState(false);
   const [skinFlash,      setSkinFlash]      = useState(false);
+  // Cloud sync
+  const [syncStatus,     setSyncStatus]     = useState(null); // null | 'syncing' | 'ok' | 'error'
   // Toast/queue
   const [toast,          setToast]          = useState(null);
   const [toastKey,       setToastKey]       = useState(0);
@@ -1987,14 +2021,15 @@ function App() {
   CAT = activeNFT ? activeNFT.image : CAT_DEFAULT;
   GIF = activeNFT ? activeNFT.image : GIF_DEFAULT;
 
-  const createdAt  = useRef(_INIT.createdAt);
-  const walkRef    = useRef({ x: 111, dir: 1 });
-  const gifTimer   = useRef(null);
-  const heartId    = useRef(0);
-  const toastTimer = useRef(null);
-  const wasCritRef  = useRef({ hunger: false, fatigue: false, toilet: false, mood: false, health: false });
-  const nftBonusRef = useRef(nftBonus);
-  nftBonusRef.current = nftBonus; // always fresh inside callbacks
+  const createdAt      = useRef(_INIT.createdAt);
+  const walkRef        = useRef({ x: 111, dir: 1 });
+  const gifTimer       = useRef(null);
+  const heartId        = useRef(0);
+  const toastTimer     = useRef(null);
+  const cloudSyncTimer = useRef(null);
+  const wasCritRef     = useRef({ hunger: false, fatigue: false, toilet: false, mood: false, health: false });
+  const nftBonusRef    = useRef(nftBonus);
+  nftBonusRef.current  = nftBonus; // always fresh inside callbacks
 
   const day = Math.max(1, Math.floor((Date.now() - createdAt.current) / 86400000) + 1);
 
@@ -2004,9 +2039,9 @@ function App() {
     if (tg) { tg.expand(); tg.ready(); }
   }, []);
 
-  // ── Persist state ──
+  // ── Persist state (local + debounced cloud) ──
   useEffect(() => {
-    saveState({
+    const snapshot = {
       stats, coins, xp,
       createdAt: createdAt.current,
       lastDaily, dailyStreak,
@@ -2014,8 +2049,63 @@ function App() {
       actionCounts, dailyMissions,
       roomLayout, ownedDecor, ownedBgs,
       walletAddress, ownedNFTs, activeNFT,
-    });
-  }, [stats, coins, xp, lastDaily, dailyStreak, inventory, equipped, actionCounts, dailyMissions, roomLayout, ownedDecor, ownedBgs, walletAddress, ownedNFTs, activeNFT]);
+      lastUpdate: Date.now(),
+    };
+    // Always save locally immediately
+    saveState(snapshot);
+
+    // Debounced cloud save — fires 30s after last change
+    const chatId = getChatId();
+    if (chatId && BACKEND_URL) {
+      if (cloudSyncTimer.current) clearTimeout(cloudSyncTimer.current);
+      cloudSyncTimer.current = setTimeout(() => {
+        cloudSave(chatId, snapshot).catch(() => {});
+      }, 30000);
+    }
+    return () => {
+      if (cloudSyncTimer.current) clearTimeout(cloudSyncTimer.current);
+    };
+  }, [stats, coins, xp, lastDaily, dailyStreak, inventory, equipped, actionCounts, dailyMissions, roomLayout, ownedDecor, ownedBgs, walletAddress, ownedNFTs, activeNFT]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Cloud Load on startup — sync from cloud if it's newer than local ──
+  useEffect(() => {
+    const chatId = getChatId();
+    if (!chatId || !BACKEND_URL) return;
+    (async () => {
+      try {
+        const cloud = await cloudLoad(chatId);
+        if (!cloud) return; // no cloud save yet
+        const localTs = _INIT.lastUpdate || 0;
+        const cloudTs = cloud.lastUpdate  || 0;
+        if (cloudTs <= localTs) return; // local is same or newer — no need to overwrite
+
+        // Cloud is newer — apply it
+        if (cloud.stats)        setStats(cloud.stats);
+        if (cloud.coins  != null) setCoins(cloud.coins);
+        if (cloud.xp     != null) setXP(cloud.xp);
+        if (cloud.inventory)    setInventory({ ...defaultInventory(), ...cloud.inventory });
+        if (cloud.equipped)     setEquipped(cloud.equipped);
+        if (cloud.dailyStreak != null) setDailyStreak(cloud.dailyStreak);
+        if (cloud.lastDaily   != null) setLastDaily(cloud.lastDaily);
+        if (cloud.achievements) setAchievements(cloud.achievements);
+        if (cloud.highScores)   setHighScores(cloud.highScores);
+        if (cloud.actionCounts) setActionCounts({ ...defaultActionCounts(), ...cloud.actionCounts });
+        if (cloud.dailyMissions) setDailyMissions(getOrUpdateDailyMissions(cloud.dailyMissions));
+        if (cloud.roomLayout)   setRoomLayout(cloud.roomLayout);
+        if (cloud.ownedDecor)   setOwnedDecor(cloud.ownedDecor);
+        if (cloud.ownedBgs)     setOwnedBgs(cloud.ownedBgs);
+        if (cloud.walletAddress != null) setWalletAddress(cloud.walletAddress);
+        if (cloud.ownedNFTs)    setOwnedNFTs(cloud.ownedNFTs);
+        if (cloud.activeNFT  != null)   setActiveNFT(cloud.activeNFT);
+        if (cloud.createdAt)    createdAt.current = cloud.createdAt;
+
+        showToast('☁️ Прогресс загружен с облака');
+        console.log(`[cloud] loaded from cloud (cloud ts: ${cloudTs}, local ts: ${localTs})`);
+      } catch(e) {
+        console.warn('[cloud] load error:', e);
+      }
+    })();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Achievement checking (runs after actionCounts or level changes) ──
   useEffect(() => {
@@ -2293,6 +2383,63 @@ function App() {
     if (nfts.length > 0) showToast(`🎉 Найдено ${nfts.length} NFT!`);
     else showToast('NFT коллекции не найдены 😿');
   }, [showToast]);
+
+  // ── Manual cloud sync (sync button) ──
+  const handleManualSync = useCallback(async () => {
+    const chatId = getChatId();
+    if (!chatId) { showToast('Синхронизация недоступна вне Telegram 😿'); return; }
+    if (!BACKEND_URL) { showToast('Сервер недоступен 😿'); return; }
+
+    setSyncStatus('syncing');
+    showToast('☁️ Синхронизация...');
+
+    try {
+      // 1. Save current local state to cloud
+      const snapshot = {
+        stats, coins, xp,
+        createdAt: createdAt.current,
+        lastDaily, dailyStreak,
+        inventory, equipped, achievements, highScores,
+        actionCounts, dailyMissions,
+        roomLayout, ownedDecor, ownedBgs,
+        walletAddress, ownedNFTs, activeNFT,
+        lastUpdate: Date.now(),
+      };
+      await cloudSave(chatId, snapshot);
+
+      // 2. Load latest from cloud (could be from another device)
+      const cloud = await cloudLoad(chatId);
+      if (cloud && cloud.lastUpdate > snapshot.lastUpdate) {
+        // Another device saved something newer — apply it
+        if (cloud.stats)        setStats(cloud.stats);
+        if (cloud.coins  != null) setCoins(cloud.coins);
+        if (cloud.xp     != null) setXP(cloud.xp);
+        if (cloud.inventory)    setInventory({ ...defaultInventory(), ...cloud.inventory });
+        if (cloud.equipped)     setEquipped(cloud.equipped);
+        if (cloud.dailyStreak != null) setDailyStreak(cloud.dailyStreak);
+        if (cloud.lastDaily   != null) setLastDaily(cloud.lastDaily);
+        if (cloud.achievements) setAchievements(cloud.achievements);
+        if (cloud.highScores)   setHighScores(cloud.highScores);
+        if (cloud.actionCounts) setActionCounts({ ...defaultActionCounts(), ...cloud.actionCounts });
+        if (cloud.dailyMissions) setDailyMissions(getOrUpdateDailyMissions(cloud.dailyMissions));
+        if (cloud.roomLayout)   setRoomLayout(cloud.roomLayout);
+        if (cloud.ownedDecor)   setOwnedDecor(cloud.ownedDecor);
+        if (cloud.ownedBgs)     setOwnedBgs(cloud.ownedBgs);
+        if (cloud.walletAddress != null) setWalletAddress(cloud.walletAddress);
+        if (cloud.ownedNFTs)    setOwnedNFTs(cloud.ownedNFTs);
+        if (cloud.activeNFT  != null)   setActiveNFT(cloud.activeNFT);
+        showToast('☁️ Загружены данные с другого устройства!');
+      } else {
+        showToast('✅ Данные синхронизированы!');
+      }
+      setSyncStatus('ok');
+      setTimeout(() => setSyncStatus(null), 3000);
+    } catch(e) {
+      setSyncStatus('error');
+      showToast('❌ Ошибка синхронизации, данные сохранены локально');
+      setTimeout(() => setSyncStatus(null), 3000);
+    }
+  }, [stats, coins, xp, lastDaily, dailyStreak, inventory, equipped, achievements, highScores, actionCounts, dailyMissions, roomLayout, ownedDecor, ownedBgs, walletAddress, ownedNFTs, activeNFT, showToast]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSelectNFT = useCallback((nft) => {
     setActiveNFT(nft);
@@ -2626,6 +2773,12 @@ function App() {
             <button onClick={() => { setScreen('shop'); setActiveNav('shop'); }}
               style={{ width:38, height:38, borderRadius:12, background:'rgba(20,8,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 2px 10px rgba(0,0,0,0.45)', cursor:'pointer', fontSize:18, border:'1.5px solid rgba(255,255,255,0.12)' }}>
               🛒
+            </button>
+            {/* Cloud sync button */}
+            <button onClick={handleManualSync} disabled={syncStatus === 'syncing'}
+              title="Синхронизировать прогресс"
+              style={{ width:38, height:38, borderRadius:12, cursor: syncStatus==='syncing' ? 'default' : 'pointer', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', border: `1.5px solid ${syncStatus==='ok' ? 'rgba(80,255,120,0.5)' : syncStatus==='error' ? 'rgba(255,80,80,0.5)' : 'rgba(255,255,255,0.12)'}`, background: syncStatus==='ok' ? 'rgba(40,160,60,0.25)' : syncStatus==='error' ? 'rgba(160,40,40,0.25)' : 'rgba(20,8,0,0.6)', boxShadow:'0 2px 10px rgba(0,0,0,0.45)', transition:'background 0.3s, border 0.3s', opacity: syncStatus==='syncing' ? 0.6 : 1 }}>
+              {syncStatus === 'syncing' ? '⏳' : syncStatus === 'ok' ? '✅' : syncStatus === 'error' ? '❌' : '☁️'}
             </button>
           </div>
         </div>
