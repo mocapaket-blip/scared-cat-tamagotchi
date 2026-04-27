@@ -890,6 +890,248 @@ function PawIndicator({ pawId, icon, label, fill, critical, onClick }) {
 }
 
 /* ══════════════════════════════════════════════════
+   SCARED CAT SVG — inline vector cat matching NFT
+   ══════════════════════════════════════════════════ */
+function ScaredCatSVG({ emotion = 'normal', jumping = false }) {
+  // Eye shape by emotion
+  const eyeRY   = emotion === 'scared' ? 19 : emotion === 'excited' ? 18 : emotion === 'happy' ? 11 : emotion === 'sad' ? 14 : emotion === 'sick' ? 13 : 17;
+  const eyeRX   = emotion === 'sick'   ? 15 : 14;
+  const eyeRY2  = emotion === 'scared' ? 16 : emotion === 'happy' ? 10 : emotion === 'sad' ? 12 : 15;
+  const pupilRY = emotion === 'scared' ? 16 : emotion === 'happy' ? 6  : emotion === 'excited' ? 15 : 12;
+  const pupilRX = emotion === 'sick'   ? 10 : emotion === 'scared' ? 6  : 7;
+
+  // Mouth path by emotion
+  const mouth = emotion === 'happy'
+    ? 'M 58,114 C 52,122 44,124 40,120'
+    : emotion === 'sad'
+    ? 'M 58,116 C 52,110 44,110 40,114'
+    : 'M 58,115 C 52,121 45,122 41,119'; // default slightly worried
+
+  const mouth2 = emotion === 'happy'
+    ? 'M 58,114 C 64,122 72,124 76,120'
+    : emotion === 'sad'
+    ? 'M 58,116 C 64,110 72,110 76,114'
+    : 'M 58,115 C 64,121 71,122 75,119';
+
+  // Ear tilt: flattened when scared
+  const earTilt = emotion === 'scared' || emotion === 'sick' ? 'rotate(-8,44,82)' : '';
+
+  // Idle animation
+  const idleAnim = jumping
+    ? 'catScaredJump 0.7s cubic-bezier(0.36,0.07,0.19,0.97) forwards'
+    : emotion === 'happy'
+    ? 'catHappyBounce 0.9s ease-in-out infinite'
+    : emotion === 'sad'
+    ? 'catSadDroop 2.2s ease-in-out infinite'
+    : emotion === 'sick'
+    ? 'catSickWobble 1.4s ease-in-out infinite'
+    : 'catIdleBreathe 3.2s ease-in-out infinite';
+
+  // Sick: greenish tint overlay
+  const sicknessOpacity = emotion === 'sick' ? 0.22 : 0;
+  // Sad: desaturate
+  const sadFilter = emotion === 'sad' ? 'saturate(0.6)' : '';
+
+  return (
+    <div style={{ width:'100%', animation: idleAnim, filter: sadFilter, transformOrigin:'bottom center' }}>
+      <svg viewBox="0 0 160 200" xmlns="http://www.w3.org/2000/svg"
+           style={{ width:'100%', display:'block', overflow:'visible' }}>
+        <defs>
+          {/* Body gradient — dark charcoal with purple-blue highlights like the NFT */}
+          <radialGradient id="scBodyG" cx="38%" cy="28%" r="68%">
+            <stop offset="0%"   stopColor="#42405a"/>
+            <stop offset="48%"  stopColor="#22202e"/>
+            <stop offset="100%" stopColor="#0c0a14"/>
+          </radialGradient>
+          {/* Separate head gradient slightly lighter */}
+          <radialGradient id="scHeadG" cx="35%" cy="30%" r="62%">
+            <stop offset="0%"   stopColor="#3c3a52"/>
+            <stop offset="100%" stopColor="#10101c"/>
+          </radialGradient>
+          {/* Lime-green eye gradient */}
+          <radialGradient id="scEyeG" cx="28%" cy="22%" r="66%">
+            <stop offset="0%"   stopColor="#e0ff60"/>
+            <stop offset="40%"  stopColor="#88e000"/>
+            <stop offset="100%" stopColor="#2a6800"/>
+          </radialGradient>
+          {/* Pupil */}
+          <radialGradient id="scPupilG" cx="45%" cy="30%" r="60%">
+            <stop offset="0%"   stopColor="#1e1c28"/>
+            <stop offset="100%" stopColor="#000000"/>
+          </radialGradient>
+          {/* Body highlight overlay */}
+          <linearGradient id="scHighG" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%"   stopColor="rgba(100,90,145,0.55)"/>
+            <stop offset="100%" stopColor="rgba(30,28,48,0)"/>
+          </linearGradient>
+          <filter id="scDropShadow">
+            <feDropShadow dx="2" dy="7" stdDeviation="7" floodColor="#000" floodOpacity="0.55"/>
+          </filter>
+          <filter id="scEyeGlow">
+            <feGaussianBlur stdDeviation="2.5" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <filter id="scSickTint">
+            <feColorMatrix type="matrix" values="0.7 0.3 0 0 0  0.1 1.1 0 0 0  0 0.2 0.8 0 0  0 0 0 1 0"/>
+          </filter>
+        </defs>
+
+        {/* Floor shadow */}
+        <ellipse cx="82" cy="197" rx="58" ry="8" fill="black" opacity="0.28"/>
+
+        {/* ── TAIL (behind everything) ── */}
+        {/* Outer stroke for thick dark outline */}
+        <path d="M 134,138 C 150,118 165,88 160,62 C 156,44 144,38 136,43 C 130,48 131,58 128,53"
+              fill="none" stroke="#0a0812" strokeWidth="18" strokeLinecap="round"/>
+        {/* Inner fill — same body gradient */}
+        <path d="M 134,138 C 150,118 165,88 160,62 C 156,44 144,38 136,43 C 130,48 131,58 128,53"
+              fill="none" stroke="#28263a" strokeWidth="11" strokeLinecap="round"/>
+        {/* Tail highlight streak */}
+        <path d="M 134,138 C 148,120 162,92 157,66"
+              fill="none" stroke="rgba(88,82,120,0.5)" strokeWidth="5" strokeLinecap="round"/>
+
+        {/* ── MAIN BODY — arched back pose (signature Scared Cat shape) ── */}
+        <path d="M 42,175
+                 C 34,160 30,142 30,120
+                 C 30,98  36,84  44,78
+                 C 52,72  62,70  72,66
+                 C 84,54  98,38  114,30
+                 C 128,24 142,26 150,40
+                 C 157,54 155,72 151,90
+                 C 148,106 143,124 140,144
+                 C 138,158 138,170 136,177
+                 L 116,177
+                 C 116,167 118,155 118,143
+                 C 118,132 112,126 86,130
+                 C 66,133 48,148 44,163
+                 L 42,175 Z"
+              fill="url(#scBodyG)" stroke="#080612" strokeWidth="4.5" strokeLinejoin="round"
+              filter="url(#scDropShadow)"/>
+
+        {/* Body highlight — light on the arch */}
+        <path d="M 58,70 C 76,54 96,38 118,32"
+              fill="none" stroke="rgba(95,88,138,0.5)" strokeWidth="12" strokeLinecap="round"/>
+        <path d="M 62,68 C 80,54 100,40 120,34"
+              fill="none" stroke="rgba(130,120,175,0.28)" strokeWidth="6" strokeLinecap="round"/>
+        {/* Chest area lighter patch */}
+        <ellipse cx="46" cy="118" rx="18" ry="26" fill="rgba(55,52,75,0.45)" transform="rotate(-10,46,118)"/>
+
+        {/* ── EARS ── */}
+        {/* Left ear (front-facing, larger) */}
+        <path d="M 38,84 L 26,50 L 58,76 Z" transform={earTilt}
+              fill="#16141e" stroke="#080612" strokeWidth="3.5" strokeLinejoin="round"/>
+        {/* Ear inner pink */}
+        <path d="M 40,82 L 30,56 L 55,76 Z" transform={earTilt}
+              fill="#2e1824"/>
+        {/* Right ear (slightly behind/smaller) */}
+        <path d="M 64,74 L 58,44 L 86,68 Z"
+              fill="#12101a" stroke="#080612" strokeWidth="3" strokeLinejoin="round"/>
+        <path d="M 66,72 L 62,48 L 83,68 Z"
+              fill="#20121a"/>
+
+        {/* ── HEAD ── */}
+        <ellipse cx="54" cy="98" rx="38" ry="35"
+                 fill="url(#scHeadG)" stroke="#080612" strokeWidth="4.5"/>
+        {/* Head highlight */}
+        <ellipse cx="42" cy="85" rx="15" ry="11"
+                 fill="rgba(75,68,105,0.42)" transform="rotate(-20,42,85)"/>
+        {/* Chin highlight */}
+        <ellipse cx="58" cy="124" rx="12" ry="6"
+                 fill="rgba(50,48,68,0.4)" transform="rotate(8,58,124)"/>
+
+        {/* ── EYES — huge, expressive, lime-green ── */}
+        {/* Left eye (bigger, facing viewer) */}
+        <ellipse cx="42" cy="100" rx={eyeRX} ry={eyeRY}
+                 fill="url(#scEyeG)" stroke="#080612" strokeWidth="3.5"
+                 filter="url(#scEyeGlow)"
+                 style={{ animation: jumping ? 'none' : 'catEyeBlink 4.5s ease-in-out infinite' }}/>
+        {/* Left pupil (vertical slit) */}
+        <ellipse cx="42" cy="100" rx={pupilRX} ry={pupilRY}
+                 fill="url(#scPupilG)"/>
+        {/* Primary shine */}
+        <ellipse cx="35" cy="91" rx="5.5" ry="4.5" fill="white" opacity="0.92"/>
+        {/* Secondary shine */}
+        <ellipse cx="49" cy="108" rx="2.5" ry="2" fill="white" opacity="0.55"/>
+        {/* Eye glow ring */}
+        <ellipse cx="42" cy="100" rx={eyeRX+3} ry={eyeRY+3}
+                 fill="none" stroke="#80d800" strokeWidth="1.8" opacity="0.32"/>
+
+        {/* Right eye (slightly smaller — perspective) */}
+        <ellipse cx="67" cy="96" rx={eyeRX-2} ry={eyeRY2}
+                 fill="url(#scEyeG)" stroke="#080612" strokeWidth="3"
+                 filter="url(#scEyeGlow)"
+                 style={{ animation: jumping ? 'none' : 'catEyeBlink 4.5s ease-in-out 0.2s infinite' }}/>
+        <ellipse cx="67" cy="96" rx={Math.max(pupilRX-2,4)} ry={Math.max(pupilRY-2,5)}
+                 fill="url(#scPupilG)"/>
+        <ellipse cx="61" cy="87" rx="4.5" ry="3.5" fill="white" opacity="0.9"/>
+        <ellipse cx="74" cy="104" rx="2" ry="1.6" fill="white" opacity="0.5"/>
+        <ellipse cx="67" cy="96" rx={eyeRX+1} ry={eyeRY2+2}
+                 fill="none" stroke="#80d800" strokeWidth="1.4" opacity="0.28"/>
+
+        {/* ── NOSE ── */}
+        <path d="M 54,112 L 58,117 L 62,112 L 58,108 Z" fill="#c83870" stroke="#080612" strokeWidth="1.2"/>
+
+        {/* ── MOUTH ── */}
+        <path d={mouth}  stroke="#080612" strokeWidth="2" fill="none" strokeLinecap="round"/>
+        <path d={mouth2} stroke="#080612" strokeWidth="2" fill="none" strokeLinecap="round"/>
+
+        {/* ── WHISKERS ── */}
+        {[-1,0,1].map((i) => (
+          <g key={i}>
+            <line x1={14+i*2} y1={104+i*8} x2={40} y2={108+i*4} stroke="rgba(215,205,240,0.82)" strokeWidth="1.3" strokeLinecap="round"/>
+            <line x1={78} y1={108+i*4} x2={104+i*2} y2={104+i*8} stroke="rgba(215,205,240,0.82)" strokeWidth="1.3" strokeLinecap="round"/>
+          </g>
+        ))}
+
+        {/* ── FRONT PAWS ── */}
+        {/* Left paw */}
+        <path d="M 30,170 C 26,178 26,186 30,191 C 34,196 42,196 46,191 C 50,186 50,176 46,170 Z"
+              fill="#12101c" stroke="#080612" strokeWidth="3" strokeLinejoin="round"/>
+        {/* Right paw */}
+        <path d="M 50,168 C 46,176 46,184 50,189 C 54,194 62,194 66,189 C 70,184 70,174 66,168 Z"
+              fill="#14121e" stroke="#080612" strokeWidth="3" strokeLinejoin="round"/>
+        {/* Toe lines */}
+        {[[32,189,32,196],[38,192,38,199],[44,190,44,197],[52,187,52,194],[58,191,58,198],[64,189,64,196]].map(([x1,y1,x2,y2],i)=>(
+          <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#080612" strokeWidth="1.3"/>
+        ))}
+
+        {/* ── BACK PAW ── */}
+        <path d="M 118,168 C 116,176 116,184 120,188 C 124,192 132,192 136,188 C 140,184 140,174 136,168 Z"
+              fill="#0e0c18" stroke="#080612" strokeWidth="2.5" strokeLinejoin="round"/>
+        {[[120,186,120,193],[126,189,126,196],[132,187,132,194]].map(([x1,y1,x2,y2],i)=>(
+          <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#080612" strokeWidth="1.2"/>
+        ))}
+
+        {/* Sick tint overlay */}
+        {sicknessOpacity > 0 && (
+          <ellipse cx="82" cy="100" rx="80" ry="98" fill="#40e040" opacity={sicknessOpacity}/>
+        )}
+      </svg>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════
+   CAT DISPLAY — SVG (default) or <img> (NFT skin)
+   ══════════════════════════════════════════════════ */
+function CatDisplay({ emotion, jumping, filterStr, animStyle, isNFT, nftSrc }) {
+  if (isNFT && nftSrc) {
+    // NFT skin: use img tags exactly as before
+    return (
+      <div style={{ filter: filterStr, animation: animStyle, position:'relative', width:'100%' }}>
+        <img src={nftSrc} alt="кот" style={{ width:'100%', display:'block', userSelect:'none', pointerEvents:'none' }} draggable="false"/>
+      </div>
+    );
+  }
+  // Default: inline SVG scared cat
+  return (
+    <div style={{ filter: filterStr, animation: animStyle, position:'relative', width:'100%' }}>
+      <ScaredCatSVG emotion={emotion} jumping={jumping}/>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════
    FLOATING HEART
    ══════════════════════════════════════════════════ */
 function FloatingHeart({ id, x, y, onDone, emoji }) {
@@ -1810,7 +2052,7 @@ const ROOM_DEFS = {
    ══════════════════════════════════════════════════ */
 function RoomScreen({ roomId, fills, isCrit, activeNav, setActiveNav, onPawClick,
                       hearts, removeHeart, inventory, stats, level,
-                      cooldowns, onObjectAction, onMinigame, onBack }) {
+                      cooldowns, onObjectAction, onMinigame, onBack, activeNFT }) {
   const def      = ROOM_DEFS[roomId];
   const PANEL_H  = 192;
 
@@ -1905,7 +2147,10 @@ function RoomScreen({ roomId, fills, isCrit, activeNav, setActiveNav, onPawClick
           transition:'left 0.55s ease-in-out',
           animation: catWalking ? 'catWalkBob 0.38s linear infinite' : 'floatY 2.5s ease-in-out infinite',
           cursor:'pointer', zIndex:16, userSelect:'none', touchAction:'none' }}>
-        <img src={CAT} alt="кот" style={{ width:'100%', display:'block' }} draggable="false"/>
+        {activeNFT
+          ? <img src={activeNFT.image} alt="кот" style={{ width:'100%', display:'block' }} draggable="false"/>
+          : <ScaredCatSVG emotion="normal" jumping={false}/>
+        }
       </div>
 
       {/* Thought bubble follows cat */}
@@ -3266,7 +3511,8 @@ function App() {
         cooldowns={cooldowns}
         onObjectAction={handleTapObject}
         onMinigame={ROOM_DEFS[screen].minigameScreen ? () => setScreen(ROOM_DEFS[screen].minigameScreen) : null}
-        onBack={() => { setScreen('home'); setActiveNav('home'); }}/>
+        onBack={() => { setScreen('home'); setActiveNav('home'); }}
+        activeNFT={activeNFT}/>
       {toast && <Toast key={toastKey} msg={toast}/>}
       {complaint && <ComplaintOverlay text={complaint} onClose={() => setComplaint(null)}/>}
     </div>
@@ -3277,6 +3523,10 @@ function App() {
   // Emotion-state derived values (Phase 3)
   const catAnimStyle  = showGif ? 'none' : catEmoCfg.anim;
   const catFilterStr  = catEmoCfg.filter === 'none' ? 'drop-shadow(0 8px 22px rgba(0,0,0,0.65))' : `drop-shadow(0 8px 22px rgba(0,0,0,0.65)) ${catEmoCfg.filter}`;
+  // Map engine state → SVG emotion expression
+  const SVG_EMO_MAP = { veryScared:'scared', scared:'scared', sick:'sick', hungry:'normal',
+    tired:'sad', dirty:'normal', sad:'sad', playful:'excited', happy:'happy', special:'excited', neutral:'normal' };
+  const svgEmotion = SVG_EMO_MAP[catEmoState] || 'normal';
   const activeBgObj   = BG_OVERLAYS.find(b => b.id === roomLayout.bg);
 
   return (
@@ -3393,19 +3643,26 @@ function App() {
            style={{ position:'absolute', zIndex:15, bottom: PANEL_H + 24, left: catX, width:130, cursor:'pointer', transition: showGif ? 'left 0.25s ease-out' : 'none' }}>
         {/* Outer div handles scaleX (facing direction) */}
         <div style={{ transform:`scaleX(${catFacing})`, transformOrigin:'center' }}>
-          {/* Inner div handles emotion animation + filter */}
-          <div style={{ filter: catFilterStr, animation: catAnimStyle, position:'relative' }}>
-            <img src={CAT} alt="кот" style={{ width:'100%', display:'block', userSelect:'none', pointerEvents:'none', opacity: showGif ? 0 : 1, transition:'opacity 0.2s' }} draggable="false"/>
-            {showGif && (
-              <img src={GIF} alt="анимация"
-                   style={{ position:'absolute', inset:0, width:'100%', display:'block', userSelect:'none', pointerEvents:'none' }}
-                   draggable="false"/>
-            )}
-            {/* NFT skin-switch sparkle flash */}
-            {skinFlash && (
-              <div style={{ position:'absolute', inset:'-20%', borderRadius:'50%', background:'radial-gradient(circle, rgba(180,100,255,0.9) 0%, rgba(80,200,255,0.5) 50%, transparent 75%)', animation:'nftFlash 0.6s ease-out forwards', pointerEvents:'none', zIndex:10 }}/>
-            )}
-          </div>
+          {/* Cat display: SVG for default skin, <img> for NFT */}
+          {activeNFT ? (
+            /* ── NFT Skin: use image tags ── */
+            <div style={{ filter: catFilterStr, animation: catAnimStyle, position:'relative' }}>
+              <img src={activeNFT.image} alt="кот" style={{ width:'100%', display:'block', userSelect:'none', pointerEvents:'none', opacity: showGif ? 0 : 1, transition:'opacity 0.2s' }} draggable="false"/>
+              {showGif && <img src={activeNFT.image} alt="анимация" style={{ position:'absolute', inset:0, width:'100%', display:'block', userSelect:'none', pointerEvents:'none' }} draggable="false"/>}
+              {skinFlash && <div style={{ position:'absolute', inset:'-20%', borderRadius:'50%', background:'radial-gradient(circle, rgba(180,100,255,0.9) 0%, rgba(80,200,255,0.5) 50%, transparent 75%)', animation:'nftFlash 0.6s ease-out forwards', pointerEvents:'none', zIndex:10 }}/>}
+            </div>
+          ) : (
+            /* ── Default: inline SVG Scared Cat ── */
+            <div style={{
+              filter: catFilterStr,
+              /* Shake/scared animations from CSS still apply; idle is handled inside SVG */
+              animation: catAnimStyle && !catAnimStyle.includes('catWalkBob') ? catAnimStyle : 'none',
+              position:'relative',
+            }}>
+              <ScaredCatSVG emotion={svgEmotion} jumping={showGif}/>
+              {skinFlash && <div style={{ position:'absolute', inset:'-20%', borderRadius:'50%', background:'radial-gradient(circle, rgba(180,100,255,0.9) 0%, rgba(80,200,255,0.5) 50%, transparent 75%)', animation:'nftFlash 0.6s ease-out forwards', pointerEvents:'none', zIndex:10 }}/>}
+            </div>
+          )}
         </div>
       </div>
 
