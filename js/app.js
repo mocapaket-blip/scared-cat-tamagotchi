@@ -837,37 +837,54 @@ function ThoughtBubble({ emoji }) {
 /* ══════════════════════════════════════════════════
    PAW INDICATOR
    ══════════════════════════════════════════════════ */
+// Per-stat themed gradients matching the mockup style
+const PAW_THEMES = {
+  hunger:  { bg:'linear-gradient(145deg,#fff4d8,#ffe8a8)', shadow:'rgba(200,140,20,0.3)',  border:'rgba(220,170,60,0.5)'  },
+  toilet:  { bg:'linear-gradient(145deg,#d8f8e8,#a8eccc)', shadow:'rgba(20,160,80,0.3)',   border:'rgba(40,180,100,0.5)'  },
+  fatigue: { bg:'linear-gradient(145deg,#dce8ff,#b8d0ff)', shadow:'rgba(60,80,200,0.25)',  border:'rgba(80,110,220,0.45)' },
+  mood:    { bg:'linear-gradient(145deg,#e8e8ee,#d0d0dc)', shadow:'rgba(60,60,100,0.3)',   border:'rgba(80,80,140,0.4)'   },
+  health:  { bg:'linear-gradient(145deg,#ffffff,#f0f8f0)', shadow:'rgba(30,140,60,0.25)',  border:'rgba(50,160,80,0.4)'   },
+};
+
 function PawIndicator({ pawId, icon, label, fill, critical, onClick }) {
+  const theme = PAW_THEMES[pawId] || PAW_THEMES.hunger;
   const barColor = fill > 60 ? '#52c860' : fill > 40 ? '#f0b030' : fill > 20 ? '#e87030' : '#e83030';
+  const critBg = 'linear-gradient(145deg,#fff0ec,#ffd8cc)';
+  const critBorder = 'rgba(220,70,50,0.55)';
+  const critShadow = 'rgba(220,60,40,0.4)';
   return (
-    <div onClick={onClick} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:5, cursor:'pointer' }}>
+    <div onClick={onClick} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:4, cursor:'pointer' }}>
       <div
-        onPointerDown={e => e.currentTarget.style.transform='scale(0.88)'}
+        onPointerDown={e => e.currentTarget.style.transform='scale(0.85)'}
         onPointerUp={e => e.currentTarget.style.transform='scale(1)'}
         onPointerLeave={e => e.currentTarget.style.transform='scale(1)'}
         style={{
-          position:'relative', width:52, height:52, borderRadius:18,
-          background: critical ? 'linear-gradient(145deg,#fff4f0,#ffe0d8)' : 'linear-gradient(145deg,#ffffff,#f5ead8)',
+          position:'relative', width:56, height:56, borderRadius:20,
+          background: critical ? critBg : theme.bg,
           boxShadow: critical
-            ? '0 5px 14px rgba(220,70,50,0.35), inset 0 1px 0 rgba(255,255,255,0.9), 0 2px 0 rgba(180,100,80,0.25)'
-            : '0 5px 14px rgba(140,90,40,0.22), inset 0 1px 0 rgba(255,255,255,0.9), 0 2px 0 rgba(160,110,60,0.18)',
+            ? `0 6px 16px ${critShadow}, inset 0 1.5px 0 rgba(255,255,255,0.95), 0 2px 0 rgba(180,80,60,0.2)`
+            : `0 6px 16px ${theme.shadow}, inset 0 1.5px 0 rgba(255,255,255,0.95), 0 2px 0 rgba(100,60,20,0.12)`,
           display:'flex', alignItems:'center', justifyContent:'center',
-          overflow:'hidden', transition:'transform 0.1s',
-          border:`2px solid ${critical ? 'rgba(220,80,60,0.35)' : 'rgba(200,160,100,0.3)'}`,
+          overflow:'hidden', transition:'transform 0.12s',
+          border:`2px solid ${critical ? critBorder : theme.border}`,
           animation: critical ? 'pulseCrit 0.75s ease-in-out infinite' : 'none',
         }}>
+        {/* Subtle fill bar at the bottom — shows stat level */}
         <div style={{
-          position:'absolute', bottom:0, left:0, right:0, height:`${fill}%`,
-          background:`linear-gradient(to top, ${barColor}65, ${barColor}18)`,
+          position:'absolute', bottom:0, left:0, right:0, height:`${Math.min(fill,100)*0.38}%`,
+          background:`linear-gradient(to top, ${barColor}80, transparent)`,
           transition:'height 0.6s ease',
         }}/>
+        {/* Top shine */}
+        <div style={{ position:'absolute', top:0, left:0, right:0, height:'40%', background:'linear-gradient(to bottom,rgba(255,255,255,0.6),transparent)', borderRadius:'20px 20px 0 0', pointerEvents:'none' }}/>
         <span style={{
-          fontSize:26, lineHeight:1, zIndex:1,
+          fontSize:30, lineHeight:1, zIndex:1,
           animation: critical ? 'pawShake 0.42s linear infinite' : 'none',
           display:'inline-block',
+          filter: critical ? 'drop-shadow(0 0 4px rgba(255,80,50,0.6))' : 'none',
         }}>{icon}</span>
       </div>
-      <span style={{ fontSize:9, fontWeight:800, color:'#6a3810', letterSpacing:0.3 }}>{label}</span>
+      <span style={{ fontSize:9, fontWeight:800, color: critical ? '#c03010' : '#6a3810', letterSpacing:0.3 }}>{label}</span>
     </div>
   );
 }
@@ -912,26 +929,26 @@ function BottomPanel({ fills, isCrit, onPawClick, activeNav, setActiveNav, canCl
   return (
     <div style={{ position:'absolute', bottom:0, left:0, right:0, zIndex:20 }}>
       {/* Gradient fade above panel */}
-      <div style={{ height:32, background:'linear-gradient(to bottom, transparent, rgba(210,175,120,0.35))', pointerEvents:'none' }}/>
+      <div style={{ height:36, background:'linear-gradient(to bottom, transparent, rgba(195,158,95,0.4))', pointerEvents:'none' }}/>
       {/* Main panel */}
       <div style={{
-        background:'linear-gradient(180deg,#f5e8d0,#eedfc4)',
-        borderRadius:'28px 28px 0 0',
-        boxShadow:'0 -6px 28px rgba(100,60,15,0.22)',
-        border:'1.5px solid rgba(220,180,110,0.4)',
+        background:'linear-gradient(180deg,#f8ecd4,#eedfc2)',
+        borderRadius:'30px 30px 0 0',
+        boxShadow:'0 -8px 32px rgba(90,45,8,0.28), 0 -1px 0 rgba(255,255,255,0.6) inset',
+        border:'1.5px solid rgba(225,185,115,0.5)',
         borderBottom:'none',
-        padding:'12px 10px 0',
+        padding:'14px 8px 0',
       }}>
         {/* Action buttons row */}
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end', marginBottom:8 }}>
-          <PawIndicator pawId="ph"  icon="🍔" label="Голод"      fill={fills.hunger}  critical={isCrit(fills.hunger)}  onClick={() => onPawClick('kitchen')}/>
-          <PawIndicator pawId="pt"  icon="🧼" label="Гигиена"   fill={fills.toilet}  critical={isCrit(fills.toilet)}  onClick={() => onPawClick('bathroom')}/>
-          <PawIndicator pawId="pf"  icon="😴" label="Сон"       fill={fills.fatigue} critical={isCrit(fills.fatigue)} onClick={() => onPawClick('rest')}/>
-          <PawIndicator pawId="pm"  icon="🎮" label="Настроение" fill={fills.mood}    critical={isCrit(fills.mood)}    onClick={() => onPawClick('yard')}/>
-          <PawIndicator pawId="phh" icon="⛑️" label="Здоровье"  fill={fills.health}  critical={isCrit(fills.health)}  onClick={() => onPawClick('clinic')}/>
+        <div style={{ display:'flex', justifyContent:'space-around', alignItems:'flex-end', marginBottom:10, paddingBottom:10, borderBottom:'1.5px solid rgba(180,130,70,0.15)' }}>
+          <PawIndicator pawId="hunger"  icon="🍔" label="Голод"       fill={fills.hunger}  critical={isCrit(fills.hunger)}  onClick={() => onPawClick('kitchen')}/>
+          <PawIndicator pawId="toilet"  icon="🧴" label="Гигиена"    fill={fills.toilet}  critical={isCrit(fills.toilet)}  onClick={() => onPawClick('bathroom')}/>
+          <PawIndicator pawId="fatigue" icon="😴" label="Сон"        fill={fills.fatigue} critical={isCrit(fills.fatigue)} onClick={() => onPawClick('rest')}/>
+          <PawIndicator pawId="mood"    icon="🎮" label="Настроение"  fill={fills.mood}    critical={isCrit(fills.mood)}    onClick={() => onPawClick('yard')}/>
+          <PawIndicator pawId="health"  icon="🩺" label="Здоровье"   fill={fills.health}  critical={isCrit(fills.health)}  onClick={() => onPawClick('clinic')}/>
         </div>
         {/* Nav tabs */}
-        <div style={{ display:'flex', borderTop:'1.5px solid rgba(180,130,70,0.18)', paddingBottom:6 }}>
+        <div style={{ display:'flex', paddingBottom:8 }}>
           <NavItem icon="🏠" label="Дом"     active={activeNav==='home'}    onClick={() => { setActiveNav('home'); onPawClick('home'); }}/>
           <NavItem icon="🛒" label="Магазин" active={activeNav==='shop'}    onClick={() => { setActiveNav('shop'); onPawClick('shop'); }}/>
           <NavItem icon="🏆" label="Успехи"  active={activeNav==='achieve'} dot={canClaimDaily} onClick={() => { setActiveNav('achieve'); }}/>
@@ -949,23 +966,27 @@ function HomeRoom() {
   return (
     <svg viewBox="0 0 390 650" style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
       <defs>
-        <linearGradient id="hwG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#e8d5b0"/><stop offset="100%" stopColor="#d4c090"/></linearGradient>
-        <linearGradient id="hfG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#7a4e2c"/><stop offset="100%" stopColor="#5a3818"/></linearGradient>
-        <linearGradient id="hsG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0d1e35"/><stop offset="100%" stopColor="#1a3050"/></linearGradient>
+        <linearGradient id="hwG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#d4a868"/><stop offset="100%" stopColor="#b88040"/></linearGradient>
+        <linearGradient id="hfG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#6a3818"/><stop offset="100%" stopColor="#3e1c08"/></linearGradient>
+        <linearGradient id="hsG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#080d20"/><stop offset="100%" stopColor="#101830"/></linearGradient>
         <linearGradient id="hcG" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#7a4c22"/><stop offset="100%" stopColor="#9a6830"/></linearGradient>
-        <linearGradient id="hcurtG" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#7060a8"/><stop offset="100%" stopColor="#9880c8"/></linearGradient>
-        <linearGradient id="hhouseG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f0e0c0"/><stop offset="100%" stopColor="#dccca0"/></linearGradient>
-        <linearGradient id="hroofG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#e87040"/><stop offset="100%" stopColor="#c85020"/></linearGradient>
-        <radialGradient id="hrugG" cx="50%" cy="40%" r="55%"><stop offset="0%" stopColor="#e890a8"/><stop offset="100%" stopColor="#c05870"/></radialGradient>
-        <radialGradient id="hcrysG" cx="35%" cy="30%" r="65%"><stop offset="0%" stopColor="#c8e8ff"/><stop offset="50%" stopColor="#9898d8"/><stop offset="100%" stopColor="#5848a0"/></radialGradient>
-        <radialGradient id="hglowG" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#fffbe0" stopOpacity="0.9"/><stop offset="100%" stopColor="#ffd060" stopOpacity="0"/></radialGradient>
-        <filter id="softShadow"><feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="#3a1800" floodOpacity="0.35"/></filter>
+        <linearGradient id="hcurtG" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#5848a0"/><stop offset="100%" stopColor="#8068c8"/></linearGradient>
+        <linearGradient id="hhouseG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f0ddb0"/><stop offset="100%" stopColor="#d4bc88"/></linearGradient>
+        <linearGradient id="hroofG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#e86830"/><stop offset="100%" stopColor="#b84018"/></linearGradient>
+        <radialGradient id="hrugG" cx="50%" cy="40%" r="55%"><stop offset="0%" stopColor="#f0a0bc"/><stop offset="60%" stopColor="#e07898"/><stop offset="100%" stopColor="#c05070"/></radialGradient>
+        <radialGradient id="hcrysG" cx="30%" cy="25%" r="65%"><stop offset="0%" stopColor="#e0c8ff"/><stop offset="40%" stopColor="#9060d8"/><stop offset="100%" stopColor="#3818a0"/></radialGradient>
+        <radialGradient id="hglowG" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#d0a8ff" stopOpacity="0.8"/><stop offset="100%" stopColor="#8040d0" stopOpacity="0"/></radialGradient>
+        <filter id="softShadow"><feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="#3a1800" floodOpacity="0.4"/></filter>
       </defs>
 
       {/* ── Walls ── */}
       <rect x="0" y="0" width="390" height="285" fill="url(#hwG)"/>
+      {/* Warm ambient shading on walls - darker at corners */}
+      <rect x="0" y="0" width="60" height="285" fill="rgba(0,0,0,0.08)"/>
+      <rect x="330" y="0" width="60" height="285" fill="rgba(0,0,0,0.06)"/>
+      <rect x="0" y="200" width="390" height="85" fill="rgba(0,0,0,0.06)"/>
       {/* Subtle wall texture lines */}
-      {[60,120,180,240].map((y,i)=><line key={i} x1="0" y1={y} x2="390" y2={y} stroke="#c0a870" strokeWidth="0.5" opacity="0.18"/>)}
+      {[60,120,180,240].map((y,i)=><line key={i} x1="0" y1={y} x2="390" y2={y} stroke="#a07028" strokeWidth="0.5" opacity="0.15"/>)}
 
       {/* ── Window frame (left) ── */}
       {/* Curtain rods */}
@@ -991,9 +1012,9 @@ function HomeRoom() {
       <rect x="30" y="22" width="152" height="170" rx="6" fill="none" stroke="#9a7040" strokeWidth="2"/>
 
       {/* ── Shelf (right) ── */}
-      <rect x="238" y="100" width="150" height="14" rx="5" fill="#a07438" stroke="#5a3010" strokeWidth="2.5"/>
-      <rect x="248" y="114" width="8" height="40" rx="3" fill="#8a5e28" stroke="#5a3010" strokeWidth="1.5"/>
-      <rect x="372" y="114" width="8" height="40" rx="3" fill="#8a5e28" stroke="#5a3010" strokeWidth="1.5"/>
+      <rect x="230" y="100" width="158" height="15" rx="6" fill="#c89840" stroke="#7a5010" strokeWidth="3" filter="url(#softShadow)"/>
+      <rect x="241" y="115" width="9" height="44" rx="3" fill="#a07828" stroke="#5a3010" strokeWidth="2"/>
+      <rect x="371" y="115" width="9" height="44" rx="3" fill="#a07828" stroke="#5a3010" strokeWidth="2"/>
       {/* Plant pot */}
       <ellipse cx="305" cy="101" rx="16" ry="8" fill="#c87840" stroke="#7a4010" strokeWidth="2"/>
       <path d="M289,101 L293,76 L317,76 L321,101 Z" fill="#c87840" stroke="#7a4010" strokeWidth="2" strokeLinejoin="round"/>
@@ -1022,32 +1043,46 @@ function HomeRoom() {
 
       {/* ── Floor ── */}
       <rect x="0" y="278" width="390" height="372" fill="url(#hfG)"/>
-      <rect x="0" y="274" width="390" height="7" fill="#6a4420" stroke="#3a1800" strokeWidth="1.5"/>
+      <rect x="0" y="274" width="390" height="9" fill="#522810" stroke="#2a1000" strokeWidth="2"/>
       {/* Floor planks horizontal */}
       {[300,325,350,376,404,434,466,500,536].map((y,i)=>(
-        <line key={i} x1="0" y1={y} x2="390" y2={y} stroke="#3a1800" strokeWidth={i<4?2.5:2} opacity="0.55"/>
+        <line key={i} x1="0" y1={y} x2="390" y2={y} stroke="#220e00" strokeWidth={i<4?3:2.5} opacity="0.6"/>
       ))}
       {/* Floor planks vertical */}
       {[78,156,234,312].map((x,i)=>(
-        <line key={i} x1={x} y1="278" x2={x+1} y2="650" stroke="#3a1800" strokeWidth="1.5" opacity="0.35"/>
+        <line key={i} x1={x} y1="278" x2={x+1} y2="650" stroke="#220e00" strokeWidth="2" opacity="0.4"/>
       ))}
 
-      {/* ── Oval rug (center) ── */}
-      <ellipse cx="175" cy="610" rx="120" ry="30" fill="url(#hrugG)" stroke="#8a3050" strokeWidth="3" filter="url(#softShadow)"/>
-      <ellipse cx="175" cy="608" rx="100" ry="23" fill="none" stroke="#f0a0c0" strokeWidth="1.5" opacity="0.5"/>
+      {/* ── Oval rug — big fluffy pink like the mockup ── */}
+      {/* Outer shadow */}
+      <ellipse cx="195" cy="618" rx="135" ry="36" fill="#803050" opacity="0.4" filter="url(#softShadow)"/>
+      {/* Main rug body */}
+      <ellipse cx="195" cy="612" rx="132" ry="34" fill="url(#hrugG)"/>
+      {/* Fluffy texture — lighter inner ring */}
+      <ellipse cx="195" cy="610" rx="112" ry="26" fill="none" stroke="#f4b8d0" strokeWidth="3" opacity="0.6"/>
+      <ellipse cx="195" cy="609" rx="90" ry="19" fill="none" stroke="#f8d0e0" strokeWidth="2" opacity="0.4"/>
+      {/* Rug fringe dots around edge */}
+      {[-120,-98,-76,-54,-32,-10,12,34,56,78,100,122].map((dx,i)=>(
+        <circle key={i} cx={195+dx} cy={616+Math.abs(Math.sin(i*0.8))*14} r="4" fill="#d05880" opacity="0.7"/>
+      ))}
 
       {/* ── Crystal ball (left floor) ── */}
-      {/* Glow under ball */}
-      <ellipse cx="68" cy="572" rx="32" ry="10" fill="#9070c0" opacity="0.35" filter="url(#softShadow)"/>
-      {/* Stand */}
-      <path d="M50,572 L52,556 L84,556 L86,572 Z" fill="#6848a0" stroke="#3a2060" strokeWidth="2" strokeLinejoin="round"/>
-      <ellipse cx="68" cy="572" rx="20" ry="5" fill="#7858b0" stroke="#3a2060" strokeWidth="2"/>
+      {/* Ambient glow on floor */}
+      <ellipse cx="68" cy="580" rx="48" ry="14" fill="#8040d0" opacity="0.3" filter="url(#softShadow)"/>
+      {/* Stand base */}
+      <ellipse cx="68" cy="580" rx="24" ry="7" fill="#c8a030" stroke="#8a6010" strokeWidth="2.5"/>
+      {/* Stand body */}
+      <path d="M48,578 L52,558 L84,558 L88,578 Z" fill="#d4a828" stroke="#8a6010" strokeWidth="2.5" strokeLinejoin="round"/>
+      <ellipse cx="68" cy="558" rx="18" ry="5" fill="#e8c040" stroke="#8a6010" strokeWidth="2"/>
       {/* Ball */}
-      <circle cx="68" cy="530" r="30" fill="url(#hcrysG)" stroke="#4838a0" strokeWidth="2.5" filter="url(#softShadow)"/>
+      <circle cx="68" cy="524" r="34" fill="url(#hcrysG)" stroke="#5030c0" strokeWidth="3" filter="url(#softShadow)"/>
+      {/* Ball inner glow */}
+      <circle cx="68" cy="524" r="28" fill="none" stroke="rgba(160,100,255,0.4)" strokeWidth="2"/>
       {/* Ball shine */}
-      <ellipse cx="58" cy="518" rx="10" ry="7" fill="white" opacity="0.5" transform="rotate(-25,58,518)"/>
-      {/* Glow around ball */}
-      <circle cx="68" cy="530" r="38" fill="url(#hglowG)" opacity="0.35"/>
+      <ellipse cx="56" cy="510" rx="11" ry="8" fill="white" opacity="0.55" transform="rotate(-25,56,510)"/>
+      <ellipse cx="75" cy="508" rx="5" ry="4" fill="white" opacity="0.3"/>
+      {/* Purple glow around ball */}
+      <circle cx="68" cy="524" r="44" fill="url(#hglowG)" opacity="0.5"/>
     </svg>
   );
 }
@@ -3281,52 +3316,65 @@ function App() {
       {hearts.map(h => <FloatingHeart key={h.id} id={h.id} x={h.x} y={h.y} onDone={() => removeHeart(h.id)} emoji={h.emoji}/>)}
 
       {/* ── HEADER ── */}
-      <div style={{ position:'relative', zIndex:20, padding:'12px 16px 0' }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <div>
-            <div style={{ fontSize:21, fontWeight:900, color:'#f5dfc0', letterSpacing:-0.5, textShadow:'0 1px 6px rgba(0,0,0,0.6)' }}>Scared Cat 🐱</div>
-            <div style={{ fontSize:11, color:'#c8a870', fontWeight:700, marginTop:1 }}>День {day} • Ур. {level}</div>
+      <div style={{ position:'relative', zIndex:20, padding:'10px 12px 0', display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8 }}>
+
+        {/* Left info card — dark warm card like in mockup */}
+        <div style={{
+          background:'rgba(45,18,4,0.78)',
+          backdropFilter:'blur(10px)',
+          borderRadius:20,
+          padding:'10px 14px 10px',
+          boxShadow:'0 6px 24px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,220,150,0.15)',
+          border:'1.5px solid rgba(200,150,70,0.3)',
+          minWidth:158,
+        }}>
+          <div style={{ fontSize:19, fontWeight:900, color:'#f5dfc0', letterSpacing:-0.3, lineHeight:1 }}>Scared Cat 🐱</div>
+          <div style={{ fontSize:11, color:'#c8a870', fontWeight:700, marginTop:3, marginBottom:6 }}>День {day} • Ур. {level}</div>
+          {/* XP bar */}
+          <div style={{ height:7, background:'rgba(255,255,255,0.12)', borderRadius:99, overflow:'hidden', boxShadow:'inset 0 1px 3px rgba(0,0,0,0.4)' }}>
+            <div style={{ height:'100%', borderRadius:99, background:'linear-gradient(90deg,#70e028,#a8f040)', width:`${xpProg.pct * 100}%`, transition:'width 0.5s ease', boxShadow:'0 1px 4px rgba(100,230,30,0.5)' }}/>
           </div>
-          <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-            <div style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 12px', background:'rgba(20,8,0,0.6)', borderRadius:99, boxShadow:'0 2px 10px rgba(0,0,0,0.45)', border:'1.5px solid rgba(255,255,255,0.12)' }}>
-              <span style={{ fontSize:15 }}>🪙</span>
-              <span style={{ fontSize:14, fontWeight:900, color:'#f5dfc0' }}>{coins}</span>
+          <div style={{ marginTop:3, fontSize:9, fontWeight:800, color:'#90d040' }}>
+            XP: {xpProg.curXP} / {xpProg.needed || '—'}
+            {level >= MAX_LEVEL && <span style={{ marginLeft:4, color:'#ffd060' }}>MAX 🌟</span>}
+          </div>
+        </div>
+
+        {/* Right buttons cluster */}
+        <div style={{ display:'flex', flexDirection:'column', gap:6, alignItems:'flex-end' }}>
+          {/* Coins row */}
+          <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+            {/* Coin counter */}
+            <div style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 12px', background:'rgba(38,16,2,0.78)', borderRadius:99, boxShadow:'0 3px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,220,120,0.15)', border:'1.5px solid rgba(200,150,70,0.35)', backdropFilter:'blur(8px)' }}>
+              <span style={{ fontSize:16 }}>🪙</span>
+              <span style={{ fontSize:15, fontWeight:900, color:'#f5dfc0', letterSpacing:-0.3 }}>{coins}</span>
             </div>
-            {/* NFT / Wallet button */}
+          </div>
+          {/* Icon buttons row */}
+          <div style={{ display:'flex', gap:7 }}>
+            {/* NFT / Wallet */}
             <button onClick={() => { setScreen('nft_skins'); setActiveNav(''); }}
-              style={{ width:38, height:38, borderRadius:12, background: activeNFT ? `rgba(${activeNFT ? '80,40,160' : '20,8,0'},0.7)` : 'rgba(20,8,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow: activeNFT ? '0 2px 10px rgba(120,60,255,0.5)' : '0 2px 10px rgba(0,0,0,0.45)', cursor:'pointer', fontSize:18, border: walletAddress ? '1.5px solid rgba(120,80,255,0.6)' : '1.5px solid rgba(255,255,255,0.12)', position:'relative', overflow:'hidden' }}>
+              style={{ width:42, height:42, borderRadius:14, background: activeNFT ? 'rgba(70,30,140,0.8)' : 'rgba(38,16,2,0.78)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow: activeNFT ? '0 4px 14px rgba(110,50,240,0.55)' : '0 4px 14px rgba(0,0,0,0.5)', cursor:'pointer', fontSize:20, border: walletAddress ? '1.5px solid rgba(130,90,255,0.7)' : '1.5px solid rgba(200,150,70,0.3)', position:'relative', overflow:'hidden', backdropFilter:'blur(8px)' }}>
               {activeNFT
-                ? <img src={activeNFT.image} alt="NFT" style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:10 }}/>
-                : <span>👛</span>
+                ? <img src={activeNFT.image} alt="NFT" style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:12 }}/>
+                : <span>🎨</span>
               }
               {walletAddress && !activeNFT && (
-                <div style={{ position:'absolute', bottom:2, right:2, width:8, height:8, borderRadius:'50%', background:'#60ff90', border:'1px solid rgba(0,0,0,0.5)' }}/>
+                <div style={{ position:'absolute', bottom:3, right:3, width:8, height:8, borderRadius:'50%', background:'#60ff90', border:'1.5px solid rgba(0,0,0,0.5)' }}/>
               )}
             </button>
-            {/* Edit mode button */}
-            <button onClick={() => setEditMode(e => !e)}
-              style={{ width:38, height:38, borderRadius:12, background: editMode ? 'rgba(255,200,60,0.25)' : 'rgba(20,8,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 2px 10px rgba(0,0,0,0.45)', cursor:'pointer', fontSize:18, border: editMode ? '1.5px solid rgba(255,200,60,0.6)' : '1.5px solid rgba(255,255,255,0.12)' }}>
-              🎨
-            </button>
+            {/* Shop */}
             <button onClick={() => { setScreen('shop'); setActiveNav('shop'); }}
-              style={{ width:38, height:38, borderRadius:12, background:'rgba(20,8,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 2px 10px rgba(0,0,0,0.45)', cursor:'pointer', fontSize:18, border:'1.5px solid rgba(255,255,255,0.12)' }}>
+              style={{ width:42, height:42, borderRadius:14, background:'rgba(38,16,2,0.78)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 14px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,220,120,0.1)', cursor:'pointer', fontSize:20, border:'1.5px solid rgba(200,150,70,0.3)', backdropFilter:'blur(8px)' }}>
               🛒
             </button>
-            {/* Cloud sync button */}
+            {/* Cloud sync */}
             <button onClick={handleManualSync} disabled={syncStatus === 'syncing'}
               title="Синхронизировать прогресс"
-              style={{ width:38, height:38, borderRadius:12, cursor: syncStatus==='syncing' ? 'default' : 'pointer', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', border: `1.5px solid ${syncStatus==='ok' ? 'rgba(80,255,120,0.5)' : syncStatus==='error' ? 'rgba(255,80,80,0.5)' : 'rgba(255,255,255,0.12)'}`, background: syncStatus==='ok' ? 'rgba(40,160,60,0.25)' : syncStatus==='error' ? 'rgba(160,40,40,0.25)' : 'rgba(20,8,0,0.6)', boxShadow:'0 2px 10px rgba(0,0,0,0.45)', transition:'background 0.3s, border 0.3s', opacity: syncStatus==='syncing' ? 0.6 : 1 }}>
+              style={{ width:42, height:42, borderRadius:14, cursor: syncStatus==='syncing' ? 'default' : 'pointer', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', border: `1.5px solid ${syncStatus==='ok' ? 'rgba(80,255,120,0.55)' : syncStatus==='error' ? 'rgba(255,80,80,0.55)' : 'rgba(200,150,70,0.3)'}`, background: syncStatus==='ok' ? 'rgba(30,130,50,0.5)' : syncStatus==='error' ? 'rgba(140,30,30,0.5)' : 'rgba(38,16,2,0.78)', boxShadow:'0 4px 14px rgba(0,0,0,0.5)', backdropFilter:'blur(8px)', transition:'background 0.3s, border 0.3s', opacity: syncStatus==='syncing' ? 0.6 : 1 }}>
               {syncStatus === 'syncing' ? '⏳' : syncStatus === 'ok' ? '✅' : syncStatus === 'error' ? '❌' : '☁️'}
             </button>
           </div>
-        </div>
-        {/* XP bar */}
-        <div style={{ marginTop:8, height:5, background:'rgba(255,255,255,0.12)', borderRadius:99, overflow:'hidden' }}>
-          <div style={{ height:'100%', borderRadius:99, background:'linear-gradient(90deg,#a0e060,#60c820)', width:`${xpProg.pct * 100}%`, transition:'width 0.4s ease' }}/>
-        </div>
-        <div style={{ display:'flex', justifyContent:'space-between', marginTop:2 }}>
-          <span style={{ fontSize:9, color:'rgba(255,255,255,0.35)', fontWeight:700 }}>XP {xpProg.curXP}/{xpProg.needed || '—'}</span>
-          {level >= MAX_LEVEL && <span style={{ fontSize:9, color:'#ffd060', fontWeight:700 }}>MAX 🌟</span>}
         </div>
       </div>
 
