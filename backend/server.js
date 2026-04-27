@@ -124,18 +124,23 @@ app.get('/load/:chatId', (req, res) => {
 });
 
 // ── NOTIFICATION: Register/update cat stats ──
-// Body: { chatId, stats: { hunger, fatigue, toilet, mood, health } }
+// Body: { chatId, stats, level, lastUpdate }
 app.post('/update', (req, res) => {
-  const { chatId, stats } = req.body || {};
+  const { chatId, stats, level, lastUpdate } = req.body || {};
   if (!chatId || !stats) return res.status(400).json({ error: 'Missing chatId or stats' });
 
   const id  = String(chatId);
   const old = users.get(id) || { notified: {} };
 
-  users.set(id, { stats, lastSeen: Date.now(), notified: old.notified || {} });
+  users.set(id, {
+    stats,
+    level:    level || 1,
+    lastSeen: lastUpdate || Date.now(),
+    notified: old.notified || {},
+  });
   saveUsers();
 
-  console.log(`[update] user=${id} hunger=${stats.hunger} mood=${stats.mood} health=${stats.health}`);
+  console.log(`[update] user=${id} lv=${level} hunger=${stats.hunger?.toFixed(0)} mood=${stats.mood?.toFixed(0)} health=${stats.health?.toFixed(0)}`);
   res.json({ ok: true });
 });
 
@@ -163,7 +168,22 @@ async function sendMessage(chatId, text) {
   } catch (e) { console.error('[tg] error:', e.message); return false; }
 }
 
-// ── Notification checker (every 20 min) ──
+// ── Decay calculator (mirrors game engine) ──
+// Applies offline stat decay so server knows CURRENT cat state
+function applyDecay(stats, minutes, level) {
+  if (minutes <= 0) return { ...stats };
+  const m = 1 - Math.min(((level || 1) - 1) * 0.01, 0.15);
+  const s = { ...stats };
+  s.hunger  = Math.min(s.hunger  + 0.22 * m * minutes, 100);
+  s.fatigue = Math.min(s.fatigue + 0.07 * m * minutes, 100);
+  s.toilet  = Math.min(s.toilet  + 0.11 * m * minutes, 100);
+  s.mood    = Math.max(s.mood    - 0.16 * m * minutes, 0);
+  const crits = [s.hunger >= 80, s.fatigue >= 80, s.toilet >= 80, s.mood <= 20].filter(Boolean).length;
+  s.health  = Math.max(s.health  + (crits >= 2 ? -0.10 : -0.02) * minutes, 0);
+  return s;
+}
+
+// ── Notification checker (every 10 min) ──
 async function checkAndNotify() {
   const now = Date.now();
   console.log(`[notify] checking ${users.size} users at ${new Date().toISOString()}`);
@@ -171,8 +191,11 @@ async function checkAndNotify() {
   for (const [chatId, data] of users.entries()) {
     if (now - data.lastSeen > 48 * 3600_000) continue; // skip inactive >48h
 
-    const s = data.stats;
+    // Apply offline decay — server knows current stat values even without client
+    const minutesAway = (now - data.lastSeen) / 60000;
+    const s = applyDecay(data.stats, minutesAway, data.level);
     const n = data.notified;
+    console.log(`[notify] user=${chatId} away=${minutesAway.toFixed(0)}min hunger=${s.hunger.toFixed(0)} mood=${s.mood.toFixed(0)} health=${s.health.toFixed(0)}`);
     const lines = [];
 
     if (s.hunger  >= 75) { if (!n.hunger)  { lines.push('🍔 Кот <b>очень голоден</b>! Покорми его скорее!');          n.hunger  = true; } } else if (s.hunger  < 55) { n.hunger  = false; }

@@ -74,14 +74,15 @@ async function fetchScaredCatNFTs(walletAddress) {
 const BACKEND_URL = window.SCARED_CAT_BACKEND || 'https://scared-cat-tamagotchi-production.up.railway.app';
 
 // Sync stats to backend so push notifications know the cat's state
-function syncBackend(stats) {
+// Sends stats + level + timestamp so server can calculate offline decay
+function syncBackend(stats, level) {
   if (!BACKEND_URL) return;
   const chatId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
   if (!chatId) return;
   fetch(`${BACKEND_URL}/update`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chatId, stats }),
+    body: JSON.stringify({ chatId, stats, level: level || 1, lastUpdate: Date.now() }),
   }).catch(() => {});
 }
 
@@ -2166,8 +2167,8 @@ function App() {
 
   // ── Sync stats to backend for push notifications ──
   useEffect(() => {
-    syncBackend(stats); // immediate on every stats change
-  }, [stats]);
+    syncBackend(stats, level); // immediate on every stats change
+  }, [stats, level]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Save to cloud immediately when app is hidden (user switches away) ──
   useEffect(() => {
