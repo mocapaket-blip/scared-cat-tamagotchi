@@ -837,57 +837,37 @@ function ThoughtBubble({ emoji }) {
 /* ══════════════════════════════════════════════════
    PAW INDICATOR
    ══════════════════════════════════════════════════ */
-function PawShape({ fillColor, baseColor, clipId }) {
-  const dots = (c) => (
-    <g>
-      <ellipse cx="14" cy="44" rx="11" ry="10" fill={c}/>
-      <ellipse cx="31" cy="32" rx="11" ry="10" fill={c}/>
-      <ellipse cx="49" cy="32" rx="11" ry="10" fill={c}/>
-      <ellipse cx="66" cy="44" rx="11" ry="10" fill={c}/>
-      <ellipse cx="40" cy="72" rx="26" ry="20" fill={c}/>
-    </g>
-  );
-  return (
-    <g>
-      <g opacity="0.15">
-        <ellipse cx="14" cy="44" rx="13" ry="12" fill="#1a0800"/>
-        <ellipse cx="31" cy="32" rx="13" ry="12" fill="#1a0800"/>
-        <ellipse cx="49" cy="32" rx="13" ry="12" fill="#1a0800"/>
-        <ellipse cx="66" cy="44" rx="13" ry="12" fill="#1a0800"/>
-        <ellipse cx="40" cy="72" rx="28" ry="22" fill="#1a0800"/>
-      </g>
-      {dots(baseColor)}
-      <g clipPath={`url(#${clipId})`}>{dots(fillColor)}</g>
-      <g clipPath={`url(#${clipId})`} opacity="0.25">
-        <ellipse cx="28" cy="60" rx="12" ry="22" fill="white"/>
-      </g>
-    </g>
-  );
-}
-
 function PawIndicator({ pawId, icon, label, fill, critical, onClick }) {
-  // Smooth 4-step gradient: green → yellow → orange → red
-  const fillColor = fill > 60 ? '#38c060'
-                  : fill > 40 ? '#d4a010'
-                  : fill > 20 ? '#e06020'
-                  :             '#e02020';
-  const baseColor = critical ? '#ffc8c8' : '#ddd0c0';
-  const clipY = 92 * (1 - fill / 100);
-  const clipH = Math.max(0, 92 * fill / 100);
+  const barColor = fill > 60 ? '#52c860' : fill > 40 ? '#f0b030' : fill > 20 ? '#e87030' : '#e83030';
   return (
-    <div onClick={onClick} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2, cursor:'pointer' }}>
-      <div style={{ position:'relative', animation: critical ? 'pulseCrit 0.75s ease-in-out infinite' : 'none', transition:'transform 0.12s' }}
-           onPointerDown={e => e.currentTarget.style.transform='scale(0.88)'}
-           onPointerUp={e => e.currentTarget.style.transform='scale(1)'}
-           onPointerLeave={e => e.currentTarget.style.transform='scale(1)'}>
-        <svg viewBox="0 0 80 92" width="50" height="60" style={{display:'block'}}>
-          <defs><clipPath id={pawId}><rect x="0" y={clipY} width="80" height={clipH}/></clipPath></defs>
-          <PawShape fillColor={fillColor} baseColor={baseColor} clipId={pawId}/>
-        </svg>
-        {/* Icon shakes when critical */}
-        <div style={{ position:'absolute', left:'50%', bottom:4, transform:'translateX(-50%)', fontSize:15, lineHeight:1, pointerEvents:'none', filter:'drop-shadow(0 1px 2px rgba(0,0,0,0.35))', animation: critical ? 'pawShake 0.42s linear infinite' : 'none', display:'inline-block' }}>{icon}</div>
+    <div onClick={onClick} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:5, cursor:'pointer' }}>
+      <div
+        onPointerDown={e => e.currentTarget.style.transform='scale(0.88)'}
+        onPointerUp={e => e.currentTarget.style.transform='scale(1)'}
+        onPointerLeave={e => e.currentTarget.style.transform='scale(1)'}
+        style={{
+          position:'relative', width:52, height:52, borderRadius:18,
+          background: critical ? 'linear-gradient(145deg,#fff4f0,#ffe0d8)' : 'linear-gradient(145deg,#ffffff,#f5ead8)',
+          boxShadow: critical
+            ? '0 5px 14px rgba(220,70,50,0.35), inset 0 1px 0 rgba(255,255,255,0.9), 0 2px 0 rgba(180,100,80,0.25)'
+            : '0 5px 14px rgba(140,90,40,0.22), inset 0 1px 0 rgba(255,255,255,0.9), 0 2px 0 rgba(160,110,60,0.18)',
+          display:'flex', alignItems:'center', justifyContent:'center',
+          overflow:'hidden', transition:'transform 0.1s',
+          border:`2px solid ${critical ? 'rgba(220,80,60,0.35)' : 'rgba(200,160,100,0.3)'}`,
+          animation: critical ? 'pulseCrit 0.75s ease-in-out infinite' : 'none',
+        }}>
+        <div style={{
+          position:'absolute', bottom:0, left:0, right:0, height:`${fill}%`,
+          background:`linear-gradient(to top, ${barColor}65, ${barColor}18)`,
+          transition:'height 0.6s ease',
+        }}/>
+        <span style={{
+          fontSize:26, lineHeight:1, zIndex:1,
+          animation: critical ? 'pawShake 0.42s linear infinite' : 'none',
+          display:'inline-block',
+        }}>{icon}</span>
       </div>
-      <span style={{ fontSize:8, fontWeight:800, color:'#2a1008', letterSpacing:0.1 }}>{label}</span>
+      <span style={{ fontSize:9, fontWeight:800, color:'#6a3810', letterSpacing:0.3 }}>{label}</span>
     </div>
   );
 }
@@ -910,11 +890,17 @@ function FloatingHeart({ id, x, y, onDone, emoji }) {
    ══════════════════════════════════════════════════ */
 function NavItem({ icon, label, active, dot, onClick }) {
   return (
-    <button onClick={onClick} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:2, background:'none', border:'none', cursor:'pointer', padding:'6px 4px 2px', position:'relative', fontFamily:"'Nunito',sans-serif" }}>
-      {dot && <div style={{ position:'absolute', top:4, right:'50%', marginRight:-14, width:8, height:8, borderRadius:99, background:'#ff5070', border:'2px solid white' }}/>}
-      <span style={{ fontSize:22, filter: active ? 'none' : 'grayscale(0.5) opacity(0.55)' }}>{icon}</span>
-      <span style={{ fontSize:10, fontWeight: active ? 800 : 600, color: active ? '#a04820' : '#806048' }}>{label}</span>
-      {active && <div style={{ width:18, height:3, borderRadius:99, background:'#c06030', marginTop:1 }}/>}
+    <button onClick={onClick} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:2, background:'none', border:'none', cursor:'pointer', padding:'8px 4px 4px', position:'relative', fontFamily:"'Nunito',sans-serif" }}>
+      {dot && <div style={{ position:'absolute', top:6, right:'50%', marginRight:-16, width:9, height:9, borderRadius:99, background:'#ff4466', border:'2px solid #f0e4cc' }}/>}
+      <div style={{
+        width:42, height:42, borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center',
+        background: active ? 'linear-gradient(145deg,#fff3e0,#ffe0b0)' : 'transparent',
+        boxShadow: active ? '0 3px 10px rgba(180,100,30,0.25), inset 0 1px 0 rgba(255,255,255,0.8)' : 'none',
+        transition:'background 0.2s, box-shadow 0.2s',
+      }}>
+        <span style={{ fontSize:22, filter: active ? 'none' : 'grayscale(0.3) opacity(0.6)' }}>{icon}</span>
+      </div>
+      <span style={{ fontSize:10, fontWeight: active ? 900 : 600, color: active ? '#b06020' : '#a08060' }}>{label}</span>
     </button>
   );
 }
@@ -924,19 +910,33 @@ function NavItem({ icon, label, active, dot, onClick }) {
    ══════════════════════════════════════════════════ */
 function BottomPanel({ fills, isCrit, onPawClick, activeNav, setActiveNav, canClaimDaily }) {
   return (
-    <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:'12px 12px 0', zIndex:20, height:192, display:'flex', flexDirection:'column' }}>
-      <div style={{ padding:'8px 4px', display:'flex', justifyContent:'space-around', alignItems:'flex-end', flex:1, marginBottom:10 }}>
-        <PawIndicator pawId="ph"  icon="🍔" label="Голод"      fill={fills.hunger}  critical={isCrit(fills.hunger)}  onClick={() => onPawClick('kitchen')}/>
-        <PawIndicator pawId="pt"  icon="🚽" label="Гигиена"   fill={fills.toilet}  critical={isCrit(fills.toilet)}  onClick={() => onPawClick('bathroom')}/>
-        <PawIndicator pawId="pf"  icon="😴" label="Сон"       fill={fills.fatigue} critical={isCrit(fills.fatigue)} onClick={() => onPawClick('rest')}/>
-        <PawIndicator pawId="pm"  icon="🎮" label="Настроение" fill={fills.mood}    critical={isCrit(fills.mood)}    onClick={() => onPawClick('yard')}/>
-        <PawIndicator pawId="phh" icon="🏥" label="Здоровье"  fill={fills.health}  critical={isCrit(fills.health)}  onClick={() => onPawClick('clinic')}/>
-      </div>
-      <div style={{ display:'flex', borderTop:'1.5px solid rgba(0,0,0,0.07)', background:'rgba(255,255,255,0.65)', marginLeft:-12, marginRight:-12, paddingBottom:10, flexShrink:0 }}>
-        <NavItem icon="🏠" label="Дом"      active={activeNav==='home'}    onClick={() => { setActiveNav('home'); onPawClick('home'); }}/>
-        <NavItem icon="🛒" label="Магазин"  active={activeNav==='shop'}    dot={false} onClick={() => { setActiveNav('shop'); onPawClick('shop'); }}/>
-        <NavItem icon="🏆" label="Успехи"   active={activeNav==='achieve'} dot={canClaimDaily} onClick={() => { setActiveNav('achieve'); }}/>
-        <NavItem icon="📷" label="Альбом"   active={activeNav==='album'}   onClick={() => { setActiveNav('album'); }}/>
+    <div style={{ position:'absolute', bottom:0, left:0, right:0, zIndex:20 }}>
+      {/* Gradient fade above panel */}
+      <div style={{ height:32, background:'linear-gradient(to bottom, transparent, rgba(210,175,120,0.35))', pointerEvents:'none' }}/>
+      {/* Main panel */}
+      <div style={{
+        background:'linear-gradient(180deg,#f5e8d0,#eedfc4)',
+        borderRadius:'28px 28px 0 0',
+        boxShadow:'0 -6px 28px rgba(100,60,15,0.22)',
+        border:'1.5px solid rgba(220,180,110,0.4)',
+        borderBottom:'none',
+        padding:'12px 10px 0',
+      }}>
+        {/* Action buttons row */}
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end', marginBottom:8 }}>
+          <PawIndicator pawId="ph"  icon="🍔" label="Голод"      fill={fills.hunger}  critical={isCrit(fills.hunger)}  onClick={() => onPawClick('kitchen')}/>
+          <PawIndicator pawId="pt"  icon="🧼" label="Гигиена"   fill={fills.toilet}  critical={isCrit(fills.toilet)}  onClick={() => onPawClick('bathroom')}/>
+          <PawIndicator pawId="pf"  icon="😴" label="Сон"       fill={fills.fatigue} critical={isCrit(fills.fatigue)} onClick={() => onPawClick('rest')}/>
+          <PawIndicator pawId="pm"  icon="🎮" label="Настроение" fill={fills.mood}    critical={isCrit(fills.mood)}    onClick={() => onPawClick('yard')}/>
+          <PawIndicator pawId="phh" icon="⛑️" label="Здоровье"  fill={fills.health}  critical={isCrit(fills.health)}  onClick={() => onPawClick('clinic')}/>
+        </div>
+        {/* Nav tabs */}
+        <div style={{ display:'flex', borderTop:'1.5px solid rgba(180,130,70,0.18)', paddingBottom:6 }}>
+          <NavItem icon="🏠" label="Дом"     active={activeNav==='home'}    onClick={() => { setActiveNav('home'); onPawClick('home'); }}/>
+          <NavItem icon="🛒" label="Магазин" active={activeNav==='shop'}    onClick={() => { setActiveNav('shop'); onPawClick('shop'); }}/>
+          <NavItem icon="🏆" label="Успехи"  active={activeNav==='achieve'} dot={canClaimDaily} onClick={() => { setActiveNav('achieve'); }}/>
+          <NavItem icon="📷" label="Альбом"  active={activeNav==='album'}   onClick={() => { setActiveNav('album'); }}/>
+        </div>
       </div>
     </div>
   );
@@ -949,39 +949,105 @@ function HomeRoom() {
   return (
     <svg viewBox="0 0 390 650" style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
       <defs>
-        <linearGradient id="hwG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#b89060"/><stop offset="100%" stopColor="#cca870"/></linearGradient>
-        <linearGradient id="hfG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#5a3018"/><stop offset="100%" stopColor="#3a1e08"/></linearGradient>
-        <linearGradient id="hsG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0e1b28"/><stop offset="100%" stopColor="#1a2e42"/></linearGradient>
-        <linearGradient id="hcG" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#a06828"/><stop offset="100%" stopColor="#c88840"/></linearGradient>
-        <linearGradient id="hhG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#ddbf98"/><stop offset="100%" stopColor="#c49e70"/></linearGradient>
-        <radialGradient id="hrG" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#c888a0"/><stop offset="100%" stopColor="#9a6070"/></radialGradient>
+        <linearGradient id="hwG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#e8d5b0"/><stop offset="100%" stopColor="#d4c090"/></linearGradient>
+        <linearGradient id="hfG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#7a4e2c"/><stop offset="100%" stopColor="#5a3818"/></linearGradient>
+        <linearGradient id="hsG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0d1e35"/><stop offset="100%" stopColor="#1a3050"/></linearGradient>
+        <linearGradient id="hcG" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#7a4c22"/><stop offset="100%" stopColor="#9a6830"/></linearGradient>
+        <linearGradient id="hcurtG" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#7060a8"/><stop offset="100%" stopColor="#9880c8"/></linearGradient>
+        <linearGradient id="hhouseG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f0e0c0"/><stop offset="100%" stopColor="#dccca0"/></linearGradient>
+        <linearGradient id="hroofG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#e87040"/><stop offset="100%" stopColor="#c85020"/></linearGradient>
+        <radialGradient id="hrugG" cx="50%" cy="40%" r="55%"><stop offset="0%" stopColor="#e890a8"/><stop offset="100%" stopColor="#c05870"/></radialGradient>
+        <radialGradient id="hcrysG" cx="35%" cy="30%" r="65%"><stop offset="0%" stopColor="#c8e8ff"/><stop offset="50%" stopColor="#9898d8"/><stop offset="100%" stopColor="#5848a0"/></radialGradient>
+        <radialGradient id="hglowG" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#fffbe0" stopOpacity="0.9"/><stop offset="100%" stopColor="#ffd060" stopOpacity="0"/></radialGradient>
+        <filter id="softShadow"><feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="#3a1800" floodOpacity="0.35"/></filter>
       </defs>
-      <rect x="0" y="0" width="390" height="290" fill="url(#hwG)"/>
-      {[45,90,135,180,225,272].map((y,i)=><line key={i} x1="0" y1={y} x2="390" y2={y} stroke="#9a7840" strokeWidth="0.6" opacity="0.22"/>)}
-      <path d="M46,0 L58,38 L44,64 L60,100 L41,140" stroke="#1a0800" strokeWidth="3.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M58,38 L74,47" stroke="#1a0800" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
-      <path d="M185,14 L177,50 L193,82 L181,122" stroke="#1a0800" strokeWidth="3" fill="none" strokeLinecap="round"/>
-      <path d="M16,0 C24,40 16,84 26,162 L16,188 L7,188 L5,0 Z" fill="url(#hcG)" stroke="#1a0800" strokeWidth="3"/>
-      <path d="M194,0 C186,40 194,84 183,162 L194,188 L203,188 L205,0 Z" fill="url(#hcG)" stroke="#1a0800" strokeWidth="3"/>
-      <rect x="34" y="12" width="136" height="170" rx="7" fill="url(#hsG)"/>
-      {[48,62,78,96,115,136,155,168].map((x,i)=><line key={i} x1={x} y1={14} x2={x-7} y2={180} stroke="#2a4860" strokeWidth="1" opacity="0.45"/>)}
-      <rect x="34" y="12" width="136" height="170" rx="7" fill="none" stroke="#1a0800" strokeWidth="5.5"/>
-      <line x1="102" y1="12" x2="101" y2="182" stroke="#1a0800" strokeWidth="5.5"/>
-      <line x1="34" y1="97" x2="170" y2="98" stroke="#1a0800" strokeWidth="5.5"/>
-      <line x1="102" y1="12" x2="101" y2="182" stroke="#7a5028" strokeWidth="3"/>
-      <line x1="34" y1="97" x2="170" y2="98" stroke="#7a5028" strokeWidth="3"/>
-      <polygon points="56,15,84,70,66,72,40,40" fill="#07101c" opacity="0.96"/>
-      <polygon points="84,70,110,84,100,120,74,110" fill="#07101c" opacity="0.90"/>
-      <polygon points="134,92,160,106,152,148,130,132" fill="#07101c" opacity="0.85"/>
-      <path d="M272,172 L272,260 L368,260 L368,172 L320,122 Z" fill="url(#hhG)" stroke="#1a0800" strokeWidth="4" strokeLinejoin="round"/>
-      <path d="M263,177 L320,122 L377,177" fill="#ddbf98" stroke="#1a0800" strokeWidth="4" strokeLinejoin="round"/>
-      <ellipse cx="320" cy="248" rx="30" ry="26" fill="#e8a888" stroke="#1a0800" strokeWidth="2.8"/>
-      <ellipse cx="320" cy="250" rx="23" ry="19" fill="#080406"/>
+
+      {/* ── Walls ── */}
+      <rect x="0" y="0" width="390" height="285" fill="url(#hwG)"/>
+      {/* Subtle wall texture lines */}
+      {[60,120,180,240].map((y,i)=><line key={i} x1="0" y1={y} x2="390" y2={y} stroke="#c0a870" strokeWidth="0.5" opacity="0.18"/>)}
+
+      {/* ── Window frame (left) ── */}
+      {/* Curtain rods */}
+      <rect x="18" y="14" width="196" height="8" rx="4" fill="#8a6030" stroke="#5a3810" strokeWidth="1.5"/>
+      {/* Left curtain */}
+      <path d="M18,22 C26,50 18,90 24,170 L18,190 L10,190 L8,22 Z" fill="url(#hcurtG)" opacity="0.92"/>
+      {/* Right curtain */}
+      <path d="M196,22 C188,50 196,90 188,170 L196,190 L204,190 L206,22 Z" fill="url(#hcurtG)" opacity="0.92"/>
+      {/* Window glass night sky */}
+      <rect x="30" y="22" width="152" height="170" rx="6" fill="url(#hsG)"/>
+      {/* Stars */}
+      {[[55,40],[78,28],[110,35],[140,22],[158,45],[70,75],[130,60],[90,95],[165,80]].map(([x,y],i)=>(
+        <circle key={i} cx={x} cy={y} r={i%3===0?1.5:1} fill="white" opacity={0.6+i*0.04}/>
+      ))}
+      {/* Moon crescent */}
+      <circle cx="148" cy="52" r="22" fill="#fffbe8" opacity="0.95"/>
+      <circle cx="158" cy="46" r="18" fill="url(#hsG)"/>
+      {/* Window frame dividers */}
+      <rect x="30" y="22" width="152" height="170" rx="6" fill="none" stroke="#5a3810" strokeWidth="5"/>
+      <line x1="106" y1="22" x2="105" y2="192" stroke="#5a3810" strokeWidth="5"/>
+      <line x1="30" y1="107" x2="182" y2="108" stroke="#5a3810" strokeWidth="5"/>
+      {/* Window inner highlight */}
+      <rect x="30" y="22" width="152" height="170" rx="6" fill="none" stroke="#9a7040" strokeWidth="2"/>
+
+      {/* ── Shelf (right) ── */}
+      <rect x="238" y="100" width="150" height="14" rx="5" fill="#a07438" stroke="#5a3010" strokeWidth="2.5"/>
+      <rect x="248" y="114" width="8" height="40" rx="3" fill="#8a5e28" stroke="#5a3010" strokeWidth="1.5"/>
+      <rect x="372" y="114" width="8" height="40" rx="3" fill="#8a5e28" stroke="#5a3010" strokeWidth="1.5"/>
+      {/* Plant pot */}
+      <ellipse cx="305" cy="101" rx="16" ry="8" fill="#c87840" stroke="#7a4010" strokeWidth="2"/>
+      <path d="M289,101 L293,76 L317,76 L321,101 Z" fill="#c87840" stroke="#7a4010" strokeWidth="2" strokeLinejoin="round"/>
+      {/* Plant leaves */}
+      <ellipse cx="305" cy="66" rx="14" ry="10" fill="#48a830" transform="rotate(-20,305,66)"/>
+      <ellipse cx="305" cy="66" rx="14" ry="10" fill="#38922a" transform="rotate(20,305,66)"/>
+      <ellipse cx="305" cy="60" rx="10" ry="13" fill="#50b838"/>
+      {/* Picture frame with heart */}
+      <rect x="340" y="52" width="48" height="44" rx="6" fill="#c8a060" stroke="#7a4810" strokeWidth="3"/>
+      <rect x="344" y="56" width="40" height="36" rx="4" fill="#f8f0e0"/>
+      {/* Heart in frame */}
+      <path d="M364,82 C364,82 352,72 352,65 C352,60 356,57 360,59 C362,60 364,63 364,63 C364,63 366,60 368,59 C372,57 376,60 376,65 C376,72 364,82 364,82 Z" fill="#e85070" opacity="0.9"/>
+
+      {/* ── Cat house (right floor) ── */}
+      <path d="M258,270 L258,182 L338,182 L338,270 Z" fill="url(#hhouseG)" stroke="#5a3010" strokeWidth="3.5" strokeLinejoin="round"/>
+      {/* Roof */}
+      <path d="M250,188 L298,142 L346,188 Z" fill="url(#hroofG)" stroke="#5a3010" strokeWidth="3.5" strokeLinejoin="round"/>
+      {/* Door opening */}
+      <ellipse cx="298" cy="262" rx="26" ry="30" fill="#3a1808" stroke="#5a3010" strokeWidth="2.5"/>
+      <ellipse cx="298" cy="264" rx="20" ry="23" fill="#1a0a04"/>
+      {/* Paw print on house */}
+      <ellipse cx="298" cy="215" rx="10" ry="9" fill="#e8c090" stroke="#a07040" strokeWidth="1.5" opacity="0.7"/>
+      <ellipse cx="284" cy="206" rx="5" ry="5" fill="#e8c090" stroke="#a07040" strokeWidth="1" opacity="0.7"/>
+      <ellipse cx="298" cy="203" rx="5" ry="5" fill="#e8c090" stroke="#a07040" strokeWidth="1" opacity="0.7"/>
+      <ellipse cx="312" cy="206" rx="5" ry="5" fill="#e8c090" stroke="#a07040" strokeWidth="1" opacity="0.7"/>
+
+      {/* ── Floor ── */}
       <rect x="0" y="278" width="390" height="372" fill="url(#hfG)"/>
-      <rect x="0" y="274" width="390" height="8" fill="#7a5028" stroke="#1a0800" strokeWidth="1.5"/>
-      {[298,322,346,370,395,422,450,480,512,548].map((y,i)=><line key={i} x1="0" y1={y} x2="390" y2={y+1} stroke="#1a0800" strokeWidth={i<5?2.8:2.2} opacity="0.6"/>)}
-      {[82,170,258,345].map((x,i)=><line key={i} x1={x} y1="278" x2={x+2} y2="650" stroke="#1a0800" strokeWidth="1.8" opacity="0.4"/>)}
-      <path d="M73,610 C80,597 96,606 112,599 C128,592 140,604 156,598 C172,592 182,606 198,601 C214,596 224,608 240,603 C256,598 268,610 282,605 C294,601 304,612 302,621 C298,630 284,632 268,634 C252,636 240,624 226,628 C212,632 200,622 186,626 C172,630 162,620 146,624 C130,628 120,618 104,622 C90,626 80,616 75,620 C70,624 68,613 73,610 Z" fill="url(#hrG)" stroke="#1a0800" strokeWidth="3.5"/>
+      <rect x="0" y="274" width="390" height="7" fill="#6a4420" stroke="#3a1800" strokeWidth="1.5"/>
+      {/* Floor planks horizontal */}
+      {[300,325,350,376,404,434,466,500,536].map((y,i)=>(
+        <line key={i} x1="0" y1={y} x2="390" y2={y} stroke="#3a1800" strokeWidth={i<4?2.5:2} opacity="0.55"/>
+      ))}
+      {/* Floor planks vertical */}
+      {[78,156,234,312].map((x,i)=>(
+        <line key={i} x1={x} y1="278" x2={x+1} y2="650" stroke="#3a1800" strokeWidth="1.5" opacity="0.35"/>
+      ))}
+
+      {/* ── Oval rug (center) ── */}
+      <ellipse cx="175" cy="610" rx="120" ry="30" fill="url(#hrugG)" stroke="#8a3050" strokeWidth="3" filter="url(#softShadow)"/>
+      <ellipse cx="175" cy="608" rx="100" ry="23" fill="none" stroke="#f0a0c0" strokeWidth="1.5" opacity="0.5"/>
+
+      {/* ── Crystal ball (left floor) ── */}
+      {/* Glow under ball */}
+      <ellipse cx="68" cy="572" rx="32" ry="10" fill="#9070c0" opacity="0.35" filter="url(#softShadow)"/>
+      {/* Stand */}
+      <path d="M50,572 L52,556 L84,556 L86,572 Z" fill="#6848a0" stroke="#3a2060" strokeWidth="2" strokeLinejoin="round"/>
+      <ellipse cx="68" cy="572" rx="20" ry="5" fill="#7858b0" stroke="#3a2060" strokeWidth="2"/>
+      {/* Ball */}
+      <circle cx="68" cy="530" r="30" fill="url(#hcrysG)" stroke="#4838a0" strokeWidth="2.5" filter="url(#softShadow)"/>
+      {/* Ball shine */}
+      <ellipse cx="58" cy="518" rx="10" ry="7" fill="white" opacity="0.5" transform="rotate(-25,58,518)"/>
+      {/* Glow around ball */}
+      <circle cx="68" cy="530" r="38" fill="url(#hglowG)" opacity="0.35"/>
     </svg>
   );
 }
