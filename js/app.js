@@ -1056,51 +1056,123 @@ function KitchenRoom() {
   return (
     <svg viewBox="0 0 390 650" style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
       <defs>
-        <linearGradient id="kwG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#c8a070"/><stop offset="100%" stopColor="#d8b080"/></linearGradient>
-        <linearGradient id="ksG" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#1a3050"/><stop offset="100%" stopColor="#2a4468"/></linearGradient>
-        <linearGradient id="kfG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#7a4a20"/><stop offset="100%" stopColor="#5a3010"/></linearGradient>
+        <linearGradient id="kwG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#ecdab0"/><stop offset="100%" stopColor="#dcc898"/></linearGradient>
+        <linearGradient id="kfG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#7a4e2c"/><stop offset="100%" stopColor="#5a3818"/></linearGradient>
+        <linearGradient id="kskyG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#aadcf8"/><stop offset="100%" stopColor="#d8f0ff"/></linearGradient>
+        <linearGradient id="kcurtG" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#e07840"/><stop offset="100%" stopColor="#f09858"/></linearGradient>
+        <linearGradient id="kcounterG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f5e8c8"/><stop offset="100%" stopColor="#e0d0a8"/></linearGradient>
+        <linearGradient id="kcabG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#c8901c"/><stop offset="100%" stopColor="#a07010"/></linearGradient>
+        <linearGradient id="kfridgeG" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#e8f0f0"/><stop offset="100%" stopColor="#d8e8e8"/></linearGradient>
+        <linearGradient id="kstoveG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#484848"/><stop offset="100%" stopColor="#303030"/></linearGradient>
+        <radialGradient id="kbowlG" cx="50%" cy="30%" r="60%"><stop offset="0%" stopColor="#f8c8a0"/><stop offset="100%" stopColor="#e0a070"/></radialGradient>
+        <filter id="kShadow"><feDropShadow dx="0" dy="4" stdDeviation="5" floodColor="#3a1800" floodOpacity="0.3"/></filter>
       </defs>
-      <rect x="0" y="0" width="390" height="295" fill="url(#kwG)"/>
-      {[50,100,150,200,250].map((y,i)=><line key={i} x1="0" y1={y} x2="390" y2={y} stroke="#9a7840" strokeWidth="0.7" opacity="0.2"/>)}
-      <path d="M195,0 L200,45 L185,80 L200,118 L180,162 L195,192" stroke="#1a0800" strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M200,45 L220,55" stroke="#1a0800" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
-      <path d="M185,80 L165,90" stroke="#1a0800" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
-      <rect x="22" y="10" width="140" height="160" rx="7" fill="url(#ksG)"/>
-      {[32,48,65,82,100,118,138,152].map((x,i)=><line key={i} x1={x} y1={12} x2={x-8} y2={168} stroke="#2a4860" strokeWidth="1" opacity="0.4"/>)}
-      <rect x="22" y="10" width="140" height="160" rx="7" fill="none" stroke="#1a0800" strokeWidth="5.5"/>
-      <line x1="92" y1="10" x2="91" y2="170" stroke="#1a0800" strokeWidth="5.5"/>
-      <line x1="22" y1="90" x2="162" y2="91" stroke="#1a0800" strokeWidth="5.5"/>
-      <line x1="92" y1="10" x2="91" y2="170" stroke="#7a5028" strokeWidth="3"/>
-      <line x1="22" y1="90" x2="162" y2="91" stroke="#7a5028" strokeWidth="3"/>
-      <rect x="218" y="14" width="170" height="150" rx="6" fill="#7a4a20" stroke="#1a0800" strokeWidth="4"/>
-      <rect x="218" y="14" width="170" height="14" rx="6" fill="#9a6030" stroke="#1a0800" strokeWidth="3"/>
-      <line x1="305" y1="28" x2="305" y2="164" stroke="#1a0800" strokeWidth="3.5"/>
-      <rect x="222" y="28" width="79" height="132" rx="4" fill="#6a3e18" stroke="#1a0800" strokeWidth="2.5"/>
-      <rect x="244" y="86" width="18" height="8" rx="4" fill="#c09040" stroke="#1a0800" strokeWidth="1.5"/>
-      <rect x="22" y="178" width="130" height="9" rx="4" fill="#8a6028" stroke="#1a0800" strokeWidth="2.5"/>
-      <path d="M50,187 L50,230" stroke="#888" strokeWidth="3.5" strokeLinecap="round"/>
-      <path d="M44,220 L56,220 L58,242 L42,242 Z" fill="#909090" stroke="#1a0800" strokeWidth="2" strokeLinejoin="round"/>
-      <path d="M84,187 L84,222" stroke="#888" strokeWidth="3.5" strokeLinecap="round"/>
-      <circle cx="84" cy="238" r="16" fill="#909090" stroke="#1a0800" strokeWidth="2.5"/>
-      <rect x="0" y="192" width="390" height="15" fill="#a07838" stroke="#1a0800" strokeWidth="2.5"/>
-      <rect x="0" y="207" width="126" height="80" fill="#7a4a20" stroke="#1a0800" strokeWidth="2.5"/>
-      <rect x="126" y="118" width="134" height="170" rx="6" fill="#646464" stroke="#1a0800" strokeWidth="4"/>
-      {[[162,145],[228,145],[162,182],[228,182]].map(([cx,cy],i)=>(
-        <g key={i}><circle cx={cx} cy={cy} r="20" fill="#4a4a4a" stroke="#1a0800" strokeWidth="2.5"/><circle cx={cx} cy={cy} r="14" fill="#3a3a3a"/><circle cx={cx} cy={cy} r="7" fill="#2e2e2e"/></g>
+
+      {/* ── Walls ── */}
+      <rect x="0" y="0" width="390" height="290" fill="url(#kwG)"/>
+      {[60,120,180,240].map((y,i)=><line key={i} x1="0" y1={y} x2="390" y2={y} stroke="#c0a060" strokeWidth="0.5" opacity="0.2"/>)}
+
+      {/* ── Window (left wall) ── */}
+      {/* Curtain rod */}
+      <rect x="18" y="14" width="170" height="8" rx="4" fill="#8a6030" stroke="#5a3010" strokeWidth="1.5"/>
+      {/* Left orange curtain */}
+      <path d="M18,22 C26,52 16,95 22,170 L18,185 L10,185 L8,22 Z" fill="url(#kcurtG)" opacity="0.9"/>
+      {/* Right orange curtain */}
+      <path d="M172,22 C164,52 174,95 168,170 L172,185 L180,185 L182,22 Z" fill="url(#kcurtG)" opacity="0.9"/>
+      {/* Sunny sky */}
+      <rect x="28" y="22" width="136" height="166" rx="6" fill="url(#kskyG)"/>
+      {/* Sun */}
+      <circle cx="110" cy="65" r="26" fill="#ffd040" opacity="0.9"/>
+      <circle cx="110" cy="65" r="20" fill="#ffe860"/>
+      {/* Sun rays */}
+      {[0,45,90,135,180,225,270,315].map((a,i)=>{ const r=Math.PI*a/180; return <line key={i} x1={110+32*Math.cos(r)} y1={65+32*Math.sin(r)} x2={110+42*Math.cos(r)} y2={65+42*Math.sin(r)} stroke="#ffc020" strokeWidth="2.5" strokeLinecap="round"/>; })}
+      {/* White clouds */}
+      <ellipse cx="55" cy="48" rx="22" ry="10" fill="white" opacity="0.88"/>
+      <ellipse cx="68" cy="41" rx="18" ry="12" fill="white" opacity="0.88"/>
+      <ellipse cx="42" cy="52" rx="14" ry="8" fill="white" opacity="0.8"/>
+      {/* Green hills far */}
+      <ellipse cx="70" cy="188" rx="70" ry="40" fill="#78c840" opacity="0.8"/>
+      <ellipse cx="140" cy="195" rx="55" ry="32" fill="#60b830" opacity="0.75"/>
+      {/* Window frame */}
+      <rect x="28" y="22" width="136" height="166" rx="6" fill="none" stroke="#5a3010" strokeWidth="5"/>
+      <line x1="96" y1="22" x2="96" y2="188" stroke="#5a3010" strokeWidth="4.5"/>
+      <line x1="28" y1="105" x2="164" y2="105" stroke="#5a3010" strokeWidth="4.5"/>
+      {/* Windowsill with potted herb */}
+      <rect x="22" y="186" width="148" height="10" rx="4" fill="#8a6030" stroke="#5a3010" strokeWidth="2"/>
+      {/* Small herb pot on windowsill */}
+      <path d="M72,186 L76,168 L90,168 L94,186 Z" fill="#c87840" stroke="#7a4010" strokeWidth="1.5" strokeLinejoin="round"/>
+      <ellipse cx="83" cy="168" rx="12" ry="5" fill="#c87840" stroke="#7a4010" strokeWidth="1.5"/>
+      <ellipse cx="83" cy="160" rx="9" ry="11" fill="#50b838"/>
+      <ellipse cx="78" cy="156" rx="7" ry="9" fill="#48a830" transform="rotate(-15,78,156)"/>
+      <ellipse cx="88" cy="157" rx="7" ry="9" fill="#40982a" transform="rotate(15,88,157)"/>
+
+      {/* ── Upper cabinets (right) ── */}
+      <rect x="220" y="12" width="168" height="116" rx="8" fill="url(#kcabG)" stroke="#5a3010" strokeWidth="3" filter="url(#kShadow)"/>
+      {/* Cabinet doors */}
+      <rect x="224" y="16" width="76" height="108" rx="6" fill="#d89a28" stroke="#7a5010" strokeWidth="2"/>
+      <rect x="304" y="16" width="80" height="108" rx="6" fill="#d89a28" stroke="#7a5010" strokeWidth="2"/>
+      {/* Door handles */}
+      <rect x="256" y="67" width="16" height="6" rx="3" fill="#f0c060" stroke="#8a5010" strokeWidth="1.5"/>
+      <rect x="336" y="67" width="16" height="6" rx="3" fill="#f0c060" stroke="#8a5010" strokeWidth="1.5"/>
+
+      {/* ── Counter top ── */}
+      <rect x="0" y="200" width="390" height="16" rx="0" fill="url(#kcounterG)" stroke="#8a6030" strokeWidth="2.5"/>
+      {/* Counter edge highlight */}
+      <rect x="0" y="200" width="390" height="4" fill="rgba(255,255,255,0.4)"/>
+
+      {/* ── Lower cabinets ── */}
+      <rect x="0" y="216" width="190" height="72" fill="url(#kcabG)" stroke="#5a3010" strokeWidth="2.5"/>
+      <line x1="95" y1="216" x2="95" y2="288" stroke="#5a3010" strokeWidth="2.5"/>
+      <rect x="32" y="248" width="26" height="6" rx="3" fill="#f0c060" stroke="#8a5010" strokeWidth="1.5"/>
+      <rect x="127" y="248" width="26" height="6" rx="3" fill="#f0c060" stroke="#8a5010" strokeWidth="1.5"/>
+      {/* Stove (center) */}
+      <rect x="190" y="202" width="120" height="86" fill="url(#kstoveG)" stroke="#1a1a1a" strokeWidth="3"/>
+      {/* Stove burners */}
+      {[[220,228],[290,228],[220,262],[290,262]].map(([cx,cy],i)=>(
+        <g key={i}>
+          <circle cx={cx} cy={cy} r="18" fill="#404040" stroke="#1a1a1a" strokeWidth="2"/>
+          <circle cx={cx} cy={cy} r="12" fill="#303030"/>
+          <circle cx={cx} cy={cy} r="6" fill="#2a2a2a"/>
+        </g>
       ))}
-      <rect x="260" y="207" width="130" height="80" fill="#7a4a20" stroke="#1a0800" strokeWidth="2.5"/>
-      <rect x="0" y="282" width="390" height="368" fill="url(#kfG)"/>
-      {[307,334,361,390,420,452,486,522,560].map((y,i)=><line key={i} x1="0" y1={y} x2="390" y2={y} stroke="#1a0800" strokeWidth="2.8" opacity="0.65"/>)}
-      {[78,156,234,312].map((x,i)=><line key={i} x1={x} y1="282" x2={x} y2="650" stroke="#1a0800" strokeWidth="2.8" opacity="0.65"/>)}
-      <ellipse cx="152" cy="600" rx="54" ry="19" fill="#909090" stroke="#1a0800" strokeWidth="3.5"/>
-      <ellipse cx="152" cy="594" rx="44" ry="14" fill="#c0c0c0"/>
-      <ellipse cx="152" cy="591" rx="37" ry="10" fill="#6090c8" opacity="0.88"/>
-      <ellipse cx="248" cy="600" rx="54" ry="19" fill="#909090" stroke="#1a0800" strokeWidth="3.5"/>
-      <ellipse cx="248" cy="594" rx="44" ry="14" fill="#c0c0c0"/>
-      <ellipse cx="248" cy="591" rx="37" ry="10" fill="#c06828"/>
-      {[[234,589,6],[249,587,7],[262,589,6],[241,595,5],[255,595,5]].map(([cx,cy,r],i)=>(
-        <circle key={i} cx={cx} cy={cy} r={r} fill={i%2===0?"#a04818":"#b05020"} stroke="#1a0800" strokeWidth="1.5"/>
+      {/* Stove knobs */}
+      {[198,214,230,246].map((x,i)=>(
+        <circle key={i} cx={x} cy="210" r="5" fill="#e0a040" stroke="#1a1a1a" strokeWidth="1.5"/>
       ))}
+      {/* Right lower cabinet */}
+      <rect x="310" y="216" width="80" height="72" fill="url(#kcabG)" stroke="#5a3010" strokeWidth="2.5"/>
+      <rect x="327" y="248" width="26" height="6" rx="3" fill="#f0c060" stroke="#8a5010" strokeWidth="1.5"/>
+      {/* Refrigerator (right wall) */}
+      <rect x="330" y="12" width="60" height="188" rx="6" fill="url(#kfridgeG)" stroke="#8a9a9a" strokeWidth="3" filter="url(#kShadow)"/>
+      <rect x="334" y="16" width="52" height="88" rx="4" fill="#dde8e8" stroke="#8a9a9a" strokeWidth="2"/>
+      <rect x="334" y="108" width="52" height="88" rx="4" fill="#e8f0f0" stroke="#8a9a9a" strokeWidth="2"/>
+      <rect x="356" y="56" width="8" height="22" rx="4" fill="#b0baba" stroke="#8a9a9a" strokeWidth="1.5"/>
+      <rect x="356" y="148" width="8" height="22" rx="4" fill="#b0baba" stroke="#8a9a9a" strokeWidth="1.5"/>
+
+      {/* ── Floor ── */}
+      <rect x="0" y="288" width="390" height="362" fill="url(#kfG)"/>
+      <rect x="0" y="284" width="390" height="7" fill="#6a4420" stroke="#3a1800" strokeWidth="1.5"/>
+      {[310,336,362,390,420,452,486,522].map((y,i)=>(
+        <line key={i} x1="0" y1={y} x2="390" y2={y} stroke="#3a1800" strokeWidth="2.2" opacity="0.5"/>
+      ))}
+      {[78,156,234,312].map((x,i)=>(
+        <line key={i} x1={x} y1="288" x2={x} y2="650" stroke="#3a1800" strokeWidth="1.5" opacity="0.35"/>
+      ))}
+
+      {/* ── Cat food bowls on floor ── */}
+      {/* Bowl 1 — water */}
+      <ellipse cx="130" cy="600" rx="44" ry="16" fill="#909aa0" stroke="#5a6268" strokeWidth="2.5" filter="url(#kShadow)"/>
+      <ellipse cx="130" cy="596" rx="36" ry="11" fill="#c8d8e0"/>
+      <ellipse cx="130" cy="594" rx="28" ry="7" fill="#80b8e0" opacity="0.9"/>
+      {/* Bowl 2 — food */}
+      <ellipse cx="258" cy="600" rx="44" ry="16" fill="url(#kbowlG)" stroke="#8a6040" strokeWidth="2.5" filter="url(#kShadow)"/>
+      <ellipse cx="258" cy="596" rx="36" ry="11" fill="#f0c890"/>
+      {/* Kibble pieces */}
+      {[[245,593,5],[258,591,6],[270,593,5],[252,598,5],[264,598,5]].map(([cx,cy,r],i)=>(
+        <circle key={i} cx={cx} cy={cy} r={r} fill={i%2===0?"#c86020":"#d87030"} stroke="#8a4010" strokeWidth="1.5"/>
+      ))}
+      {/* Placemat under bowls */}
+      <ellipse cx="194" cy="604" rx="90" ry="22" fill="#c04018" opacity="0.25"/>
     </svg>
   );
 }
@@ -1109,25 +1181,112 @@ function BathroomRoom() {
   return (
     <svg viewBox="0 0 390 650" style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
       <defs>
-        <linearGradient id="bwG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#d8ecf8"/><stop offset="100%" stopColor="#e8f4fc"/></linearGradient>
-        <linearGradient id="bfG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#c0c8d0"/><stop offset="100%" stopColor="#a0aab5"/></linearGradient>
+        <linearGradient id="bwG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#e8f4f0"/><stop offset="100%" stopColor="#d8ece8"/></linearGradient>
+        <linearGradient id="bfG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#7a4e2c"/><stop offset="100%" stopColor="#5a3818"/></linearGradient>
+        <linearGradient id="btubG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f8f4f0"/><stop offset="100%" stopColor="#e8e4e0"/></linearGradient>
+        <linearGradient id="bwaterG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#b8e0f8"/><stop offset="100%" stopColor="#90c8f0"/></linearGradient>
+        <linearGradient id="bsinkG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f0f4f8"/><stop offset="100%" stopColor="#dce8f0"/></linearGradient>
+        <linearGradient id="bmirG" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#e8f8ff"/><stop offset="100%" stopColor="#c8e8f8"/></linearGradient>
+        <linearGradient id="brugG" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#f0d0e8"/><stop offset="100%" stopColor="#d0a0c0"/></linearGradient>
+        <radialGradient id="brugRG" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#f0d0e8"/><stop offset="100%" stopColor="#d0a0c0"/></radialGradient>
+        <filter id="bShadow"><feDropShadow dx="0" dy="4" stdDeviation="5" floodColor="#204040" floodOpacity="0.25"/></filter>
       </defs>
-      <rect x="0" y="0" width="390" height="290" fill="url(#bwG)"/>
-      {[0,40,80,120,160,200,240,280].map((y,i)=><line key={i} x1="0" y1={y} x2="390" y2={y} stroke="#90b8d0" strokeWidth="1.5" opacity="0.5"/>)}
-      {[0,48,96,144,192,240,288,336,384].map((x,i)=><line key={i} x1={x} y1={0} x2={x} y2={290} stroke="#90b8d0" strokeWidth="1.5" opacity="0.5"/>)}
-      <rect x="35" y="18" width="115" height="140" rx="8" fill="#b8d8f0" stroke="#1a0800" strokeWidth="4"/>
-      <rect x="28" y="155" width="128" height="56" rx="8" fill="#e8f0f8" stroke="#1a0800" strokeWidth="3.5"/>
-      <ellipse cx="92" cy="183" rx="40" ry="20" fill="#d8e8f5" stroke="#1a0800" strokeWidth="3"/>
-      <ellipse cx="92" cy="183" rx="30" ry="14" fill="#c0d8f0"/>
-      <rect x="86" y="157" width="12" height="18" rx="4" fill="#c0c8d0" stroke="#1a0800" strokeWidth="2.5"/>
-      <rect x="250" y="175" width="130" height="115" rx="12" fill="#eef4f8" stroke="#1a0800" strokeWidth="4"/>
-      <rect x="256" y="182" width="118" height="68" rx="10" fill="#e4eef8" stroke="#1a0800" strokeWidth="3"/>
-      <rect x="248" y="162" width="136" height="22" rx="8" fill="#f4f8fc" stroke="#1a0800" strokeWidth="4"/>
-      <circle cx="316" cy="162" r="8" fill="#c0ccd8" stroke="#1a0800" strokeWidth="2"/>
-      <rect x="0" y="278" width="390" height="372" fill="url(#bfG)"/>
-      {[290,350,410,470,530,590,650].map((y,i)=><line key={i} x1="0" y1={y} x2="390" y2={y} stroke="#1a0800" strokeWidth="1.8" opacity="0.35"/>)}
-      {[78,156,234,312].map((x,i)=><line key={i} x1={x} y1="278" x2={x} y2="650" stroke="#1a0800" strokeWidth="1.8" opacity="0.35"/>)}
-      <ellipse cx="185" cy="608" rx="95" ry="26" fill="#80b8e0" opacity="0.65" stroke="#1a0800" strokeWidth="3"/>
+
+      {/* ── Walls with mint-cream tile grid ── */}
+      <rect x="0" y="0" width="390" height="292" fill="url(#bwG)"/>
+      {/* Tile horizontal lines */}
+      {[0,44,88,132,176,220,264].map((y,i)=><line key={i} x1="0" y1={y} x2="390" y2={y} stroke="#a8ccc4" strokeWidth="1.2" opacity="0.55"/>)}
+      {/* Tile vertical lines */}
+      {[0,44,88,132,176,220,264,308,352,390].map((x,i)=><line key={i} x1={x} y1="0" x2={x} y2="292" stroke="#a8ccc4" strokeWidth="1.2" opacity="0.55"/>)}
+      {/* Tile highlights (every other) */}
+      {[0,88,176,264].map((y,i)=>[0,88,176,264,352].map((x,j)=>(
+        <rect key={i*10+j} x={x+1} y={y+1} width={43} height={43} fill="rgba(255,255,255,0.2)" rx="2"/>
+      )))}
+
+      {/* ── Mirror above sink (left) ── */}
+      <rect x="22" y="14" width="148" height="130" rx="10" fill="#7a9a90" stroke="#4a7060" strokeWidth="3"/>
+      <rect x="26" y="18" width="140" height="122" rx="8" fill="url(#bmirG)"/>
+      {/* Mirror reflection shimmer */}
+      <path d="M32,24 L42,18 L44,26 Z" fill="white" opacity="0.45"/>
+      <path d="M38,30 L52,20 L54,32 Z" fill="white" opacity="0.3"/>
+      {/* Mirror frame decorative corners */}
+      <circle cx="26" cy="18" r="5" fill="#8aaa98" stroke="#4a7060" strokeWidth="1.5"/>
+      <circle cx="166" cy="18" r="5" fill="#8aaa98" stroke="#4a7060" strokeWidth="1.5"/>
+      <circle cx="26" cy="140" r="5" fill="#8aaa98" stroke="#4a7060" strokeWidth="1.5"/>
+      <circle cx="166" cy="140" r="5" fill="#8aaa98" stroke="#4a7060" strokeWidth="1.5"/>
+
+      {/* ── Sink ── */}
+      <rect x="22" y="154" width="148" height="70" rx="10" fill="url(#bsinkG)" stroke="#7a9890" strokeWidth="3.5" filter="url(#bShadow)"/>
+      {/* Basin */}
+      <ellipse cx="96" cy="189" rx="50" ry="24" fill="#d8e8f0" stroke="#7a9890" strokeWidth="2.5"/>
+      <ellipse cx="96" cy="191" rx="42" ry="18" fill="url(#bwaterG)" opacity="0.8"/>
+      {/* Drain */}
+      <circle cx="96" cy="194" r="5" fill="#90a8b0" stroke="#5a7880" strokeWidth="1.5"/>
+      {/* Faucet */}
+      <rect x="90" y="156" width="12" height="22" rx="5" fill="#c0ccd8" stroke="#8a9aa8" strokeWidth="2"/>
+      <ellipse cx="96" cy="154" rx="14" ry="6" fill="#d0dce8" stroke="#8a9aa8" strokeWidth="2"/>
+      {/* Hot/cold handles */}
+      <circle cx="74" cy="165" r="7" fill="#e86060" stroke="#8a2020" strokeWidth="1.5"/>
+      <circle cx="118" cy="165" r="7" fill="#6090e8" stroke="#204890" strokeWidth="1.5"/>
+
+      {/* ── Shelf with toiletries ── */}
+      <rect x="196" y="48" width="182" height="12" rx="5" fill="#9aba9a" stroke="#4a7050" strokeWidth="2.5"/>
+      {/* Shampoo bottle */}
+      <rect x="200" y="18" width="22" height="28" rx="8" fill="#e06090" stroke="#a03060" strokeWidth="2"/>
+      <rect x="207" y="14" width="8" height="8" rx="3" fill="#c04070" stroke="#a03060" strokeWidth="1.5"/>
+      {/* Soap dispenser */}
+      <rect x="232" y="22" width="20" height="24" rx="6" fill="#60b8a0" stroke="#2a7060" strokeWidth="2"/>
+      <rect x="239" y="16" width="6" height="10" rx="3" fill="#40988a" stroke="#2a7060" strokeWidth="1.5"/>
+      {/* Toothbrush cup */}
+      <path d="M262,25 L266,48 L282,48 L286,25 Z" fill="#f0e8c8" stroke="#8a7840" strokeWidth="2" strokeLinejoin="round"/>
+      <rect x="268" y="20" width="4" height="22" rx="2" fill="#e04888"/>
+      <rect x="274" y="20" width="4" height="22" rx="2" fill="#4888e0"/>
+      {/* Small plant */}
+      <path d="M298,28 L302,48 L316,48 L320,28 Z" fill="#d09050" stroke="#8a5020" strokeWidth="2" strokeLinejoin="round"/>
+      <ellipse cx="309" cy="22" rx="14" ry="12" fill="#50b040"/>
+      <ellipse cx="303" cy="18" rx="10" ry="10" fill="#44a038" transform="rotate(-20,303,18)"/>
+      <ellipse cx="315" cy="19" rx="10" ry="10" fill="#3a9030" transform="rotate(20,315,19)"/>
+
+      {/* ── Bathtub (right) ── */}
+      <rect x="210" y="162" width="178" height="128" rx="18" fill="url(#btubG)" stroke="#a0a898" strokeWidth="4" filter="url(#bShadow)"/>
+      {/* Tub inner */}
+      <rect x="220" y="174" width="158" height="110" rx="14" fill="#e8eeec" stroke="#a0a898" strokeWidth="2.5"/>
+      {/* Water in tub */}
+      <rect x="220" y="218" width="158" height="66" rx="10" fill="url(#bwaterG)" opacity="0.75"/>
+      {/* Bubbles */}
+      {[[250,215,5],[270,210,4],[295,212,6],[320,208,4],[345,214,5],[265,225,3],[340,222,4]].map(([cx,cy,r],i)=>(
+        <circle key={i} cx={cx} cy={cy} r={r} fill="white" opacity="0.7" stroke="rgba(255,255,255,0.5)" strokeWidth="1"/>
+      ))}
+      {/* Tub faucet */}
+      <rect x="284" y="163" width="10" height="18" rx="4" fill="#c8d0d8" stroke="#8a9098" strokeWidth="2"/>
+      <rect x="280" y="175" width="18" height="8" rx="4" fill="#b8c0c8" stroke="#8a9098" strokeWidth="2"/>
+      {/* Tub feet */}
+      <ellipse cx="228" cy="292" rx="10" ry="5" fill="#b0b8b8" stroke="#7a8888" strokeWidth="2"/>
+      <ellipse cx="380" cy="292" rx="10" ry="5" fill="#b0b8b8" stroke="#7a8888" strokeWidth="2"/>
+
+      {/* ── Towel hooks ── */}
+      <circle cx="350" cy="50" r="6" fill="#c8a060" stroke="#7a5020" strokeWidth="2"/>
+      {/* Hanging towel */}
+      <path d="M350,56 C345,68 340,90 342,110 L360,110 C358,90 353,68 350,56 Z" fill="#e86888" opacity="0.88" stroke="#b04060" strokeWidth="1.5"/>
+      <line x1="344" y1="83" x2="358" y2="83" stroke="#b04060" strokeWidth="1.5" opacity="0.6"/>
+
+      {/* ── Floor ── */}
+      <rect x="0" y="292" width="390" height="358" fill="url(#bfG)"/>
+      <rect x="0" y="288" width="390" height="7" fill="#6a4420" stroke="#3a1800" strokeWidth="1.5"/>
+      {[312,338,366,396,428,462,498,536].map((y,i)=>(
+        <line key={i} x1="0" y1={y} x2="390" y2={y} stroke="#3a1800" strokeWidth="2" opacity="0.45"/>
+      ))}
+      {[78,156,234,312].map((x,i)=>(
+        <line key={i} x1={x} y1="292" x2={x} y2="650" stroke="#3a1800" strokeWidth="1.5" opacity="0.3"/>
+      ))}
+
+      {/* ── Fluffy pink bath rug ── */}
+      <ellipse cx="155" cy="600" rx="115" ry="32" fill="#e8a0c0" stroke="#b06090" strokeWidth="3" filter="url(#bShadow)"/>
+      <ellipse cx="155" cy="597" rx="98" ry="25" fill="url(#brugRG)"/>
+      {/* Rug fringe dots */}
+      {[-100,-80,-60,-40,-20,0,20,40,60,80,100].map((dx,i)=>(
+        <circle key={i} cx={155+dx} cy="630" r="3.5" fill="#d880b8" opacity="0.7"/>
+      ))}
     </svg>
   );
 }
@@ -1136,25 +1295,109 @@ function RestRoom() {
   return (
     <svg viewBox="0 0 390 650" style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
       <defs>
-        <linearGradient id="rwG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#b8a0d8"/><stop offset="100%" stopColor="#cebae8"/></linearGradient>
-        <linearGradient id="rfG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#7a5040"/><stop offset="100%" stopColor="#5a3828"/></linearGradient>
-        <radialGradient id="rbG" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#f0c8d8"/><stop offset="100%" stopColor="#e0a8c0"/></radialGradient>
+        <linearGradient id="rwG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#c8b8e8"/><stop offset="100%" stopColor="#b8a8d8"/></linearGradient>
+        <linearGradient id="rfG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#7a4e2c"/><stop offset="100%" stopColor="#5a3818"/></linearGradient>
+        <linearGradient id="rskyG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0d1a38"/><stop offset="100%" stopColor="#1a2a50"/></linearGradient>
+        <linearGradient id="rcurtG" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#9070c8"/><stop offset="100%" stopColor="#b090e0"/></linearGradient>
+        <linearGradient id="rbedG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#e0c8f8"/><stop offset="100%" stopColor="#c8b0e8"/></linearGradient>
+        <linearGradient id="rsheetG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f8f0ff"/><stop offset="100%" stopColor="#ecdcff"/></linearGradient>
+        <linearGradient id="rbookshG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#c89838"/><stop offset="100%" stopColor="#a07820"/></linearGradient>
+        <radialGradient id="rnightG" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#fffbe8" stopOpacity="0.9"/><stop offset="100%" stopColor="#ffd860" stopOpacity="0"/></radialGradient>
+        <filter id="rShadow"><feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="#1a0840" floodOpacity="0.35"/></filter>
       </defs>
+
+      {/* ── Purple walls ── */}
       <rect x="0" y="0" width="390" height="290" fill="url(#rwG)"/>
-      {[45,90,135,180,225,272].map((y,i)=><line key={i} x1="0" y1={y} x2="390" y2={y} stroke="#9880b8" strokeWidth="0.6" opacity="0.2"/>)}
-      <rect x="28" y="14" width="118" height="138" rx="7" fill="#0e1428"/>
-      <rect x="28" y="14" width="118" height="138" rx="7" fill="none" stroke="#1a0800" strokeWidth="5"/>
-      <line x1="87" y1="14" x2="87" y2="152" stroke="#1a0800" strokeWidth="5"/>
-      <line x1="28" y1="83" x2="146" y2="83" stroke="#1a0800" strokeWidth="5"/>
-      <circle cx="68" cy="50" r="20" fill="#fff8d0" opacity="0.95"/>
-      <circle cx="78" cy="43" r="15" fill="#0e1428"/>
-      <rect x="220" y="60" width="160" height="140" rx="6" fill="#8a6040" stroke="#1a0800" strokeWidth="3.5"/>
-      {[108,155].map((y,i)=><line key={i} x1="220" y1={y} x2="380" y2={y} stroke="#1a0800" strokeWidth="2.5"/>)}
-      <rect x="0" y="278" width="390" height="372" fill="url(#rfG)"/>
-      {[298,325,352,382,414,448,484,522].map((y,i)=><line key={i} x1="0" y1={y} x2="390" y2={y} stroke="#1a0800" strokeWidth="2.2" opacity="0.55"/>)}
-      <ellipse cx="195" cy="612" rx="105" ry="32" fill="#e8b8c8" stroke="#1a0800" strokeWidth="4"/>
-      <ellipse cx="195" cy="606" rx="88" ry="24" fill="url(#rbG)" stroke="#1a0800" strokeWidth="3"/>
-      <rect x="138" y="586" width="60" height="36" rx="18" fill="#f8d0e0" stroke="#1a0800" strokeWidth="3"/>
+      {[55,110,165,220,275].map((y,i)=><line key={i} x1="0" y1={y} x2="390" y2={y} stroke="#9880c0" strokeWidth="0.6" opacity="0.18"/>)}
+
+      {/* ── Window (left) — night sky ── */}
+      {/* Curtain rod */}
+      <rect x="16" y="12" width="190" height="8" rx="4" fill="#8a6030" stroke="#5a3010" strokeWidth="1.5"/>
+      {/* Left curtain */}
+      <path d="M16,20 C24,52 14,96 20,172 L16,188 L8,188 L6,20 Z" fill="url(#rcurtG)" opacity="0.88"/>
+      {/* Right curtain */}
+      <path d="M188,20 C180,52 190,96 184,172 L188,188 L196,188 L198,20 Z" fill="url(#rcurtG)" opacity="0.88"/>
+      {/* Night sky */}
+      <rect x="26" y="20" width="154" height="170" rx="6" fill="url(#rskyG)"/>
+      {/* Stars */}
+      {[[45,38],[72,25],[100,42],[130,28],[155,50],[60,72],[120,58],[88,94],[148,82],[50,110],[135,100],[75,130]].map(([x,y],i)=>(
+        <circle key={i} cx={x} cy={y} r={i%4===0?2:i%3===0?1.5:1} fill="white" opacity={0.5+i*0.04}/>
+      ))}
+      {/* Large moon */}
+      <circle cx="145" cy="55" r="28" fill="#fffbe8" opacity="0.95" filter="url(#rShadow)"/>
+      <circle cx="156" cy="48" r="22" fill="url(#rskyG)"/>
+      {/* Moon glow */}
+      <circle cx="145" cy="55" r="38" fill="url(#rnightG)" opacity="0.4"/>
+      {/* Window frame */}
+      <rect x="26" y="20" width="154" height="170" rx="6" fill="none" stroke="#5a3010" strokeWidth="5"/>
+      <line x1="103" y1="20" x2="102" y2="190" stroke="#5a3010" strokeWidth="4.5"/>
+      <line x1="26" y1="105" x2="180" y2="105" stroke="#5a3010" strokeWidth="4.5"/>
+
+      {/* ── Bookshelf (right) ── */}
+      <rect x="234" y="14" width="154" height="200" rx="6" fill="url(#rbookshG)" stroke="#5a3010" strokeWidth="3" filter="url(#rShadow)"/>
+      {/* Shelf boards */}
+      {[78,136,192].map((y,i)=>(
+        <rect key={i} x="238" y={y} width="146" height="8" rx="3" fill="#b88020" stroke="#5a3010" strokeWidth="2"/>
+      ))}
+      {/* Books row 1 */}
+      <rect x="242" y="22" width="14" height="52" rx="2" fill="#e04848"/>
+      <rect x="258" y="26" width="12" height="48" rx="2" fill="#4070e0"/>
+      <rect x="272" y="22" width="16" height="52" rx="2" fill="#40b060"/>
+      <rect x="290" y="28" width="10" height="46" rx="2" fill="#e0a040"/>
+      <rect x="302" y="22" width="14" height="52" rx="2" fill="#8040d0"/>
+      <rect x="318" y="26" width="12" height="48" rx="2" fill="#e06840"/>
+      <rect x="332" y="22" width="50" height="52" rx="2" fill="#c8a860"/>
+      {/* Books row 2 */}
+      <rect x="242" y="86" width="18" height="46" rx="2" fill="#40a8c0"/>
+      <rect x="262" y="90" width="12" height="42" rx="2" fill="#d04060"/>
+      <rect x="276" y="86" width="14" height="46" rx="2" fill="#60c040"/>
+      <rect x="292" y="92" width="16" height="40" rx="2" fill="#c07020"/>
+      <rect x="310" y="86" width="10" height="46" rx="2" fill="#8060e0"/>
+      {/* Small cat figurine on shelf */}
+      <ellipse cx="340" cy="131" rx="12" ry="8" fill="#f0d8c0" stroke="#8a5020" strokeWidth="1.5"/>
+      <circle cx="340" cy="122" r="9" fill="#f0d8c0" stroke="#8a5020" strokeWidth="1.5"/>
+      <path d="M333,116 L331,108 L336,114 Z" fill="#f0d8c0" stroke="#8a5020" strokeWidth="1"/>
+      <path d="M347,116 L349,108 L344,114 Z" fill="#f0d8c0" stroke="#8a5020" strokeWidth="1"/>
+      {/* Books row 3 */}
+      <rect x="242" y="144" width="20" height="44" rx="2" fill="#e86040"/>
+      <rect x="264" y="148" width="14" height="40" rx="2" fill="#4060c0"/>
+      <rect x="280" y="144" width="12" height="44" rx="2" fill="#50c068"/>
+
+      {/* ── Night stand (left) ── */}
+      <rect x="18" y="204" width="80" height="80" rx="8" fill="#c89838" stroke="#5a3010" strokeWidth="3"/>
+      {/* Drawer */}
+      <rect x="22" y="242" width="72" height="38" rx="5" fill="#b88828" stroke="#5a3010" strokeWidth="2"/>
+      <rect x="50" y="259" width="16" height="6" rx="3" fill="#f0c060" stroke="#8a5010" strokeWidth="1.5"/>
+      {/* Lamp on stand */}
+      <rect x="50" y="188" width="8" height="18" rx="3" fill="#d0a040" stroke="#8a5010" strokeWidth="2"/>
+      <path d="M36,188 L54,152 L72,188 Z" fill="#f8e060" stroke="#c0a020" strokeWidth="2" strokeLinejoin="round"/>
+      <ellipse cx="54" cy="190" rx="20" ry="5" fill="#c09030" stroke="#8a5010" strokeWidth="2"/>
+      {/* Lamp glow */}
+      <ellipse cx="54" cy="170" rx="30" ry="22" fill="#fffbe0" opacity="0.18"/>
+
+      {/* ── Floor ── */}
+      <rect x="0" y="290" width="390" height="360" fill="url(#rfG)"/>
+      <rect x="0" y="286" width="390" height="7" fill="#6a4420" stroke="#3a1800" strokeWidth="1.5"/>
+      {[310,338,368,400,434,470,508,548].map((y,i)=>(
+        <line key={i} x1="0" y1={y} x2="390" y2={y} stroke="#3a1800" strokeWidth="2.2" opacity="0.5"/>
+      ))}
+      {[78,156,234,312].map((x,i)=>(
+        <line key={i} x1={x} y1="290" x2={x} y2="650" stroke="#3a1800" strokeWidth="1.5" opacity="0.3"/>
+      ))}
+
+      {/* ── Cat sleeping basket ── */}
+      {/* Basket base */}
+      <ellipse cx="195" cy="610" rx="110" ry="30" fill="#c89040" stroke="#7a5010" strokeWidth="3.5" filter="url(#rShadow)"/>
+      <ellipse cx="195" cy="604" rx="96" ry="23" fill="#d8a050"/>
+      {/* Basket weave texture lines */}
+      {[-80,-52,-24,4,32,60,88].map((dx,i)=>(
+        <line key={i} x1={195+dx} y1="582" x2={195+dx+8} y2="628" stroke="#a07028" strokeWidth="2.5" opacity="0.5"/>
+      ))}
+      {/* Soft pillow inside */}
+      <ellipse cx="195" cy="598" rx="78" ry="18" fill="#f8e8f0" stroke="#d0a0c0" strokeWidth="2"/>
+      <ellipse cx="195" cy="595" rx="64" ry="13" fill="#fce8f4"/>
+      {/* Pillow dimple */}
+      <ellipse cx="195" cy="594" rx="14" ry="6" fill="#f0d8ec" stroke="#d8b0d0" strokeWidth="1.5"/>
     </svg>
   );
 }
@@ -1163,26 +1406,110 @@ function YardRoom() {
   return (
     <svg viewBox="0 0 390 650" style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
       <defs>
-        <linearGradient id="ysG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#70b8f0"/><stop offset="100%" stopColor="#a8d8fc"/></linearGradient>
-        <linearGradient id="ygG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#58b840"/><stop offset="100%" stopColor="#409028"/></linearGradient>
+        <linearGradient id="yskyG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#5ab0f0"/><stop offset="60%" stopColor="#98d0fc"/><stop offset="100%" stopColor="#c8e8ff"/></linearGradient>
+        <linearGradient id="ygrassG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#60c040"/><stop offset="100%" stopColor="#389820"/></linearGradient>
+        <linearGradient id="ysunG" cx="35%" cy="30%" r="60%"><stop offset="0%" stopColor="#fff8a0"/><stop offset="100%" stopColor="#ffcc00"/></linearGradient>
+        <radialGradient id="ysunRG" cx="35%" cy="30%" r="60%"><stop offset="0%" stopColor="#fff8a0"/><stop offset="100%" stopColor="#ffcc00"/></radialGradient>
+        <linearGradient id="ytreeG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#50c840"/><stop offset="100%" stopColor="#389028"/></linearGradient>
+        <linearGradient id="ypathG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#d8c090"/><stop offset="100%" stopColor="#c0a870"/></linearGradient>
+        <radialGradient id="yflower1G" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#fff060"/><stop offset="100%" stopColor="#ffc820"/></radialGradient>
+        <radialGradient id="yflower2G" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#ff80c0"/><stop offset="100%" stopColor="#e04898"/></radialGradient>
+        <filter id="yShadow"><feDropShadow dx="0" dy="5" stdDeviation="6" floodColor="#104008" floodOpacity="0.3"/></filter>
       </defs>
-      <rect x="0" y="0" width="390" height="370" fill="url(#ysG)"/>
-      <circle cx="340" cy="60" r="42" fill="#ffe860" stroke="#1a0800" strokeWidth="3"/>
-      {[0,45,90,135,180,225,270,315].map((a,i)=>{ const r=Math.PI*a/180; return <line key={i} x1={340+52*Math.cos(r)} y1={60+52*Math.sin(r)} x2={340+68*Math.cos(r)} y2={60+68*Math.sin(r)} stroke="#1a0800" strokeWidth="3" strokeLinecap="round"/>; })}
-      <ellipse cx="80" cy="70" rx="48" ry="24" fill="white" opacity="0.92"/>
-      <ellipse cx="110" cy="60" rx="38" ry="20" fill="white" opacity="0.92"/>
-      <ellipse cx="55" cy="78" rx="30" ry="18" fill="white" opacity="0.85"/>
-      {[20,56,92,128,164,200,236,272,308,344,380].map((x,i)=>(<rect key={i} x={x} y="180" width="28" height="100" rx="4" fill="#d4a050" stroke="#1a0800" strokeWidth="2.5"/>))}
-      <rect x="14" y="218" width="368" height="16" rx="4" fill="#e8b860" stroke="#1a0800" strokeWidth="3"/>
-      <rect x="20" y="250" width="22" height="120" rx="6" fill="#8a5028" stroke="#1a0800" strokeWidth="3"/>
-      <ellipse cx="31" cy="240" rx="50" ry="55" fill="#38a030" stroke="#1a0800" strokeWidth="3.5"/>
-      <ellipse cx="31" cy="210" rx="38" ry="42" fill="#48b838" stroke="#1a0800" strokeWidth="3"/>
-      <rect x="348" y="255" width="22" height="115" rx="6" fill="#8a5028" stroke="#1a0800" strokeWidth="3"/>
-      <ellipse cx="359" cy="240" rx="48" ry="52" fill="#38a030" stroke="#1a0800" strokeWidth="3.5"/>
-      <ellipse cx="359" cy="212" rx="36" ry="40" fill="#48b838" stroke="#1a0800" strokeWidth="3"/>
-      <rect x="0" y="348" width="390" height="302" fill="url(#ygG)"/>
-      <circle cx="270" cy="570" r="34" fill="#e05888" stroke="#1a0800" strokeWidth="3.5"/>
-      <path d="M270,538 C265,500 255,480 260,460" stroke="#e05888" strokeWidth="3" fill="none" strokeLinecap="round"/>
+
+      {/* ── Sky ── */}
+      <rect x="0" y="0" width="390" height="360" fill="url(#yskyG)"/>
+
+      {/* ── Sun with rays ── */}
+      {/* Glow */}
+      <circle cx="340" cy="58" r="65" fill="#fffbe0" opacity="0.3"/>
+      <circle cx="340" cy="58" r="44" fill="url(#ysunRG)" filter="url(#yShadow)"/>
+      <circle cx="340" cy="58" r="36" fill="#ffee60"/>
+      {[0,30,60,90,120,150,180,210,240,270,300,330].map((a,i)=>{ const rad=Math.PI*a/180; return <line key={i} x1={340+50*Math.cos(rad)} y1={58+50*Math.sin(rad)} x2={340+64*Math.cos(rad)} y2={58+64*Math.sin(rad)} stroke="#ffcc00" strokeWidth={i%3===0?3.5:2} strokeLinecap="round"/>; })}
+      {/* Sun face */}
+      <circle cx="329" cy="52" r="4" fill="#c88000" opacity="0.7"/>
+      <circle cx="351" cy="52" r="4" fill="#c88000" opacity="0.7"/>
+      <path d="M328,66 C332,72 348,72 352,66" stroke="#c88000" strokeWidth="2.5" fill="none" strokeLinecap="round" opacity="0.7"/>
+
+      {/* ── Clouds ── */}
+      <ellipse cx="80" cy="55" rx="56" ry="24" fill="white" opacity="0.95"/>
+      <ellipse cx="105" cy="44" rx="44" ry="26" fill="white" opacity="0.95"/>
+      <ellipse cx="52" cy="62" rx="34" ry="18" fill="white" opacity="0.88"/>
+      <ellipse cx="210" cy="78" rx="42" ry="18" fill="white" opacity="0.88"/>
+      <ellipse cx="235" cy="68" rx="30" ry="20" fill="white" opacity="0.88"/>
+      <ellipse cx="188" cy="82" rx="26" ry="14" fill="white" opacity="0.8"/>
+
+      {/* ── Background hills ── */}
+      <ellipse cx="80" cy="340" rx="160" ry="90" fill="#78d050" opacity="0.6"/>
+      <ellipse cx="320" cy="345" rx="150" ry="80" fill="#68c040" opacity="0.55"/>
+
+      {/* ── Fence ── */}
+      {[18,50,82,114,146,178,210,242,274,306,338,370].map((x,i)=>(
+        <rect key={i} x={x} y="238" width="20" height="90" rx="4" fill="#e8c878" stroke="#8a6020" strokeWidth="2"/>
+      ))}
+      {/* Top fence rail */}
+      <rect x="12" y="260" width="372" height="14" rx="5" fill="#f0d890" stroke="#8a6020" strokeWidth="2.5"/>
+      {/* Middle fence rail */}
+      <rect x="12" y="296" width="372" height="10" rx="4" fill="#ecd080" stroke="#8a6020" strokeWidth="2"/>
+
+      {/* ── Trees ── */}
+      {/* Left tree */}
+      <rect x="24" y="290" width="20" height="100" rx="6" fill="#8a5828" stroke="#5a3010" strokeWidth="2.5"/>
+      <ellipse cx="34" cy="268" rx="56" ry="58" fill="#38a828" stroke="#1a5810" strokeWidth="3" filter="url(#yShadow)"/>
+      <ellipse cx="34" cy="240" rx="44" ry="46" fill="url(#ytreeG)" stroke="#1a5810" strokeWidth="2.5"/>
+      <ellipse cx="34" cy="218" rx="32" ry="34" fill="#60d048" stroke="#1a5810" strokeWidth="2"/>
+      {/* Right tree */}
+      <rect x="346" y="295" width="20" height="95" rx="6" fill="#8a5828" stroke="#5a3010" strokeWidth="2.5"/>
+      <ellipse cx="356" cy="272" rx="52" ry="55" fill="#38a828" stroke="#1a5810" strokeWidth="3" filter="url(#yShadow)"/>
+      <ellipse cx="356" cy="245" rx="40" ry="44" fill="url(#ytreeG)" stroke="#1a5810" strokeWidth="2.5"/>
+      <ellipse cx="356" cy="224" rx="30" ry="32" fill="#60d048" stroke="#1a5810" strokeWidth="2"/>
+
+      {/* ── Grass ground ── */}
+      <rect x="0" y="355" width="390" height="295" fill="url(#ygrassG)"/>
+      {/* Grass texture blades */}
+      {[20,55,90,125,160,195,230,265,300,335,370].map((x,i)=>(
+        <g key={i}>
+          <path d={`M${x},355 C${x-4},340 ${x-8},330 ${x-6},318`} stroke="#48b030" strokeWidth="2.5" fill="none" strokeLinecap="round" opacity="0.7"/>
+          <path d={`M${x+8},355 C${x+12},338 ${x+16},328 ${x+14},316`} stroke="#50b838" strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.7"/>
+        </g>
+      ))}
+
+      {/* ── Stone path ── */}
+      <ellipse cx="195" cy="430" rx="80" ry="20" fill="url(#ypathG)" stroke="#a08050" strokeWidth="2" opacity="0.7"/>
+      {[{cx:155,cy:410,rx:28,ry:12},{cx:205,cy:425,rx:25,ry:10},{cx:235,cy:412,rx:22,ry:10},{cx:172,cy:436,rx:24,ry:10},{cx:218,cy:443,rx:26,ry:11}].map((s,i)=>(
+        <ellipse key={i} cx={s.cx} cy={s.cy} rx={s.rx} ry={s.ry} fill="#d8c090" stroke="#a08850" strokeWidth="1.5"/>
+      ))}
+
+      {/* ── Flowers (left bed) ── */}
+      {[[68,490],[82,478],[54,482],[74,468],[60,460]].map(([x,y],i)=>(
+        <g key={i}>
+          <line x1={x} y1={y} x2={x+4} y2={y+30} stroke="#38a820" strokeWidth="2.5" strokeLinecap="round"/>
+          {/* Petals */}
+          {[0,60,120,180,240,300].map((a,j)=>{ const rad=Math.PI*a/180; return <ellipse key={j} cx={x+7*Math.cos(rad)} cy={y+7*Math.sin(rad)} rx="5" ry="4" fill={i%2===0?"#ff80b8":"#ffee40"} opacity="0.9"/>; })}
+          <circle cx={x} cy={y} r="5" fill={i%2===0?"#ffe040":"#ff60a0"}/>
+        </g>
+      ))}
+
+      {/* ── Flowers (right bed) ── */}
+      {[[318,488],[332,474],[310,470],[344,462],[326,458]].map(([x,y],i)=>(
+        <g key={i}>
+          <line x1={x} y1={y} x2={x-4} y2={y+32} stroke="#38a820" strokeWidth="2.5" strokeLinecap="round"/>
+          {[0,60,120,180,240,300].map((a,j)=>{ const rad=Math.PI*a/180; return <ellipse key={j} cx={x+7*Math.cos(rad)} cy={y+7*Math.sin(rad)} rx="5" ry="4" fill={i%2===0?"#ff9040":"#a060ff"} opacity="0.9"/>; })}
+          <circle cx={x} cy={y} r="5" fill={i%2===0?"#ffb020":"#c080ff"}/>
+        </g>
+      ))}
+
+      {/* ── Ball toy on grass ── */}
+      <circle cx="195" cy="570" r="26" fill="#e84040" stroke="#a01010" strokeWidth="3" filter="url(#yShadow)"/>
+      <path d="M175,555 C178,568 182,575 195,578 C208,575 212,568 215,555" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round" opacity="0.8"/>
+      <path d="M170,568 C175,560 182,558 195,560 C208,558 215,560 220,568" stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round" opacity="0.7"/>
+
+      {/* ── Butterfly ── */}
+      <path d="M140,420 C124,408 118,416 128,424 C118,432 124,440 140,428 Z" fill="#ff90c8" opacity="0.85" stroke="#c04090" strokeWidth="1.5"/>
+      <path d="M140,420 C156,408 162,416 152,424 C162,432 156,440 140,428 Z" fill="#ff80b8" opacity="0.85" stroke="#c04090" strokeWidth="1.5"/>
+      <line x1="140" y1="420" x2="140" y2="428" stroke="#5a2040" strokeWidth="1.5"/>
+      <path d="M138,418 C136,412 132,410 130,412" stroke="#5a2040" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+      <path d="M142,418 C144,412 148,410 150,412" stroke="#5a2040" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
     </svg>
   );
 }
@@ -1191,28 +1518,147 @@ function ClinicRoom() {
   return (
     <svg viewBox="0 0 390 650" style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
       <defs>
-        <linearGradient id="clwG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#d8eae0"/><stop offset="100%" stopColor="#e8f4ec"/></linearGradient>
-        <linearGradient id="clfG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#b0c0c8"/><stop offset="100%" stopColor="#90a0a8"/></linearGradient>
+        <linearGradient id="clwG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#e8f4ee"/><stop offset="100%" stopColor="#d8eae2"/></linearGradient>
+        <linearGradient id="clfG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#7a4e2c"/><stop offset="100%" stopColor="#5a3818"/></linearGradient>
+        <linearGradient id="clcabG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#e8f8f2"/><stop offset="100%" stopColor="#d0ece4"/></linearGradient>
+        <linearGradient id="cltableG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f5f5f5"/><stop offset="100%" stopColor="#e5e8e8"/></linearGradient>
+        <linearGradient id="clpotG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#e8c068"/><stop offset="100%" stopColor="#c89838"/></linearGradient>
+        <linearGradient id="clscreenG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#203868"/><stop offset="100%" stopColor="#102848"/></linearGradient>
+        <filter id="clShadow"><feDropShadow dx="0" dy="4" stdDeviation="5" floodColor="#104028" floodOpacity="0.28"/></filter>
       </defs>
+
+      {/* ── Walls — mint-white with subtle tile grid ── */}
       <rect x="0" y="0" width="390" height="290" fill="url(#clwG)"/>
-      {[0,44,88,132,176,220,264].map((y,i)=><line key={i} x1="0" y1={y} x2="390" y2={y} stroke="#88b898" strokeWidth="1.5" opacity="0.4"/>)}
-      {[0,52,104,156,208,260,312,364].map((x,i)=><line key={i} x1={x} y1={0} x2={x} y2={290} stroke="#88b898" strokeWidth="1.5" opacity="0.4"/>)}
-      <rect x="170" y="20" width="52" height="52" rx="8" fill="#e83030" stroke="#1a0800" strokeWidth="3"/>
-      <rect x="180" y="38" width="32" height="12" rx="3" fill="white"/>
-      <rect x="188" y="30" width="12" height="32" rx="3" fill="white"/>
-      <rect x="22" y="18" width="120" height="160" rx="8" fill="#d0dce0" stroke="#1a0800" strokeWidth="3.5"/>
-      <rect x="26" y="38" width="54" height="130" rx="4" fill="#c8d8dc" stroke="#1a0800" strokeWidth="2.5"/>
-      <rect x="82" y="38" width="56" height="130" rx="4" fill="#c8d8dc" stroke="#1a0800" strokeWidth="2.5"/>
-      <rect x="238" y="50" width="145" height="10" rx="4" fill="#8ab0b8" stroke="#1a0800" strokeWidth="2.5"/>
-      <rect x="238" y="60" width="145" height="80" rx="4" fill="#c0d8e0" stroke="#1a0800" strokeWidth="2.5"/>
-      {[{x:248,c:'#e83030'},{x:278,c:'#3090e0'},{x:308,c:'#30c060'},{x:338,c:'#e8a030'}].map((b,i)=>(
-        <g key={i}><rect x={b.x} y="64" width="22" height="38" rx="5" fill={b.c} stroke="#1a0800" strokeWidth="2"/><rect x={b.x+3} y="60" width="16" height="8" rx="3" fill="#f8f8f8" stroke="#1a0800" strokeWidth="1.5"/></g>
+      {[0,48,96,144,192,240,288].map((y,i)=><line key={i} x1="0" y1={y} x2="390" y2={y} stroke="#7ab898" strokeWidth="1.2" opacity="0.4"/>)}
+      {[0,48,96,144,192,240,288,336,384].map((x,i)=><line key={i} x1={x} y1="0" x2={x} y2="290" stroke="#7ab898" strokeWidth="1.2" opacity="0.4"/>)}
+      {/* Tile highlights */}
+      {[0,96,192].map((y,i)=>[0,96,192,288].map((x,j)=>(
+        <rect key={i*10+j} x={x+1} y={y+1} width={47} height={47} fill="rgba(255,255,255,0.22)" rx="2"/>
+      )))}
+
+      {/* ── Red cross sign (center top) ── */}
+      <rect x="168" y="14" width="56" height="56" rx="10" fill="#e83030" stroke="#a00808" strokeWidth="3" filter="url(#clShadow)"/>
+      <rect x="179" y="34" width="34" height="14" rx="4" fill="white"/>
+      <rect x="188" y="24" width="14" height="34" rx="4" fill="white"/>
+      {/* Shine on cross */}
+      <rect x="175" y="18" width="10" height="8" rx="3" fill="rgba(255,255,255,0.4)"/>
+
+      {/* ── Medical cabinet (left) ── */}
+      <rect x="18" y="16" width="128" height="180" rx="8" fill="url(#clcabG)" stroke="#70a888" strokeWidth="3.5" filter="url(#clShadow)"/>
+      {/* Cabinet divider */}
+      <line x1="82" y1="20" x2="82" y2="194" stroke="#70a888" strokeWidth="2.5"/>
+      {/* Cabinet shelves */}
+      {[80,130,178].map((y,i)=>(
+        <line key={i} x1="22" y1={y} x2="142" y2={y} stroke="#70a888" strokeWidth="2"/>
       ))}
-      <rect x="100" y="202" width="190" height="68" rx="8" fill="#e8f0f4" stroke="#1a0800" strokeWidth="3.5"/>
-      <rect x="104" y="206" width="182" height="60" rx="6" fill="#c8dce8"/>
-      <rect x="0" y="278" width="390" height="372" fill="url(#clfG)"/>
-      {[290,340,390,440,490,540,590,640].map((y,i)=><line key={i} x1="0" y1={y} x2="390" y2={y} stroke="#1a0800" strokeWidth="1.8" opacity="0.35"/>)}
-      {[78,156,234,312].map((x,i)=><line key={i} x1={x} y1="278" x2={x} y2="650" stroke="#1a0800" strokeWidth="1.8" opacity="0.35"/>)}
+      {/* Medicine bottles - left column */}
+      <rect x="26" y="30" width="14" height="46" rx="5" fill="#e06888" stroke="#a03050" strokeWidth="2"/>
+      <rect x="28" y="24" width="10" height="10" rx="3" fill="#c84870" stroke="#a03050" strokeWidth="1.5"/>
+      <rect x="44" y="34" width="12" height="40" rx="5" fill="#4890e0" stroke="#1850a8" strokeWidth="2"/>
+      <rect x="46" y="28" width="8" height="10" rx="3" fill="#3070c0" stroke="#1850a8" strokeWidth="1.5"/>
+      <rect x="60" y="28" width="16" height="48" rx="5" fill="#38c888" stroke="#108858" strokeWidth="2"/>
+      <rect x="63" y="22" width="10" height="10" rx="3" fill="#28a870" stroke="#108858" strokeWidth="1.5"/>
+      {/* Labels */}
+      <rect x="28" y="44" width="10" height="8" rx="1" fill="white" opacity="0.8"/>
+      <rect x="46" y="46" width="8" height="6" rx="1" fill="white" opacity="0.8"/>
+      <rect x="62" y="40" width="12" height="8" rx="1" fill="white" opacity="0.8"/>
+      {/* Right column */}
+      <rect x="90" y="30" width="12" height="44" rx="5" fill="#e0a040" stroke="#a86810" strokeWidth="2"/>
+      <rect x="92" y="24" width="8" height="10" rx="3" fill="#c88020" stroke="#a86810" strokeWidth="1.5"/>
+      <rect x="106" y="34" width="14" height="40" rx="5" fill="#a060d8" stroke="#6028a0" strokeWidth="2"/>
+      <rect x="108" y="28" width="10" height="10" rx="3" fill="#8040c0" stroke="#6028a0" strokeWidth="1.5"/>
+      {/* 2nd shelf items */}
+      <rect x="26" y="86" width="50" height="38" rx="4" fill="#d8e8e0" stroke="#70a888" strokeWidth="2"/>
+      <rect x="30" y="90" width="20" height="6" rx="2" fill="#70a888" opacity="0.6"/>
+      <rect x="30" y="100" width="16" height="4" rx="2" fill="#70a888" opacity="0.4"/>
+      <rect x="30" y="108" width="22" height="4" rx="2" fill="#70a888" opacity="0.4"/>
+      <rect x="88" y="86" width="46" height="38" rx="4" fill="#f0f4f0" stroke="#70a888" strokeWidth="2"/>
+      {/* Bandages */}
+      <rect x="92" y="90" width="38" height="12" rx="6" fill="#f8e8d8" stroke="#c09070" strokeWidth="1.5"/>
+      <rect x="104" y="92" width="14" height="8" rx="3" fill="#f0d0b8"/>
+      {/* Syringe */}
+      <rect x="92" y="108" width="38" height="10" rx="5" fill="#d0e8f0" stroke="#7098a8" strokeWidth="1.5"/>
+      <rect x="128" y="110" width="8" height="6" rx="1" fill="#9ab8c8" stroke="#7098a8" strokeWidth="1"/>
+      <rect x="92" y="111" width="6" height="4" rx="1" fill="#90b0c0"/>
+
+      {/* ── Monitor / vitals screen (right top) ── */}
+      <rect x="236" y="16" width="148" height="104" rx="10" fill="#2a4a78" stroke="#183060" strokeWidth="3.5" filter="url(#clShadow)"/>
+      <rect x="242" y="22" width="136" height="88" rx="7" fill="url(#clscreenG)"/>
+      {/* Heart rate line */}
+      <polyline points="248,66 258,66 264,48 270,82 276,56 282,66 302,66 308,44 314,78 320,60 326,66 346,66 352,50 358,72 364,66 374,66" stroke="#40ff80" strokeWidth="2.5" fill="none"/>
+      {/* Pulse dot */}
+      <circle cx="364" cy="66" r="4" fill="#40ff80" opacity="0.9"/>
+      {/* Screen labels */}
+      <text x="248" y="88" fontSize="8" fill="#40d880" fontFamily="monospace" opacity="0.9">♥ 72 BPM</text>
+      <text x="310" y="88" fontSize="8" fill="#40a8ff" fontFamily="monospace" opacity="0.9">T 38.2°</text>
+      {/* Stand */}
+      <rect x="302" y="120" width="10" height="30" rx="4" fill="#3060a0" stroke="#183060" strokeWidth="2"/>
+      <rect x="286" y="148" width="42" height="8" rx="4" fill="#3060a0" stroke="#183060" strokeWidth="2"/>
+
+      {/* ── Shelving unit (right middle) ── */}
+      <rect x="236" y="160" width="148" height="128" rx="6" fill="url(#clcabG)" stroke="#70a888" strokeWidth="2.5"/>
+      {[200,232].map((y,i)=>(
+        <line key={i} x1="240" y1={y} x2="380" y2={y} stroke="#70a888" strokeWidth="2"/>
+      ))}
+      {/* IV bag */}
+      <path d="M264,168 L256,196 L272,196 Z" fill="#c8e8f8" stroke="#7098b8" strokeWidth="2"/>
+      <line x1="264" y1="196" x2="264" y2="216" stroke="#7098b8" strokeWidth="2" strokeDasharray="3,2"/>
+      {/* First aid kit */}
+      <rect x="286" y="168" width="48" height="28" rx="6" fill="#e83030" stroke="#a00808" strokeWidth="2.5"/>
+      <rect x="295" y="176" width="30" height="10" rx="3" fill="white"/>
+      <rect x="304" y="168" width="10" height="28" rx="3" fill="white"/>
+      {/* Stethoscope */}
+      <path d="M340,170 C336,180 330,186 328,196 C326,206 330,210 336,210" stroke="#5a3a88" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
+      <circle cx="336" cy="212" r="6" fill="#5a3a88" stroke="#3a1860" strokeWidth="2"/>
+      <line x1="340" y1="170" x2="350" y2="178" stroke="#5a3a88" strokeWidth="3" strokeLinecap="round"/>
+      <circle cx="352" cy="180" r="5" fill="#7858a0" stroke="#3a1860" strokeWidth="1.5"/>
+      {/* Bandage roll */}
+      <circle cx="262" cy="218" r="14" fill="#f8e8d8" stroke="#c09070" strokeWidth="2.5"/>
+      <circle cx="262" cy="218" r="9" fill="#f0d8c8"/>
+      <circle cx="262" cy="218" r="4" fill="#e8c8b8"/>
+      {/* Pills */}
+      {[[298,212],[312,216],[326,210],[340,214],[354,212]].map(([cx,cy],i)=>(
+        <ellipse key={i} cx={cx} cy={cy} rx="8" ry="5" fill={['#f04060','#4080e0','#60c040','#f0a020','#c060d0'][i]} stroke="#1a1a1a" strokeWidth="1.5"/>
+      ))}
+
+      {/* ── Examination table ── */}
+      <rect x="88" y="204" width="210" height="72" rx="10" fill="url(#cltableG)" stroke="#8aacac" strokeWidth="3.5" filter="url(#clShadow)"/>
+      <rect x="92" y="208" width="202" height="52" rx="7" fill="#e8eef0" stroke="#8aacac" strokeWidth="2"/>
+      {/* Table padding quilting */}
+      {[115,140,165,190,215,240,265].map((x,i)=>(
+        <line key={i} x1={x} y1="210" x2={x} y2="258" stroke="#c8d8dc" strokeWidth="1.5" opacity="0.7"/>
+      ))}
+      {[230,245].map((y,i)=>(
+        <line key={i} x1="94" y1={y} x2="292" y2={y} stroke="#c8d8dc" strokeWidth="1.5" opacity="0.7"/>
+      ))}
+      {/* Table legs */}
+      <rect x="100" y="274" width="12" height="16" rx="4" fill="#90aaaa" stroke="#608888" strokeWidth="2"/>
+      <rect x="278" y="274" width="12" height="16" rx="4" fill="#90aaaa" stroke="#608888" strokeWidth="2"/>
+
+      {/* ── Potted plant (corner accent) ── */}
+      <path d="M356,228 L360,204 L376,204 L380,228 Z" fill="url(#clpotG)" stroke="#7a5010" strokeWidth="2" strokeLinejoin="round"/>
+      <ellipse cx="368" cy="204" rx="14" ry="5" fill="#d0a040" stroke="#7a5010" strokeWidth="1.5"/>
+      <ellipse cx="368" cy="194" rx="12" ry="14" fill="#44a838"/>
+      <ellipse cx="360" cy="190" rx="9" ry="11" fill="#38982e" transform="rotate(-18,360,190)"/>
+      <ellipse cx="376" cy="191" rx="9" ry="11" fill="#309828" transform="rotate(18,376,191)"/>
+      <ellipse cx="368" cy="183" rx="7" ry="9" fill="#50b040"/>
+
+      {/* ── Floor ── */}
+      <rect x="0" y="290" width="390" height="360" fill="url(#clfG)"/>
+      <rect x="0" y="286" width="390" height="7" fill="#6a4420" stroke="#3a1800" strokeWidth="1.5"/>
+      {[310,336,364,394,426,460,496,534].map((y,i)=>(
+        <line key={i} x1="0" y1={y} x2="390" y2={y} stroke="#3a1800" strokeWidth="2.2" opacity="0.48"/>
+      ))}
+      {[78,156,234,312].map((x,i)=>(
+        <line key={i} x1={x} y1="290" x2={x} y2="650" stroke="#3a1800" strokeWidth="1.5" opacity="0.32"/>
+      ))}
+
+      {/* ── Health rug (green cross pattern) ── */}
+      <ellipse cx="195" cy="598" rx="110" ry="28" fill="#60b880" stroke="#38886a" strokeWidth="3" filter="url(#clShadow)"/>
+      <ellipse cx="195" cy="594" rx="92" ry="21" fill="#78cc98"/>
+      {/* Cross pattern on rug */}
+      <rect x="186" y="578" width="18" height="32" rx="4" fill="white" opacity="0.35"/>
+      <rect x="176" y="588" width="38" height="12" rx="4" fill="white" opacity="0.35"/>
     </svg>
   );
 }
