@@ -2054,13 +2054,13 @@ function App() {
     // Always save locally immediately
     saveState(snapshot);
 
-    // Debounced cloud save — fires 30s after last change
+    // Debounced cloud save — fires 8s after last change
     const chatId = getChatId();
     if (chatId && BACKEND_URL) {
       if (cloudSyncTimer.current) clearTimeout(cloudSyncTimer.current);
       cloudSyncTimer.current = setTimeout(() => {
         cloudSave(chatId, snapshot).catch(() => {});
-      }, 30000);
+      }, 8000);
     }
     return () => {
       if (cloudSyncTimer.current) clearTimeout(cloudSyncTimer.current);
@@ -2164,12 +2164,37 @@ function App() {
     return () => clearInterval(t);
   }, [level]);
 
-  // ── Sync stats to backend every 5 min for push notifications ──
+  // ── Sync stats to backend for push notifications ──
   useEffect(() => {
-    syncBackend(stats);                         // immediate on mount
-    const t = setInterval(() => syncBackend(stats), 5 * 60 * 1000);
-    return () => clearInterval(t);
+    syncBackend(stats); // immediate on every stats change
   }, [stats]);
+
+  // ── Save to cloud immediately when app is hidden (user switches away) ──
+  useEffect(() => {
+    const chatId = getChatId();
+    if (!chatId || !BACKEND_URL) return;
+
+    function onVisibilityChange() {
+      if (document.hidden) {
+        // App going to background — save immediately, don't wait for debounce
+        if (cloudSyncTimer.current) clearTimeout(cloudSyncTimer.current);
+        const snapshot = {
+          stats, coins, xp,
+          createdAt: createdAt.current,
+          lastDaily, dailyStreak,
+          inventory, equipped, achievements, highScores,
+          actionCounts, dailyMissions,
+          roomLayout, ownedDecor, ownedBgs,
+          walletAddress, ownedNFTs, activeNFT,
+          lastUpdate: Date.now(),
+        };
+        cloudSave(chatId, snapshot).catch(() => {});
+      }
+    }
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [stats, coins, xp, lastDaily, dailyStreak, inventory, equipped, achievements, highScores, actionCounts, dailyMissions, roomLayout, ownedDecor, ownedBgs, walletAddress, ownedNFTs, activeNFT]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Walking cat animation ──
   useEffect(() => {

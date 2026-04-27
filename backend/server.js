@@ -148,7 +148,17 @@ async function sendMessage(chatId, text) {
       body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' }),
     });
     const json = await res.json();
-    if (!json.ok) console.warn(`[tg] failed for ${chatId}:`, json.description);
+    if (!json.ok) {
+      console.warn(`[tg] ❌ failed for ${chatId}: ${json.description}`);
+      // If bot can't reach user — remove from notification list
+      if (json.description?.includes('Forbidden') || json.description?.includes('blocked')) {
+        users.delete(chatId);
+        saveUsers();
+        console.log(`[tg] removed blocked user ${chatId}`);
+      }
+    } else {
+      console.log(`[tg] ✅ sent to ${chatId}`);
+    }
     return json.ok;
   } catch (e) { console.error('[tg] error:', e.message); return false; }
 }
@@ -191,8 +201,8 @@ function selfPing() {
 }
 
 setTimeout(checkAndNotify, 5000);
-setInterval(checkAndNotify, 20 * 60 * 1000);
-setInterval(selfPing, 14 * 60 * 1000);
+setInterval(checkAndNotify, 10 * 60 * 1000); // every 10 min
+setInterval(selfPing, 8 * 60 * 1000);        // ping every 8 min
 
 // ── Start ──
 app.listen(PORT, () => {
