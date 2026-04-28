@@ -4,7 +4,7 @@
    ═══════════════════════════════════════════════ */
 
 const { useState, useEffect, useRef, useCallback } = React;
-const APP_VERSION = '1.0.8';
+const APP_VERSION = '1.0.9';
 
 // ── TRUST LEVEL SYSTEM ──────────────────────────────────────────────────────
 const TRUST_STAGES = [
@@ -2492,13 +2492,182 @@ const ROOM_DEFS = {
 };
 
 /* ══════════════════════════════════════════════════
+   KITCHEN FEED MENU — bottom sheet
+   ══════════════════════════════════════════════════ */
+function KitchenFeedMenu({ inventory, tab, onTabChange, onFeedItem, onWater, onGoShop, onClose }) {
+  const foodItems  = FOOD_ITEMS;
+  const hasFood    = foodItems.some(it => (inventory[it.id] || 0) > 0);
+
+  const tabStyle = (id) => ({
+    flex: 1, padding: '9px 4px', borderRadius: 12, border: 'none', cursor: 'pointer',
+    fontSize: 13, fontWeight: 800, fontFamily: "'Nunito',sans-serif",
+    background: tab === id
+      ? 'linear-gradient(135deg,#f5a830,#e08010)'
+      : 'rgba(255,255,255,0.06)',
+    color: tab === id ? 'white' : 'rgba(255,255,255,0.4)',
+    boxShadow: tab === id ? '0 3px 0 rgba(160,80,0,0.5)' : 'none',
+    transition: 'all 0.15s',
+  });
+
+  return (
+    <div onClick={onClose}
+      style={{ position:'absolute', inset:0, zIndex:90,
+        background:'rgba(0,0,0,0.55)', backdropFilter:'blur(4px)' }}>
+      <div onClick={e => e.stopPropagation()}
+        style={{ position:'absolute', bottom:192, left:0, right:0,
+          background:'linear-gradient(160deg,#1c1008,#120a04)',
+          borderRadius:'22px 22px 0 0',
+          boxShadow:'0 -6px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,200,80,0.15)',
+          maxHeight:'62%', display:'flex', flexDirection:'column',
+          animation:'slideUp 0.22s ease' }}>
+
+        {/* Handle + header */}
+        <div style={{ padding:'10px 16px 0', display:'flex', alignItems:'center', gap:8 }}>
+          <div style={{ flex:1, height:4, background:'rgba(255,255,255,0.12)', borderRadius:99, margin:'0 auto 0', maxWidth:40, alignSelf:'center' }}/>
+        </div>
+        <div style={{ padding:'8px 18px 10px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <div style={{ fontSize:16, fontWeight:900, color:'#f5dfc0' }}>🥣 Накормить котика</div>
+          <button onClick={onClose}
+            style={{ background:'rgba(255,255,255,0.08)', border:'none', borderRadius:10,
+              width:30, height:30, cursor:'pointer', color:'rgba(255,255,255,0.4)',
+              fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
+        </div>
+
+        {/* Tabs */}
+        <div style={{ display:'flex', gap:8, padding:'0 16px 12px' }}>
+          <button style={tabStyle('food')} onClick={() => onTabChange('food')}>🍔 Еда</button>
+          <button style={tabStyle('water')} onClick={() => onTabChange('water')}>💧 Вода</button>
+        </div>
+
+        {/* Scrollable content */}
+        <div style={{ overflowY:'auto', flex:1, padding:'0 16px 16px', display:'flex', flexDirection:'column', gap:8 }}>
+
+          {/* ── FOOD TAB ── */}
+          {tab === 'food' && (
+            <>
+              {hasFood ? (
+                foodItems.map(it => {
+                  const count = inventory[it.id] || 0;
+                  const disabled = count <= 0;
+                  return (
+                    <div key={it.id} onClick={() => !disabled && onFeedItem(it)}
+                      style={{
+                        display:'flex', alignItems:'center', gap:12,
+                        background: disabled ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
+                        border: `1.5px solid ${disabled ? 'rgba(255,255,255,0.05)' : 'rgba(255,200,80,0.25)'}`,
+                        borderRadius:16, padding:'12px 14px',
+                        cursor: disabled ? 'not-allowed' : 'pointer',
+                        opacity: disabled ? 0.4 : 1,
+                        transition:'background 0.15s, transform 0.1s',
+                      }}
+                      onPointerDown={e => { if (!disabled) e.currentTarget.style.transform='scale(0.97)'; }}
+                      onPointerUp={e   => { e.currentTarget.style.transform='scale(1)'; }}
+                      onPointerLeave={e=> { e.currentTarget.style.transform='scale(1)'; }}>
+                      {/* Icon */}
+                      <div style={{ width:46, height:46, borderRadius:14, background:'rgba(255,255,255,0.08)',
+                        display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, flexShrink:0 }}>
+                        {it.emoji}
+                      </div>
+                      {/* Info */}
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:14, fontWeight:900, color:'#f0d8a0', marginBottom:2 }}>{it.name}</div>
+                        <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                          <span style={{ fontSize:11, fontWeight:700, color:'#e06030',
+                            background:'rgba(220,80,20,0.15)', borderRadius:7, padding:'1px 7px' }}>
+                            🍔 {Math.abs(it.hunger)}
+                          </span>
+                          {it.mood  > 0 && <span style={{ fontSize:11, fontWeight:700, color:'#c0d840',
+                            background:'rgba(160,200,20,0.15)', borderRadius:7, padding:'1px 7px' }}>
+                            😸 +{it.mood}
+                          </span>}
+                          {it.health > 0 && <span style={{ fontSize:11, fontWeight:700, color:'#60c080',
+                            background:'rgba(40,180,80,0.15)', borderRadius:7, padding:'1px 7px' }}>
+                            ❤️ +{it.health}
+                          </span>}
+                        </div>
+                      </div>
+                      {/* Count badge */}
+                      <div style={{ textAlign:'center', flexShrink:0 }}>
+                        <div style={{ fontSize:18, fontWeight:900,
+                          color: count > 0 ? '#f5d060' : 'rgba(255,255,255,0.2)' }}>{count}</div>
+                        <div style={{ fontSize:9, color:'rgba(255,255,255,0.3)', fontWeight:700 }}>шт.</div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div style={{ textAlign:'center', padding:'24px 12px' }}>
+                  <div style={{ fontSize:44, marginBottom:10 }}>🛒</div>
+                  <div style={{ fontSize:14, fontWeight:800, color:'rgba(255,220,160,0.7)', marginBottom:6 }}>
+                    У тебя пока нет еды
+                  </div>
+                  <div style={{ fontSize:12, color:'rgba(255,255,255,0.3)', marginBottom:18 }}>
+                    Купи корм в магазине, чтобы накормить котика
+                  </div>
+                  <button onClick={() => onGoShop('food')}
+                    style={{ padding:'12px 24px', borderRadius:16, border:'none',
+                      background:'linear-gradient(135deg,#f5a830,#e08010)',
+                      color:'white', fontSize:14, fontWeight:900, cursor:'pointer',
+                      fontFamily:"'Nunito',sans-serif", boxShadow:'0 4px 14px rgba(200,120,0,0.4)' }}>
+                    Перейти в Магазин 🛒
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ── WATER TAB ── */}
+          {tab === 'water' && (
+            <div>
+              <div onClick={onWater}
+                style={{ display:'flex', alignItems:'center', gap:12,
+                  background:'rgba(40,120,200,0.12)',
+                  border:'1.5px solid rgba(80,160,255,0.3)',
+                  borderRadius:16, padding:'14px', cursor:'pointer',
+                  transition:'transform 0.1s' }}
+                onPointerDown={e => { e.currentTarget.style.transform='scale(0.97)'; }}
+                onPointerUp={e   => { e.currentTarget.style.transform='scale(1)'; }}
+                onPointerLeave={e=> { e.currentTarget.style.transform='scale(1)'; }}>
+                <div style={{ width:46, height:46, borderRadius:14,
+                  background:'rgba(60,150,255,0.15)',
+                  display:'flex', alignItems:'center', justifyContent:'center', fontSize:28, flexShrink:0 }}>
+                  💧
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:14, fontWeight:900, color:'#90d0ff', marginBottom:2 }}>Свежая водичка</div>
+                  <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                    <span style={{ fontSize:11, fontWeight:700, color:'#60aaff',
+                      background:'rgba(40,100,200,0.2)', borderRadius:7, padding:'1px 7px' }}>🍔 −5 голод</span>
+                    <span style={{ fontSize:11, fontWeight:700, color:'#c0d840',
+                      background:'rgba(160,200,20,0.15)', borderRadius:7, padding:'1px 7px' }}>😸 +2 настр.</span>
+                  </div>
+                </div>
+                <div style={{ fontSize:26 }}>→</div>
+              </div>
+              <div style={{ textAlign:'center', marginTop:14, fontSize:11,
+                color:'rgba(255,255,255,0.2)', fontWeight:700 }}>
+                Вода всегда доступна бесплатно 💙
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════
    UNIFIED ROOM SCREEN
    ══════════════════════════════════════════════════ */
 function RoomScreen({ roomId, fills, isCrit, activeNav, setActiveNav, onPawClick,
                       hearts, removeHeart, inventory, stats, level,
-                      cooldowns, onObjectAction, onMinigame, onBack, activeNFT }) {
+                      cooldowns, onObjectAction, onMinigame, onBack, activeNFT,
+                      onKitchenFeed, onGoShop }) {
   const def      = ROOM_DEFS[roomId];
   const PANEL_H  = 192;
+  // Kitchen feed menu
+  const [kitchenMenuOpen, setKitchenMenuOpen] = useState(false);
+  const [kitchenMenuTab,  setKitchenMenuTab]  = useState('food');
 
   const [catLeft,    setCatLeft]    = useState(def.catDefaultX);
   const [catFacing,  setCatFacing]  = useState(1);
@@ -2521,9 +2690,41 @@ function RoomScreen({ roomId, fills, isCrit, activeNav, setActiveNav, onPawClick
     setTimeout(() => setParticles(p => p.filter(x=>x.id!==id)), 1100);
   }
 
+  // Walk cat to a target position, run callback after walking delay, then return
+  function walkCatTo(targetX, thought, particleEmoji, callback) {
+    clearTimeout(walkTimer.current);
+    const tNum = parseFloat(targetX);
+    const cNum = parseFloat(catLeft);
+    setCatFacing(tNum > cNum ? 1 : -1);
+    setCatLeft(targetX);
+    setCatWalking(true);
+    setTimeout(() => {
+      setCatThought(thought);
+      spawnPtc(particleEmoji);
+      callback();
+    }, 520);
+    walkTimer.current = setTimeout(() => {
+      setCatLeft(def.catDefaultX); setCatFacing(1); setCatWalking(false);
+      setTimeout(() => setCatThought(null), 700);
+    }, 2200);
+  }
+
   function handleTap(obj) {
     const cdKey = `${roomId}_${obj.id}`;
     if ((cooldowns[cdKey] || 0) > Date.now()) return;
+
+    // ── Kitchen: open feed menu instead of direct action ──
+    if (roomId === 'kitchen' && obj.id === 'bowl') {
+      setKitchenMenuTab('food');
+      setKitchenMenuOpen(true);
+      return;
+    }
+    if (roomId === 'kitchen' && obj.id === 'faucet') {
+      setKitchenMenuTab('water');
+      setKitchenMenuOpen(true);
+      return;
+    }
+
     const result = obj.getEffect(inventory, stats);
     if (!result.ok) {
       setCatThought('😿');
@@ -2560,6 +2761,28 @@ function RoomScreen({ roomId, fills, isCrit, activeNav, setActiveNav, onPawClick
       setCatWalking(false);
       setTimeout(() => setCatThought(null), 1200);
     }
+  }
+
+  // ── Kitchen menu callbacks ──
+  function handleKitchenFeedItem(item) {
+    setKitchenMenuOpen(false);
+    const bowlObj = def.objects.find(o => o.id === 'bowl');
+    if (!bowlObj) return;
+    walkCatTo(bowlObj.catTargetX, '😋', '🍖', () => {
+      if (onKitchenFeed) onKitchenFeed(item, `kitchen_bowl`, bowlObj.cooldownMin * 60000);
+    });
+  }
+
+  function handleKitchenWater() {
+    setKitchenMenuOpen(false);
+    const faucetObj = def.objects.find(o => o.id === 'faucet');
+    if (!faucetObj) return;
+    walkCatTo(faucetObj.catTargetX, '💧', '💧', () => {
+      onObjectAction({
+        cdKey: 'kitchen_faucet', cooldownMs: faucetObj.cooldownMin * 60000,
+        delta: { hunger: -5, mood: 2 }, xp: 1, msg: '💧 Кот попил водички!',
+      });
+    });
   }
 
   return (
@@ -2617,6 +2840,19 @@ function RoomScreen({ roomId, fills, isCrit, activeNav, setActiveNav, onPawClick
       </div>
 
       <BottomPanel fills={fills} isCrit={isCrit} onPawClick={onPawClick} activeNav={activeNav} setActiveNav={setActiveNav} canClaimDaily={false}/>
+
+      {/* Kitchen feed menu */}
+      {kitchenMenuOpen && (
+        <KitchenFeedMenu
+          inventory={inventory}
+          tab={kitchenMenuTab}
+          onTabChange={setKitchenMenuTab}
+          onFeedItem={handleKitchenFeedItem}
+          onWater={handleKitchenWater}
+          onGoShop={(shopTab) => { setKitchenMenuOpen(false); if (onGoShop) onGoShop(shopTab); }}
+          onClose={() => setKitchenMenuOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -4053,6 +4289,33 @@ function App() {
     }
   }, [coins, afterAction, showToast]);
 
+  // ── Kitchen feed from menu (applies fearMult, calms cat, sets bowl cooldown) ──
+  const handleKitchenFeed = useCallback((item, cdKey, cooldownMs) => {
+    const count = inventory[item.id] || 0;
+    if (count <= 0) return;
+    setInventory(prev => ({ ...prev, [item.id]: Math.max(0, prev[item.id] - 1) }));
+    const fm = fearMult(scaredLvl);
+    const hungerGain = Math.abs(item.hunger || 0) * fm;
+    const fearFloor  = scaredLvl > 80 ? (scaredLvl - 80) * 0.6 : 0;
+    setStats(prev => ({
+      ...prev,
+      hunger: Math.max(fearFloor, clamp(prev.hunger - hungerGain, 0, 100)),
+      mood:   clamp(prev.mood   + (item.mood   || 0) * fm, 0, 100),
+      health: clamp(prev.health + (item.health || 0),      0, 100),
+    }));
+    setScaredLvl(p => Math.max(0, p - 0.5));
+    const earned = earnCoins(8, level);
+    setCoins(c => c + earned);
+    applyXP(item.xp);
+    applyTrust(1);
+    afterAction('feedCount');
+    if (item.id === 'food_premium') afterAction('premiumFed');
+    if (cdKey && cooldownMs > 0) setCooldowns(prev => ({ ...prev, [cdKey]: Date.now() + cooldownMs }));
+    spawnHearts(3, 80);
+    playSound('feed');
+    showToast(`${item.emoji} +${earned}🪙 +${item.xp}XP`);
+  }, [inventory, level, scaredLvl, applyXP, applyTrust, afterAction, spawnHearts, showToast]);
+
   const handleShopEquip = useCallback((item) => {
     setEquipped(prev => {
       const wasEquipped = prev[item.slot] === item.id;
@@ -4269,7 +4532,9 @@ function App() {
         onObjectAction={handleTapObject}
         onMinigame={ROOM_DEFS[screen].minigameScreen ? () => setScreen(ROOM_DEFS[screen].minigameScreen) : null}
         onBack={() => { setScreen('home'); setActiveNav('home'); }}
-        activeNFT={activeNFT}/>
+        activeNFT={activeNFT}
+        onKitchenFeed={handleKitchenFeed}
+        onGoShop={() => { setScreen('shop'); setActiveNav('shop'); }}/>
       {toast && <Toast key={toastKey} msg={toast}/>}
       {complaint && <ComplaintOverlay text={complaint} onClose={() => setComplaint(null)}/>}
     </div>
