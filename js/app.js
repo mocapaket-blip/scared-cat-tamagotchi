@@ -889,190 +889,6 @@ function PawIndicator({ pawId, icon, label, fill, critical, onClick }) {
   );
 }
 
-/* ══════════════════════════════════════════════════
-   SCARED CAT SVG v3 — emoji cat style (black rounded body, green eyes, arch)
-   ══════════════════════════════════════════════════ */
-function ScaredCatSVG({ emotion = 'normal', jumping = false }) {
-  // Eye height by emotion (left eye, right eye)
-  const EH = { normal:{l:16,r:14}, scared:{l:20,r:18}, happy:{l:9,r:8},
-               sad:{l:12,r:11}, sick:{l:10,r:9}, excited:{l:19,r:17} };
-  const eh = EH[emotion] || EH.normal;
-  const pupH = emotion === 'happy' ? 5 : emotion === 'scared' ? eh.l : Math.round(eh.l * 0.78);
-  const pupW = emotion === 'scared' ? 4 : 6;
-
-  // Ear tilt when scared/sick
-  const earTilt = (emotion === 'scared' || emotion === 'sick') ? 'rotate(-8,32,100)' : '';
-
-  const idleAnim = jumping
-    ? 'catScaredJump 0.68s cubic-bezier(0.36,0.07,0.19,0.97) forwards'
-    : emotion === 'happy' || emotion === 'excited' ? 'catHappyBounce 0.95s ease-in-out infinite'
-    : emotion === 'sad' || emotion === 'sick'      ? 'catSadDroop 2.4s ease-in-out infinite'
-    : emotion === 'scared'                          ? 'catShake 0.45s linear infinite'
-    :                                                'catIdleBreathe 3.4s ease-in-out infinite';
-
-  const sadFilter = emotion === 'sad' ? 'saturate(0.45)' : '';
-
-  return (
-    <div style={{ width:'100%', animation: idleAnim, filter: sadFilter, transformOrigin:'bottom center' }}>
-      <svg viewBox="0 0 200 195" xmlns="http://www.w3.org/2000/svg"
-           style={{ width:'100%', display:'block', overflow:'visible' }}>
-        <defs>
-          {/* Body — cool dark navy/charcoal, no warm tones */}
-          <radialGradient id="sct_bG" cx="40%" cy="30%" r="62%">
-            <stop offset="0%"   stopColor="#3a3852"/>
-            <stop offset="50%"  stopColor="#1c1a2e"/>
-            <stop offset="100%" stopColor="#09071a"/>
-          </radialGradient>
-          {/* Glossy back-arch highlight — key 3D effect from reference */}
-          <radialGradient id="sct_hlG" cx="50%" cy="44%" r="50%">
-            <stop offset="0%"   stopColor="#8886a8" stopOpacity="0.75"/>
-            <stop offset="55%"  stopColor="#4a4868" stopOpacity="0.38"/>
-            <stop offset="100%" stopColor="#1c1a30" stopOpacity="0"/>
-          </radialGradient>
-          {/* Lime-green eyes — bright yellow-green core */}
-          <radialGradient id="sct_eG" cx="28%" cy="18%" r="66%">
-            <stop offset="0%"   stopColor="#ddff00"/>
-            <stop offset="36%"  stopColor="#88cc00"/>
-            <stop offset="100%" stopColor="#1e5500"/>
-          </radialGradient>
-          {/* Vertical slit pupil */}
-          <radialGradient id="sct_pG" cx="50%" cy="38%" r="55%">
-            <stop offset="0%"   stopColor="#18161e"/>
-            <stop offset="100%" stopColor="#000000"/>
-          </radialGradient>
-          <filter id="sct_drp">
-            <feDropShadow dx="0" dy="7" stdDeviation="9" floodColor="#000" floodOpacity="0.55"/>
-          </filter>
-          <filter id="sct_eg">
-            <feGaussianBlur stdDeviation="3.5" result="b"/>
-            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-        </defs>
-
-        {/* Floor shadow */}
-        <ellipse cx="100" cy="192" rx="70" ry="8" fill="black" opacity="0.28"/>
-
-        {/* ── TAIL (behind everything) ── */}
-        <path d="M 157,112 C 174,93 188,68 183,46 C 179,28 167,22 158,28 C 150,34 153,50 147,42"
-              fill="none" stroke="#0a0818" strokeWidth="17" strokeLinecap="round"/>
-        <path d="M 157,112 C 174,93 188,68 183,46 C 179,28 167,22 158,28 C 150,34 153,50 147,42"
-              fill="none" stroke="#26243c" strokeWidth="9" strokeLinecap="round"/>
-        <path d="M 157,112 C 173,95 186,72 181,50"
-              fill="none" stroke="rgba(76,72,108,0.45)" strokeWidth="4" strokeLinecap="round"/>
-
-        {/* ── MAIN BODY — one smooth path ── */}
-        {/*
-            Starts front-left paw, goes clockwise up the chest, over the arch,
-            down the right back, across the belly, back to front paw.
-        */}
-        <path d="
-          M 42,188
-          C 34,188 26,178 26,164
-          C 26,150 33,138 41,128
-          C 47,120 56,114 65,110
-          C 73,106 82,101 91,95
-          C 104,78 118,53 130,35
-          C 142,19 160,13 171,24
-          C 183,36 183,62 175,87
-          C 169,107 160,133 155,155
-          C 152,167 150,180 148,188
-          L 163,188
-          C 170,188 175,180 175,170
-          C 175,158 171,144 163,133
-          C 156,122 143,118 128,120
-          C 113,122 97,127 81,132
-          C 69,135 58,141 51,151
-          C 45,160 43,173 46,183
-          C 47,187 49,189 54,189
-          Z"
-              fill="url(#sct_bG)" stroke="#100e20" strokeWidth="5" strokeLinejoin="round"
-              filter="url(#sct_drp)"/>
-
-        {/* ── GLOSSY ARCH HIGHLIGHT — key visual from reference image ── */}
-        <ellipse cx="112" cy="57" rx="58" ry="26"
-                 fill="url(#sct_hlG)"
-                 transform="rotate(-36, 112, 57)"/>
-
-        {/* Subtle secondary gloss streak */}
-        <path d="M 78,98 C 96,78 116,54 134,38"
-              fill="none" stroke="rgba(140,136,180,0.22)" strokeWidth="14" strokeLinecap="round"/>
-
-        {/* ── EARS ── */}
-        <path d="M 30,100 L 16,60 L 52,82 Z"
-              transform={earTilt}
-              fill="#14121e" stroke="#100e20" strokeWidth="4" strokeLinejoin="round"/>
-        <path d="M 32,98 L 22,65 L 49,83 Z"
-              transform={earTilt}
-              fill="#2c1628"/>
-        <path d="M 56,86 L 51,52 L 76,73 Z"
-              fill="#100e1c" stroke="#100e20" strokeWidth="3.5" strokeLinejoin="round"/>
-        <path d="M 58,85 L 54,57 L 73,73 Z"
-              fill="#1e1222"/>
-
-        {/* ── HEAD ── */}
-        <ellipse cx="50" cy="116" rx="36" ry="33"
-                 fill="url(#sct_bG)" stroke="#100e20" strokeWidth="5"/>
-        {/* Head top gloss */}
-        <ellipse cx="37" cy="104" rx="15" ry="10"
-                 fill="rgba(80,76,114,0.36)" transform="rotate(-20,37,104)"/>
-
-        {/* ── EYES — large lime-green with shine, matching reference ── */}
-
-        {/* Left eye */}
-        <ellipse cx="37" cy="115" rx="13" ry={eh.l}
-                 fill="url(#sct_eG)" stroke="#100e20" strokeWidth="3.5"
-                 filter="url(#sct_eg)"
-                 style={{ animation: jumping ? 'none' : 'catEyeBlink 4.5s ease-in-out infinite' }}/>
-        {/* Vertical slit pupil */}
-        <ellipse cx="37" cy="115" rx={pupW} ry={pupH}
-                 fill="url(#sct_pG)"/>
-        {/* Shine — circular white dot, top-left of eye (exactly like reference) */}
-        <circle cx="28" cy="106" r="5" fill="white" opacity="0.95"/>
-        <circle cx="44" cy="123" r="2.2" fill="white" opacity="0.48"/>
-
-        {/* Right eye */}
-        <ellipse cx="58" cy="112" rx="11" ry={eh.r}
-                 fill="url(#sct_eG)" stroke="#100e20" strokeWidth="3"
-                 filter="url(#sct_eg)"
-                 style={{ animation: jumping ? 'none' : 'catEyeBlink 4.5s ease-in-out 0.3s infinite' }}/>
-        <ellipse cx="58" cy="112" rx={Math.max(pupW-1,4)} ry={Math.max(pupH-1,4)}
-                 fill="url(#sct_pG)"/>
-        {/* Shine on right eye */}
-        <circle cx="50" cy="104" r="4.2" fill="white" opacity="0.92"/>
-        <circle cx="65" cy="120" r="1.8" fill="white" opacity="0.45"/>
-
-        {/* Tiny pink nose */}
-        <path d="M 46,127 L 49,131 L 52,127 L 49,123 Z"
-              fill="#c02f62" stroke="#100e20" strokeWidth="1"/>
-
-        {/* Sick green tint */}
-        {emotion === 'sick' && (
-          <ellipse cx="100" cy="108" rx="95" ry="100" fill="#3adf3a" opacity="0.18"/>
-        )}
-      </svg>
-    </div>
-  );
-}
-
-/* ══════════════════════════════════════════════════
-   CAT DISPLAY — SVG (default) or <img> (NFT skin)
-   ══════════════════════════════════════════════════ */
-function CatDisplay({ emotion, jumping, filterStr, animStyle, isNFT, nftSrc }) {
-  if (isNFT && nftSrc) {
-    // NFT skin: use img tags exactly as before
-    return (
-      <div style={{ filter: filterStr, animation: animStyle, position:'relative', width:'100%' }}>
-        <img src={nftSrc} alt="кот" style={{ width:'100%', display:'block', userSelect:'none', pointerEvents:'none' }} draggable="false"/>
-      </div>
-    );
-  }
-  // Default: inline SVG scared cat
-  return (
-    <div style={{ filter: filterStr, animation: animStyle, position:'relative', width:'100%' }}>
-      <ScaredCatSVG emotion={emotion} jumping={jumping}/>
-    </div>
-  );
-}
 
 /* ══════════════════════════════════════════════════
    FLOATING HEART
@@ -2084,17 +1900,13 @@ function RoomScreen({ roomId, fills, isCrit, activeNav, setActiveNav, onPawClick
       {/* Cat — also tappable for the cat-tap hotspot */}
       <div
         onPointerDown={() => { const o=def.objects.find(x=>x.isCatTap); if(o) handleTap(o); }}
-        style={{ position:'absolute', bottom:PANEL_H+22, left:catLeft, width:155,
-          filter:'drop-shadow(0 6px 20px rgba(0,0,0,0.7))',
+        style={{ position:'absolute', bottom:PANEL_H+18, left:catLeft, width:112,
+          filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.7))',
           transform:`scaleX(${catFacing})`, transformOrigin:'center',
           transition:'left 0.55s ease-in-out',
-          /* SVG handles its own idle; use catWalkBob only for walking */
-          animation: catWalking ? 'catWalkBob 0.38s linear infinite' : 'none',
+          animation: catWalking ? 'catWalkBob 0.38s linear infinite' : 'floatY 2.5s ease-in-out infinite',
           cursor:'pointer', zIndex:16, userSelect:'none', touchAction:'none' }}>
-        {activeNFT
-          ? <img src={activeNFT.image} alt="кот" style={{ width:'100%', display:'block' }} draggable="false"/>
-          : <ScaredCatSVG emotion="normal" jumping={false}/>
-        }
+        <img src={CAT} alt="кот" style={{ width:'100%', display:'block' }} draggable="false"/>
       </div>
 
       {/* Thought bubble follows cat */}
@@ -3468,9 +3280,6 @@ function App() {
   const catAnimStyle  = showGif ? 'none' : catEmoCfg.anim;
   const catFilterStr  = catEmoCfg.filter === 'none' ? 'drop-shadow(0 8px 22px rgba(0,0,0,0.65))' : `drop-shadow(0 8px 22px rgba(0,0,0,0.65)) ${catEmoCfg.filter}`;
   // Map engine state → SVG emotion expression
-  const SVG_EMO_MAP = { veryScared:'scared', scared:'scared', sick:'sick', hungry:'normal',
-    tired:'sad', dirty:'normal', sad:'sad', playful:'excited', happy:'happy', special:'excited', neutral:'normal' };
-  const svgEmotion = SVG_EMO_MAP[catEmoState] || 'normal';
   const activeBgObj   = BG_OVERLAYS.find(b => b.id === roomLayout.bg);
 
   return (
@@ -3573,44 +3382,32 @@ function App() {
       </div>
 
       {/* Thought bubble follows cat */}
-      <div style={{ position:'absolute', zIndex:16, pointerEvents:'none', left: catX + (catFacing === 1 ? 120 : -60), bottom: PANEL_H + 30 + 145, transition:'left 0.1s linear' }}>
+      <div style={{ position:'absolute', zIndex:16, pointerEvents:'none', left: catX + (catFacing === 1 ? 96 : -52), bottom: PANEL_H + 24 + 128, transition:'left 0.1s linear' }}>
         <ThoughtBubble emoji={thoughtEmoji}/>
       </div>
 
       {/* Emotion glow ring behind cat */}
       {catEmoCfg.glow !== 'none' && (
-        <div style={{ position:'absolute', zIndex:14, bottom: PANEL_H + 22, left: catX + 14, width:140, height:100, borderRadius:'50%', background:catEmoCfg.glow, filter:'blur(28px)', pointerEvents:'none', transition:'left 0.1s linear' }}/>
+        <div style={{ position:'absolute', zIndex:14, bottom: PANEL_H + 30, left: catX + 10, width:108, height:80, borderRadius:'50%', background:catEmoCfg.glow, filter:'blur(22px)', pointerEvents:'none', transition:'left 0.1s linear' }}/>
       )}
 
       {/* Walking / tapped cat — emotion animation + filter */}
       <div onClick={handleCatClick}
-           style={{ position:'absolute', zIndex:15, bottom: PANEL_H + 22, left: catX, width:168, cursor:'pointer', transition: showGif ? 'left 0.25s ease-out' : 'none' }}>
+           style={{ position:'absolute', zIndex:15, bottom: PANEL_H + 24, left: catX, width:130, cursor:'pointer', transition: showGif ? 'left 0.25s ease-out' : 'none' }}>
         {/* Outer div handles scaleX (facing direction) */}
         <div style={{ transform:`scaleX(${catFacing})`, transformOrigin:'center' }}>
-          {/* Cat display: SVG for default skin, <img> for NFT */}
-          {activeNFT ? (
-            /* ── NFT Skin: use image tags ── */
-            <div style={{ filter: catFilterStr, animation: catAnimStyle, position:'relative' }}>
-              <img src={activeNFT.image} alt="кот" style={{ width:'100%', display:'block', userSelect:'none', pointerEvents:'none', opacity: showGif ? 0 : 1, transition:'opacity 0.2s' }} draggable="false"/>
-              {showGif && <img src={activeNFT.image} alt="анимация" style={{ position:'absolute', inset:0, width:'100%', display:'block', userSelect:'none', pointerEvents:'none' }} draggable="false"/>}
-              {skinFlash && <div style={{ position:'absolute', inset:'-20%', borderRadius:'50%', background:'radial-gradient(circle, rgba(180,100,255,0.9) 0%, rgba(80,200,255,0.5) 50%, transparent 75%)', animation:'nftFlash 0.6s ease-out forwards', pointerEvents:'none', zIndex:10 }}/>}
-            </div>
-          ) : (
-            /* ── Default: inline SVG Scared Cat ── */
-            /* The SVG handles idle/bounce internally; only pass shake/crit anims from outside */
-            <div style={{
-              filter: catFilterStr,
-              animation: catAnimStyle &&
-                !catAnimStyle.includes('catWalkBob') &&
-                !catAnimStyle.includes('floatY') &&
-                !catAnimStyle.includes('catFloat')
-                  ? catAnimStyle : 'none',
-              position:'relative',
-            }}>
-              <ScaredCatSVG emotion={svgEmotion} jumping={showGif}/>
-              {skinFlash && <div style={{ position:'absolute', inset:'-20%', borderRadius:'50%', background:'radial-gradient(circle, rgba(180,100,255,0.9) 0%, rgba(80,200,255,0.5) 50%, transparent 75%)', animation:'nftFlash 0.6s ease-out forwards', pointerEvents:'none', zIndex:10 }}/>}
-            </div>
-          )}
+          {/* Inner div handles emotion animation + filter */}
+          <div style={{ filter: catFilterStr, animation: catAnimStyle, position:'relative' }}>
+            <img src={CAT} alt="кот" style={{ width:'100%', display:'block', userSelect:'none', pointerEvents:'none', opacity: showGif ? 0 : 1, transition:'opacity 0.2s' }} draggable="false"/>
+            {showGif && (
+              <img src={GIF} alt="анимация"
+                   style={{ position:'absolute', inset:0, width:'100%', display:'block', userSelect:'none', pointerEvents:'none' }}
+                   draggable="false"/>
+            )}
+            {skinFlash && (
+              <div style={{ position:'absolute', inset:'-20%', borderRadius:'50%', background:'radial-gradient(circle, rgba(180,100,255,0.9) 0%, rgba(80,200,255,0.5) 50%, transparent 75%)', animation:'nftFlash 0.6s ease-out forwards', pointerEvents:'none', zIndex:10 }}/>
+            )}
+          </div>
         </div>
       </div>
 
