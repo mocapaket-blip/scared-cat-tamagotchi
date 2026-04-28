@@ -130,6 +130,7 @@ const _INIT = (() => {
         walletAddress: saved.walletAddress || null,
         ownedNFTs:     saved.ownedNFTs    || [],
         activeNFT:     saved.activeNFT    || null,
+        trustPoints:   saved.trustPoints  || 0,
         complaint:     null,
         canClaimDaily: daily.canClaim,
         pendingStreak: daily.newStreak,
@@ -149,6 +150,7 @@ const _INIT = (() => {
     pendingStreak: 1,
     actionCounts:  defaultActionCounts(),
     dailyMissions: getOrUpdateDailyMissions(null),
+    trustPoints:   0,
     returnData:    null,
   };
 })();

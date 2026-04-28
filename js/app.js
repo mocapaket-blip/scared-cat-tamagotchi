@@ -4,7 +4,60 @@
    ═══════════════════════════════════════════════ */
 
 const { useState, useEffect, useRef, useCallback } = React;
-const APP_VERSION = '1.0.5';
+const APP_VERSION = '1.0.6';
+
+// ── TRUST LEVEL SYSTEM ──────────────────────────────────────────────────────
+const TRUST_STAGES = [
+  { min:1,  max:5,  name:'Настороженный',     emoji:'😾', color:'#9494bc',
+    desc:'Кот держится на расстоянии, но уже не убегает при виде тебя.' },
+  { min:6,  max:10, name:'Начинает доверять',  emoji:'🤔', color:'#c4a050',
+    desc:'Иногда подходит сам. Ты движешься в правильном направлении.' },
+  { min:11, max:15, name:'Маленький друг',      emoji:'🐾', color:'#d4a824',
+    desc:'Позволяет себя погладить и уже начинает привязываться.' },
+  { min:16, max:20, name:'Верный компаньон',    emoji:'💛', color:'#e8bc20',
+    desc:'Встречает у двери и тихонько мурлычет только для тебя.' },
+  { min:21, max:25, name:'Близкая душа',        emoji:'💜', color:'#b868e8',
+    desc:'Делится с тобой своими секретами и тихими снами.' },
+  { min:26, max:30, name:'Любимец',             emoji:'💕', color:'#e860b8',
+    desc:'Засыпает рядом и каждый день ждёт твоего возвращения.' },
+  { min:31, max:35, name:'Родная кошка',        emoji:'🏠', color:'#40b8d8',
+    desc:'Там, где ты — там его дом. Больше никаких сомнений.' },
+  { min:36, max:40, name:'Преданный друг',      emoji:'⭐', color:'#e8d420',
+    desc:'Всегда рядом, в радости и в грусти. Настоящий друг.' },
+  { min:41, max:45, name:'Неразлучные',         emoji:'💞', color:'#f04888',
+    desc:'Вы понимаете друг друга без единого слова.' },
+  { min:46, max:50, name:'Навсегда вместе',     emoji:'💖', color:'#ff6090',
+    desc:'Самая крепкая связь, которая только бывает. Навсегда.' },
+];
+
+function getTrustStage(lv) {
+  return TRUST_STAGES.find(s => lv >= s.min && lv <= s.max) || TRUST_STAGES[0];
+}
+
+// Points needed to complete level lv (gets harder each level)
+function trustPointsNeeded(lv) { return 30 + lv * 4; }
+
+function trustLevelFromPoints(pts) {
+  let lv = 1, spent = 0;
+  while (lv < 50) {
+    const need = trustPointsNeeded(lv);
+    if (pts < spent + need) break;
+    spent += need;
+    lv++;
+  }
+  return lv;
+}
+
+function trustProgress(pts) {
+  const lv = trustLevelFromPoints(pts);
+  if (lv >= 50) return { lv: 50, pct: 1, curPts: 0, needed: 0 };
+  let spent = 0;
+  for (let i = 1; i < lv; i++) spent += trustPointsNeeded(i);
+  const needed = trustPointsNeeded(lv);
+  const curPts = pts - spent;
+  return { lv, pct: Math.min(1, curPts / needed), curPts, needed };
+}
+// ────────────────────────────────────────────────────────────────────────────
 const CAT_DEFAULT = window.CAT_PNG || 'cat.png';
 const GIF_DEFAULT = window.CAT_GIF || 'cat-anim.gif';
 // These are overridden by the active NFT skin; use useCatSkin() hook below
@@ -921,6 +974,119 @@ function NavItem({ icon, label, active, dot, onClick }) {
       </div>
       <span style={{ fontSize:10, fontWeight: active ? 900 : 600, color: active ? '#b06020' : '#a08060' }}>{label}</span>
     </button>
+  );
+}
+
+/* ══════════════════════════════════════════════════
+   TRUST MODAL
+   ══════════════════════════════════════════════════ */
+function TrustModal({ trustPoints, onClose }) {
+  const prog  = trustProgress(trustPoints);
+  const stage = getTrustStage(prog.lv);
+  const nextStage = getTrustStage(prog.lv + 1);
+  const isMax = prog.lv >= 50;
+
+  return (
+    <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(0,0,0,0.72)',
+      display:'flex', alignItems:'center', justifyContent:'center', padding:20, backdropFilter:'blur(5px)' }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background:'linear-gradient(160deg,#1a0e2e,#0e0818)',
+        borderRadius:28, padding:'28px 22px 24px', maxWidth:320, width:'100%',
+        boxShadow:`0 12px 50px rgba(0,0,0,0.7), 0 0 0 1.5px ${stage.color}55`,
+        border:`1.5px solid ${stage.color}44`,
+        animation:'modalIn 0.32s ease',
+      }}>
+        {/* Header */}
+        <div style={{ textAlign:'center', marginBottom:20 }}>
+          <div style={{ fontSize:46, lineHeight:1, marginBottom:8 }}>{stage.emoji}</div>
+          <div style={{ fontSize:20, fontWeight:900, color:'#f0deff', letterSpacing:-0.3 }}>Уровень Доверия</div>
+          <div style={{ marginTop:4, fontSize:13, fontWeight:700, color: stage.color }}>{stage.name}</div>
+        </div>
+
+        {/* Level badge */}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:10, marginBottom:18 }}>
+          <div style={{
+            background:`linear-gradient(135deg, ${stage.color}33, ${stage.color}11)`,
+            border:`1.5px solid ${stage.color}66`,
+            borderRadius:16, padding:'8px 20px', textAlign:'center',
+          }}>
+            <div style={{ fontSize:28, fontWeight:900, color: stage.color, lineHeight:1 }}>{prog.lv}</div>
+            <div style={{ fontSize:10, color:'#a090c0', fontWeight:700, marginTop:2 }}>уровень</div>
+          </div>
+          {!isMax && (
+            <div style={{ color:'#6050a0', fontSize:20, fontWeight:900 }}>→</div>
+          )}
+          {!isMax && (
+            <div style={{ background:'rgba(255,255,255,0.05)', border:'1.5px solid rgba(255,255,255,0.1)', borderRadius:16, padding:'8px 20px', textAlign:'center' }}>
+              <div style={{ fontSize:28, fontWeight:900, color:'#6050a0', lineHeight:1 }}>{prog.lv + 1}</div>
+              <div style={{ fontSize:10, color:'#6050a0', fontWeight:700, marginTop:2 }}>следующий</div>
+            </div>
+          )}
+        </div>
+
+        {/* Progress bar */}
+        {!isMax ? (
+          <div style={{ marginBottom:8 }}>
+            <div style={{ height:10, background:'rgba(255,255,255,0.08)', borderRadius:99, overflow:'hidden',
+              boxShadow:'inset 0 1px 3px rgba(0,0,0,0.5)' }}>
+              <div style={{
+                height:'100%', borderRadius:99,
+                background:`linear-gradient(90deg, ${stage.color}aa, ${stage.color})`,
+                width:`${prog.pct * 100}%`, transition:'width 0.6s ease',
+                boxShadow:`0 1px 6px ${stage.color}88`,
+              }}/>
+            </div>
+            <div style={{ marginTop:5, display:'flex', justifyContent:'space-between', fontSize:10, fontWeight:700, color:'#7060a0' }}>
+              <span>{prog.curPts} / {prog.needed} очков</span>
+              <span>до ур. {prog.lv + 1}: {prog.needed - prog.curPts} оч.</span>
+            </div>
+          </div>
+        ) : (
+          <div style={{ textAlign:'center', marginBottom:8, fontSize:13, fontWeight:800, color: stage.color }}>✨ Максимальный уровень доверия!</div>
+        )}
+
+        {/* Description */}
+        <div style={{ background:'rgba(255,255,255,0.04)', borderRadius:16, padding:'12px 14px', marginBottom:20, marginTop:12 }}>
+          <div style={{ fontSize:12, color:'#c0b0e0', lineHeight:1.6, textAlign:'center' }}>{stage.desc}</div>
+        </div>
+
+        {/* All stages */}
+        <div style={{ marginBottom:20 }}>
+          <div style={{ fontSize:10, fontWeight:800, color:'#6050a0', letterSpacing:1, textTransform:'uppercase', marginBottom:8 }}>Этапы доверия</div>
+          <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+            {TRUST_STAGES.map((s, i) => {
+              const reached = prog.lv >= s.min;
+              const current = prog.lv >= s.min && prog.lv <= s.max;
+              return (
+                <div key={i} style={{
+                  display:'flex', alignItems:'center', gap:8,
+                  padding:'5px 10px', borderRadius:10,
+                  background: current ? `${s.color}22` : 'transparent',
+                  border: current ? `1px solid ${s.color}44` : '1px solid transparent',
+                  opacity: reached ? 1 : 0.35,
+                }}>
+                  <span style={{ fontSize:14 }}>{s.emoji}</span>
+                  <span style={{ fontSize:11, fontWeight: current ? 800 : 600,
+                    color: current ? s.color : reached ? '#a090c0' : '#5040708' }}>
+                    {s.name}
+                  </span>
+                  <span style={{ marginLeft:'auto', fontSize:9, color:'#5040708', fontWeight:700 }}>
+                    {s.min}–{s.max}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <button onClick={onClose} style={{
+          width:'100%', padding:'13px', borderRadius:18, border:'none', cursor:'pointer',
+          background:`linear-gradient(135deg, ${stage.color}cc, ${stage.color}88)`,
+          color:'white', fontSize:15, fontWeight:900, fontFamily:"'Nunito',sans-serif",
+          boxShadow:`0 5px 18px ${stage.color}55`,
+        }}>Понятно 🐾</button>
+      </div>
+    </div>
   );
 }
 
@@ -2683,6 +2849,8 @@ function App() {
   const [activeNFT,      setActiveNFT]      = useState(_INIT.activeNFT     || null);
   const [nftLoading,     setNftLoading]     = useState(false);
   const [skinFlash,      setSkinFlash]      = useState(false);
+  const [trustPoints,    setTrustPoints]    = useState(_INIT.trustPoints   || 0);
+  const [showTrustModal, setShowTrustModal] = useState(false);
   // Cloud sync
   const [syncStatus,     setSyncStatus]     = useState(null); // null | 'syncing' | 'ok' | 'error'
   // Toast/queue
@@ -2692,9 +2860,12 @@ function App() {
   const [achQueue,       setAchQueue]       = useState([]);
 
   // ─────────────────── DERIVED VALUES (after all hooks) ───────────────────
-  const level    = levelFromXP(xp);
-  const xpProg   = xpProgress(xp);
-  const nftBonus = calcNFTBonus(activeNFT);
+  const level      = levelFromXP(xp);
+  const xpProg     = xpProgress(xp);
+  const nftBonus   = calcNFTBonus(activeNFT);
+  const trustProg  = trustProgress(trustPoints);
+  const trustLv    = trustProg.lv;
+  const trustStage = getTrustStage(trustLv);
   CAT = activeNFT ? activeNFT.image : CAT_DEFAULT;
   GIF = activeNFT ? activeNFT.image : GIF_DEFAULT;
 
@@ -2726,6 +2897,7 @@ function App() {
       actionCounts, dailyMissions,
       roomLayout, ownedDecor, ownedBgs,
       walletAddress, ownedNFTs, activeNFT,
+      trustPoints,
       lastUpdate: Date.now(),
     };
     // Always save locally immediately
@@ -2945,6 +3117,20 @@ function App() {
     });
   }, []);
 
+  // applyTrust — adds trust points and shows toast on level-up
+  const applyTrust = useCallback((pts) => {
+    setTrustPoints(prev => {
+      const lvBefore = trustLevelFromPoints(prev);
+      const next     = prev + pts;
+      const lvAfter  = trustLevelFromPoints(next);
+      if (lvAfter > lvBefore) {
+        const stage = getTrustStage(lvAfter);
+        setTimeout(() => showToast(`${stage.emoji} Доверие: уровень ${lvAfter} — «${stage.name}»!`), 350);
+      }
+      return next;
+    });
+  }, [showToast]);
+
   // ── Actions ──
   const handleFeed = useCallback((item) => {
     const count = inventory[item.id] || 0;
@@ -2959,12 +3145,13 @@ function App() {
     const earned = earnCoins(8, level);
     setCoins(c => c + earned);
     applyXP(item.xp);
+    applyTrust(1);
     afterAction('feedCount');
     if (item.id === 'food_premium') afterAction('premiumFed');
     spawnHearts(3, 80);
     playSound('feed');
     showToast(`${item.emoji} +${earned}🪙 +${item.xp}XP`);
-  }, [inventory, level, applyXP, afterAction, spawnHearts, showToast]);
+  }, [inventory, level, applyXP, applyTrust, afterAction, spawnHearts, showToast]);
 
   const handleUseToy = useCallback((item) => {
     const count = inventory[item.id] || 0;
@@ -2978,12 +3165,13 @@ function App() {
     const earned = earnCoins(5, level);
     setCoins(c => c + earned);
     applyXP(item.xp);
+    applyTrust(2);
     afterAction('toyCount');
     afterAction('playCount');
     spawnHearts(4, 100);
     playSound('toy');
     showToast(`${item.emoji} +${earned}🪙 +${item.xp}XP`);
-  }, [inventory, level, applyXP, afterAction, spawnHearts, showToast]);
+  }, [inventory, level, applyXP, applyTrust, afterAction, spawnHearts, showToast]);
 
   // roomKey: 'bathroomCount' | 'sleepCount' | 'clinicCount'
   const handleRoomAction = useCallback((statChanges, baseXP, baseCoins, roomKey) => {
@@ -2995,13 +3183,14 @@ function App() {
     const earned = earnCoins(baseCoins, level);
     setCoins(c => c + earned);
     applyXP(baseXP);
+    applyTrust(1);
     if (roomKey) afterAction(roomKey);
     spawnHearts(3, 120);
     playSound('action');
     showToast(`+${earned}🪙 +${baseXP}XP`);
     setActionDone(true);
     setTimeout(() => { setScreen('home'); setActionDone(false); }, 1800);
-  }, [level, applyXP, afterAction, spawnHearts, showToast]);
+  }, [level, applyXP, applyTrust, afterAction, spawnHearts, showToast]);
 
   // ── NFT Wallet handlers ──
   // ── TON Connect: persistent listener (fires when user returns from wallet app) ──
@@ -3141,7 +3330,7 @@ function App() {
       showToast('❌ Ошибка синхронизации, данные сохранены локально');
       setTimeout(() => setSyncStatus(null), 3000);
     }
-  }, [stats, coins, xp, lastDaily, dailyStreak, inventory, equipped, achievements, highScores, actionCounts, dailyMissions, roomLayout, ownedDecor, ownedBgs, walletAddress, ownedNFTs, activeNFT, showToast]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [stats, coins, xp, lastDaily, dailyStreak, inventory, equipped, achievements, highScores, actionCounts, dailyMissions, roomLayout, ownedDecor, ownedBgs, walletAddress, ownedNFTs, activeNFT, trustPoints, showToast]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSelectNFT = useCallback((nft) => {
     setActiveNFT(nft);
@@ -3253,11 +3442,12 @@ function App() {
     const cs  = getCatState(stats, level);
     const pEmoji = CAT_STATES[cs]?.particle || '❤️';
     spawnHearts(3, 80, pEmoji);
+    applyTrust(2); // +2 trust for petting the cat
     if (showGif) return;
     setShowGif(true);
     clearTimeout(gifTimer.current);
     gifTimer.current = setTimeout(() => setShowGif(false), 3000);
-  }, [showGif, stats, level, spawnHearts]);
+  }, [showGif, stats, level, spawnHearts, applyTrust]);
 
   const handlePawClick = useCallback((dest) => {
     if (dest === 'home')  { setScreen('home'); setActionDone(false); setActiveNav('home'); return; }
@@ -3470,14 +3660,37 @@ function App() {
           minWidth:158,
         }}>
           <div style={{ fontSize:19, fontWeight:900, color:'#f5dfc0', letterSpacing:-0.3, lineHeight:1 }}>Scared Cat 🐱</div>
-          <div style={{ fontSize:11, color:'#c8a870', fontWeight:700, marginTop:3, marginBottom:6 }}>День {day} • Ур. {level}</div>
+          <div style={{ fontSize:11, color:'#c8a870', fontWeight:700, marginTop:3, marginBottom:5 }}>День {day} • Ур. {level}</div>
           {/* XP bar */}
-          <div style={{ height:7, background:'rgba(255,255,255,0.12)', borderRadius:99, overflow:'hidden', boxShadow:'inset 0 1px 3px rgba(0,0,0,0.4)' }}>
+          <div style={{ height:5, background:'rgba(255,255,255,0.10)', borderRadius:99, overflow:'hidden', boxShadow:'inset 0 1px 2px rgba(0,0,0,0.4)' }}>
             <div style={{ height:'100%', borderRadius:99, background:'linear-gradient(90deg,#70e028,#a8f040)', width:`${xpProg.pct * 100}%`, transition:'width 0.5s ease', boxShadow:'0 1px 4px rgba(100,230,30,0.5)' }}/>
           </div>
-          <div style={{ marginTop:3, fontSize:9, fontWeight:800, color:'#90d040' }}>
+          <div style={{ marginTop:2, marginBottom:8, fontSize:9, fontWeight:800, color:'#90d040' }}>
             XP: {xpProg.curXP} / {xpProg.needed || '—'}
             {level >= MAX_LEVEL && <span style={{ marginLeft:4, color:'#ffd060' }}>MAX 🌟</span>}
+          </div>
+          {/* Trust level row */}
+          <div onClick={() => setShowTrustModal(true)} style={{ cursor:'pointer' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                <span style={{ fontSize:11 }}>🤍</span>
+                <span style={{ fontSize:10, fontWeight:800, color:'#d0b8f0', letterSpacing:0.2 }}>Доверие</span>
+                <span style={{ fontSize:10, fontWeight:900, color: trustStage.color }}>• {trustLv}</span>
+              </div>
+              <span style={{ fontSize:9, fontWeight:700, color:'#7060a0' }}>{trustStage.name}</span>
+            </div>
+            {/* Trust progress bar — different style from XP */}
+            <div style={{ height:5, background:'rgba(160,120,255,0.12)', borderRadius:99, overflow:'hidden', boxShadow:'inset 0 1px 2px rgba(0,0,0,0.5)' }}>
+              <div style={{
+                height:'100%', borderRadius:99,
+                background:`linear-gradient(90deg, ${trustStage.color}99, ${trustStage.color})`,
+                width:`${trustProg.pct * 100}%`, transition:'width 0.6s ease',
+                boxShadow:`0 1px 5px ${trustStage.color}88`,
+              }}/>
+            </div>
+            <div style={{ marginTop:2, fontSize:9, fontWeight:700, color:'#7060a0' }}>
+              {trustProg.curPts} / {trustProg.needed || '—'} оч.
+            </div>
           </div>
         </div>
 
@@ -3581,6 +3794,7 @@ function App() {
       {showDailyModal && !returnData && <DailyRewardModal streak={pendingStreak} onClaim={handleClaimDaily}/>}
       {levelUpModal   && !returnData && <LevelUpModal     level={levelUpModal}  onClose={() => setLevelUpModal(null)}/>}
       {returnData     && <ReturnModal returnData={returnData} onClaim={handleClaimReturn}/>}
+      {showTrustModal && <TrustModal trustPoints={trustPoints} onClose={() => setShowTrustModal(false)}/>}
     </div>
   );
 }
