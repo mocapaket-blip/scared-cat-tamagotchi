@@ -4,7 +4,7 @@
    ═══════════════════════════════════════════════ */
 
 const { useState, useEffect, useRef, useCallback } = React;
-const APP_VERSION = '1.0.6';
+const APP_VERSION = '1.0.7';
 
 // ── TRUST LEVEL SYSTEM ──────────────────────────────────────────────────────
 const TRUST_STAGES = [
@@ -58,6 +58,89 @@ function trustProgress(pts) {
   return { lv, pct: Math.min(1, curPts / needed), curPts, needed };
 }
 // ────────────────────────────────────────────────────────────────────────────
+
+// ── FREELANCE ORDER SYSTEM ───────────────────────────────────────────────────
+const ORDER_TYPES = [
+  { id:'small',  label:'Мелкий заказ',      icon:'📝', color:'#5080c0',
+    durationMs: 3*3600000,  min:90,  max:130, maxBoosts:0,
+    desc:'Простая задача — быстро и без лишних нервов.' },
+  { id:'medium', label:'Нормальный проект',  icon:'💼', color:'#50a060',
+    durationMs: 6*3600000,  min:220, max:280, maxBoosts:1,
+    desc:'Средний веб-проект. Одно ускорение доступно.' },
+  { id:'large',  label:'Сложный заказ',      icon:'🏗️', color:'#9060c0',
+    durationMs:10*3600000,  min:420, max:520, maxBoosts:2,
+    desc:'Серьёзный заказ — высокая оплата, два ускорения.' },
+  { id:'urgent', label:'СРОЧНЫЙ ДЕДЛАЙН',   icon:'🚨', color:'#d04030', urgent:true,
+    durationMs:10*3600000,  min:630, max:780, maxBoosts:2,
+    desc:'Клиент не ждёт! +50% к оплате. Исчезнет через 30 минут.' },
+];
+
+const TIMEZONES = [
+  { label:'UTC−12',                      value:'Etc/GMT+12'          },
+  { label:'UTC−10 (Гавайи)',             value:'Pacific/Honolulu'    },
+  { label:'UTC−8  (Лос-Анджелес)',       value:'America/Los_Angeles' },
+  { label:'UTC−6  (Чикаго)',             value:'America/Chicago'     },
+  { label:'UTC−5  (Нью-Йорк)',           value:'America/New_York'    },
+  { label:'UTC−4  (Галифакс)',           value:'America/Halifax'     },
+  { label:'UTC−3  (Сан-Паулу)',          value:'America/Sao_Paulo'   },
+  { label:'UTC+0  (Лондон)',             value:'Europe/London'       },
+  { label:'UTC+1  (Берлин, Варшава)',    value:'Europe/Berlin'       },
+  { label:'UTC+2  (Киев, Хельсинки)',    value:'Europe/Kiev'         },
+  { label:'UTC+3  (Москва, Минск)',      value:'Europe/Moscow'       },
+  { label:'UTC+4  (Баку, Тбилиси)',      value:'Asia/Baku'           },
+  { label:'UTC+4  (Дубай, Абу-Даби)',    value:'Asia/Dubai'          },
+  { label:'UTC+5  (Ташкент, Астана)',    value:'Asia/Tashkent'       },
+  { label:'UTC+5  (Екатеринбург)',       value:'Asia/Yekaterinburg'  },
+  { label:'UTC+5:30 (Индия)',            value:'Asia/Kolkata'        },
+  { label:'UTC+6  (Омск, Дакка)',        value:'Asia/Omsk'           },
+  { label:'UTC+7  (Новосибирск, Бангкок)', value:'Asia/Novosibirsk' },
+  { label:'UTC+8  (Иркутск, Пекин)',     value:'Asia/Shanghai'       },
+  { label:'UTC+9  (Якутск, Токио)',      value:'Asia/Tokyo'          },
+  { label:'UTC+9:30 (Аделаида)',         value:'Australia/Adelaide'  },
+  { label:'UTC+10 (Владивосток, Сидней)', value:'Asia/Vladivostok'  },
+  { label:'UTC+11 (Магадан)',            value:'Asia/Magadan'        },
+  { label:'UTC+12 (Камчатка, Окленд)',   value:'Asia/Kamchatka'      },
+];
+
+function getLocalHour(tz) {
+  try {
+    const s = new Intl.DateTimeFormat('en', { hour:'numeric', hour12:false, timeZone:tz }).format(new Date());
+    return parseInt(s) % 24;
+  } catch { return new Date().getHours(); }
+}
+
+function randBetween(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+function formatCountdownMs(ms) {
+  if (ms <= 0) return '00:00:00';
+  const s   = Math.floor(ms / 1000);
+  const h   = Math.floor(s / 3600);
+  const m   = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+
+function fmtDuration(ms) {
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  if (m === 0) return `${h} ч`;
+  return `${h} ч ${m} м`;
+}
+
+function canBoostNow(active) {
+  if (!active) return false;
+  const type = ORDER_TYPES.find(t => t.id === active.type);
+  if (!type || active.boostsUsed >= type.maxBoosts) return false;
+  if (!active.lastBoostTime) return true;
+  return Date.now() - active.lastBoostTime >= 4 * 3600000;
+}
+
+function boostCooldownLeft(active) {
+  if (!active || !active.lastBoostTime) return 0;
+  return Math.max(0, active.lastBoostTime + 4 * 3600000 - Date.now());
+}
+// ────────────────────────────────────────────────────────────────────────────
+
 const CAT_DEFAULT = window.CAT_PNG || 'cat.png';
 const GIF_DEFAULT = window.CAT_GIF || 'cat-anim.gif';
 // These are overridden by the active NFT skin; use useCatSkin() hook below
@@ -978,6 +1061,292 @@ function NavItem({ icon, label, active, dot, onClick }) {
 }
 
 /* ══════════════════════════════════════════════════
+   TIMEZONE MODAL (first-run, one-time)
+   ══════════════════════════════════════════════════ */
+function TimezoneModal({ onSelect }) {
+  const [search, setSearch] = React.useState('');
+  const filtered = TIMEZONES.filter(tz =>
+    tz.label.toLowerCase().includes(search.toLowerCase())
+  );
+  return (
+    <div style={{ position:'fixed', inset:0, zIndex:500, background:'rgba(0,0,0,0.88)',
+      display:'flex', alignItems:'center', justifyContent:'center', padding:16, backdropFilter:'blur(6px)' }}>
+      <div style={{ background:'linear-gradient(160deg,#1a1030,#0a0820)', borderRadius:28,
+        padding:'28px 20px 20px', width:'100%', maxWidth:340,
+        boxShadow:'0 12px 50px rgba(0,0,0,0.8), 0 0 0 1.5px rgba(160,120,255,0.3)',
+        border:'1.5px solid rgba(160,120,255,0.25)', animation:'modalIn 0.35s ease' }}>
+        <div style={{ textAlign:'center', marginBottom:20 }}>
+          <div style={{ fontSize:42, marginBottom:8 }}>🌍</div>
+          <div style={{ fontSize:20, fontWeight:900, color:'#f0e0ff', letterSpacing:-0.3 }}>Твой часовой пояс</div>
+          <div style={{ fontSize:12, color:'#9080b0', marginTop:6, lineHeight:1.5 }}>
+            Выбери один раз — это нужно для правильного расписания заказов и ночных механик.
+            <br/><span style={{ color:'#d090ff', fontWeight:700 }}>Изменить потом нельзя.</span>
+          </div>
+        </div>
+        <input
+          value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Поиск города или UTC..."
+          style={{ width:'100%', boxSizing:'border-box', padding:'10px 14px', borderRadius:14,
+            border:'1.5px solid rgba(160,120,255,0.3)', background:'rgba(255,255,255,0.06)',
+            color:'#f0e0ff', fontSize:13, fontFamily:"'Nunito',sans-serif", marginBottom:10,
+            outline:'none' }}
+        />
+        <div style={{ maxHeight:260, overflowY:'auto', display:'flex', flexDirection:'column', gap:4 }}>
+          {filtered.map(tz => (
+            <button key={tz.value + tz.label} onClick={() => onSelect(tz.value)}
+              style={{ padding:'11px 14px', borderRadius:12, border:'1px solid rgba(160,120,255,0.2)',
+                background:'rgba(255,255,255,0.04)', color:'#d0c0f0', fontSize:13, fontWeight:700,
+                cursor:'pointer', textAlign:'left', fontFamily:"'Nunito',sans-serif",
+                transition:'background 0.15s' }}
+              onPointerOver={e => e.currentTarget.style.background='rgba(160,120,255,0.15)'}
+              onPointerOut={e  => e.currentTarget.style.background='rgba(255,255,255,0.04)'}>
+              {tz.label}
+            </button>
+          ))}
+          {filtered.length === 0 && (
+            <div style={{ textAlign:'center', color:'#6050a0', padding:16, fontSize:13 }}>Не найдено</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════
+   FREELANCE SCREEN
+   ══════════════════════════════════════════════════ */
+function FreelanceScreen({ freelance, timezone, coins, level, onTakeOrder, onBoost, onClaimOrder, onBack }) {
+  const [now, setNow] = React.useState(Date.now());
+  React.useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const { active, fatigue, urgentOffer, completedOrder } = freelance;
+  const fatigueLeft   = fatigue    ? Math.max(0, fatigue.endTime    - now) : 0;
+  const urgentLeft    = urgentOffer ? Math.max(0, urgentOffer.endTime - now) : 0;
+  const orderLeft     = active     ? Math.max(0, active.endTime     - now) : 0;
+  const orderDuration = active     ? (ORDER_TYPES.find(t => t.id === active.type)?.durationMs || 1) : 1;
+  const orderPct      = active     ? Math.max(0, 1 - orderLeft / orderDuration) : 0;
+  const boostReady    = canBoostNow(active);
+  const boostCd       = boostCooldownLeft(active);
+  const fatigueOk     = !fatigue || fatigueLeft <= 20 * 60000;
+
+  // Available order types (exclude urgent — shown separately)
+  const availableOrders = ORDER_TYPES.filter(t => !t.urgent);
+
+  const sectionStyle = { padding:'0 16px', marginBottom:16 };
+
+  return (
+    <div style={{ position:'absolute', inset:0, background:'linear-gradient(170deg,#0e1420,#08101c)',
+      fontFamily:"'Nunito',sans-serif", display:'flex', flexDirection:'column', animation:'screenFade 0.3s ease' }}>
+
+      {/* Header */}
+      <div style={{ padding:'14px 16px 10px', display:'flex', alignItems:'center', gap:10,
+        borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
+        <button onClick={onBack} style={{ background:'rgba(255,255,255,0.07)', border:'none',
+          borderRadius:12, width:38, height:38, cursor:'pointer', fontSize:18, color:'#a0c0ff',
+          display:'flex', alignItems:'center', justifyContent:'center' }}>←</button>
+        <div>
+          <div style={{ fontSize:18, fontWeight:900, color:'#c0e0ff', letterSpacing:-0.3 }}>💼 Работа</div>
+          <div style={{ fontSize:11, color:'#5070a0', fontWeight:700 }}>Фриланс-заказы</div>
+        </div>
+        <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:5,
+          background:'rgba(255,200,60,0.12)', borderRadius:99, padding:'4px 12px',
+          border:'1px solid rgba(255,200,60,0.25)' }}>
+          <span style={{ fontSize:16 }}>🪙</span>
+          <span style={{ fontSize:15, fontWeight:900, color:'#f5d060' }}>{coins}</span>
+        </div>
+      </div>
+
+      <div style={{ flex:1, overflowY:'auto', paddingTop:12, paddingBottom:80 }}>
+
+        {/* ── СРОЧНЫЙ ДЕДЛАЙН БАННЕР ── */}
+        {urgentOffer && urgentLeft > 0 && (
+          <div style={{ ...sectionStyle }}>
+            <div style={{ background:'linear-gradient(135deg,#3a0808,#500c0c)',
+              border:'2px solid #d04030', borderRadius:20, padding:'16px',
+              boxShadow:'0 4px 24px rgba(200,40,20,0.4)', animation:'pulseCrit 1s ease-in-out infinite' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+                <span style={{ fontSize:26 }}>🚨</span>
+                <div>
+                  <div style={{ fontSize:15, fontWeight:900, color:'#ff6050' }}>СРОЧНЫЙ ДЕДЛАЙН!</div>
+                  <div style={{ fontSize:11, color:'#d06050', fontWeight:700 }}>Исчезнет через: {formatCountdownMs(urgentLeft)}</div>
+                </div>
+              </div>
+              <div style={{ fontSize:12, color:'#f0a090', marginBottom:12 }}>
+                💰 {urgentOffer.baseReward} монет · 10 часов работы · до +20% бонус
+              </div>
+              {fatigue && fatigueLeft > 20 * 60000 ? (
+                <div style={{ fontSize:12, color:'#a06050', textAlign:'center', padding:'8px',
+                  background:'rgba(0,0,0,0.3)', borderRadius:10 }}>
+                  ⛔ Нельзя взять во время усталости (осталось {formatCountdownMs(fatigueLeft)})
+                </div>
+              ) : (
+                <button onClick={() => onTakeOrder('urgent', urgentOffer.baseReward)}
+                  disabled={!!active}
+                  style={{ width:'100%', padding:'12px', borderRadius:14, border:'none', cursor: active ? 'not-allowed' : 'pointer',
+                    background: active ? 'rgba(100,40,30,0.5)' : 'linear-gradient(135deg,#e03020,#c02010)',
+                    color:'white', fontSize:14, fontWeight:900, fontFamily:"'Nunito',sans-serif",
+                    opacity: active ? 0.5 : 1 }}>
+                  {active ? 'Сначала заверши текущий заказ' : '🚀 Взять срочный заказ'}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── АКТИВНЫЙ ЗАКАЗ ── */}
+        {active && orderLeft > 0 && (() => {
+          const type = ORDER_TYPES.find(t => t.id === active.type);
+          const totalReward = Math.round(active.baseReward * (1 + active.bonusPct));
+          return (
+            <div style={{ ...sectionStyle }}>
+              <div style={{ background:'rgba(255,255,255,0.04)', border:'1.5px solid rgba(255,255,255,0.10)',
+                borderRadius:20, padding:'18px 16px' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14 }}>
+                  <span style={{ fontSize:26 }}>{type?.icon}</span>
+                  <div>
+                    <div style={{ fontSize:14, fontWeight:900, color:'#d0e8ff' }}>{type?.label}</div>
+                    <div style={{ fontSize:11, color:'#6080a0', fontWeight:700 }}>
+                      В процессе • {formatCountdownMs(orderLeft)} осталось
+                    </div>
+                  </div>
+                  <div style={{ marginLeft:'auto', textAlign:'right' }}>
+                    <div style={{ fontSize:18, fontWeight:900, color:'#f5d060' }}>🪙 {totalReward}</div>
+                    {active.bonusPct > 0 && <div style={{ fontSize:10, color:'#90d040', fontWeight:700 }}>+{Math.round(active.bonusPct*100)}% бонус</div>}
+                  </div>
+                </div>
+                {/* Progress bar */}
+                <div style={{ height:10, background:'rgba(255,255,255,0.08)', borderRadius:99,
+                  overflow:'hidden', marginBottom:14, boxShadow:'inset 0 1px 3px rgba(0,0,0,0.5)' }}>
+                  <div style={{ height:'100%', borderRadius:99, transition:'width 1s linear',
+                    background:`linear-gradient(90deg, ${type?.color || '#5080c0'}88, ${type?.color || '#5080c0'})`,
+                    width:`${orderPct * 100}%`, boxShadow:`0 1px 6px ${type?.color || '#5080c0'}88` }}/>
+                </div>
+                {/* Boost button */}
+                {type && type.maxBoosts > 0 && (
+                  <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+                    <button onClick={onBoost} disabled={!boostReady}
+                      style={{ flex:1, padding:'11px', borderRadius:14, border:`1.5px solid ${boostReady ? '#60c060' : 'rgba(255,255,255,0.1)'}`,
+                        background: boostReady ? 'rgba(60,160,60,0.18)' : 'rgba(255,255,255,0.03)',
+                        color: boostReady ? '#80e080' : '#405060', fontSize:13, fontWeight:900,
+                        cursor: boostReady ? 'pointer' : 'not-allowed', fontFamily:"'Nunito',sans-serif" }}>
+                      ⚡ Ускориться
+                      {boostReady ? ' (+10%, −30 мин)' : ` (${formatCountdownMs(boostCd)})`}
+                    </button>
+                    <div style={{ fontSize:11, color:'#4060a0', fontWeight:700, textAlign:'right', minWidth:60 }}>
+                      {active.boostsUsed}/{type.maxBoosts} исп.
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── ЗАКАЗ ВЫПОЛНЕН ── */}
+        {completedOrder && (
+          <div style={{ ...sectionStyle }}>
+            <div style={{ background:'linear-gradient(135deg,rgba(60,160,30,0.18),rgba(80,200,40,0.08))',
+              border:'2px solid rgba(80,200,40,0.4)', borderRadius:20, padding:'20px 16px',
+              textAlign:'center', boxShadow:'0 4px 24px rgba(80,200,40,0.2)' }}>
+              <div style={{ fontSize:36, marginBottom:8 }}>🎉</div>
+              <div style={{ fontSize:16, fontWeight:900, color:'#80e050', marginBottom:4 }}>Заказ выполнен!</div>
+              <div style={{ fontSize:26, fontWeight:900, color:'#f5d060', marginBottom:16 }}>
+                🪙 +{completedOrder.reward}
+              </div>
+              <button onClick={onClaimOrder} style={{ padding:'14px 32px', borderRadius:18, border:'none',
+                background:'linear-gradient(135deg,#50c030,#40a020)', color:'white', fontSize:15, fontWeight:900,
+                cursor:'pointer', fontFamily:"'Nunito',sans-serif", boxShadow:'0 5px 18px rgba(80,200,40,0.4)',
+                width:'100%' }}>
+                Забрать награду 🐾
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── УСТАЛОСТЬ ── */}
+        {fatigue && fatigueLeft > 0 && (
+          <div style={{ ...sectionStyle }}>
+            <div style={{ background:'rgba(120,80,20,0.18)', border:'1.5px solid rgba(180,120,40,0.3)',
+              borderRadius:16, padding:'14px 16px', display:'flex', alignItems:'center', gap:12 }}>
+              <span style={{ fontSize:28 }}>😴</span>
+              <div>
+                <div style={{ fontSize:13, fontWeight:900, color:'#d0a060' }}>Хозяин устал</div>
+                <div style={{ fontSize:11, color:'#806040', fontWeight:700 }}>
+                  Отдых ещё: {formatCountdownMs(fatigueLeft)}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── ВЫБОР ЗАКАЗА ── */}
+        {!active && (
+          <div style={{ ...sectionStyle }}>
+            <div style={{ fontSize:12, fontWeight:800, color:'#4060a0', letterSpacing:1,
+              textTransform:'uppercase', marginBottom:10 }}>
+              {fatigue && fatigueLeft > 0 ? '🔒 Заказы заблокированы — отдыхаем' : 'Доступные заказы'}
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              {availableOrders.map(type => {
+                const disabled = !!(fatigue && fatigueLeft > 0) || !!completedOrder;
+                return (
+                  <div key={type.id} onClick={() => !disabled && onTakeOrder(type.id)}
+                    style={{ background: disabled ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.05)',
+                      border:`1.5px solid ${disabled ? 'rgba(255,255,255,0.06)' : type.color + '44'}`,
+                      borderRadius:18, padding:'16px', cursor: disabled ? 'not-allowed' : 'pointer',
+                      opacity: disabled ? 0.45 : 1, transition:'opacity 0.2s' }}
+                    onPointerDown={e => { if (!disabled) e.currentTarget.style.transform='scale(0.98)'; }}
+                    onPointerUp={e   => { e.currentTarget.style.transform='scale(1)'; }}
+                    onPointerLeave={e=> { e.currentTarget.style.transform='scale(1)'; }}>
+                    <div style={{ display:'flex', alignItems:'flex-start', gap:12 }}>
+                      <span style={{ fontSize:28, lineHeight:1 }}>{type.icon}</span>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:14, fontWeight:900, color:'#c0d8f0' }}>{type.label}</div>
+                        <div style={{ fontSize:11, color:'#4060a0', fontWeight:700, margin:'3px 0' }}>{type.desc}</div>
+                        <div style={{ display:'flex', gap:10, marginTop:6, flexWrap:'wrap' }}>
+                          <span style={{ fontSize:11, background:`${type.color}22`, color:type.color,
+                            borderRadius:8, padding:'2px 8px', fontWeight:800 }}>
+                            🪙 {type.min}–{type.max}
+                          </span>
+                          <span style={{ fontSize:11, background:'rgba(255,255,255,0.06)', color:'#6080a0',
+                            borderRadius:8, padding:'2px 8px', fontWeight:700 }}>
+                            ⏱ {fmtDuration(type.durationMs)}
+                          </span>
+                          {type.maxBoosts > 0 && (
+                            <span style={{ fontSize:11, background:'rgba(80,200,80,0.12)', color:'#60c060',
+                              borderRadius:8, padding:'2px 8px', fontWeight:700 }}>
+                              ⚡×{type.maxBoosts}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── СТАТИСТИКА ── */}
+        <div style={{ ...sectionStyle }}>
+          <div style={{ background:'rgba(255,255,255,0.03)', borderRadius:14, padding:'12px 14px' }}>
+            <div style={{ fontSize:10, fontWeight:800, color:'#304060', letterSpacing:1,
+              textTransform:'uppercase', marginBottom:6 }}>Статистика работы</div>
+            <div style={{ fontSize:12, color:'#5080a0', fontWeight:700 }}>
+              Выполнено заказов: <span style={{ color:'#80c0f0' }}>{freelance.completedCount}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════
    TRUST MODAL
    ══════════════════════════════════════════════════ */
 function TrustModal({ trustPoints, onClose }) {
@@ -1119,6 +1488,7 @@ function BottomPanel({ fills, isCrit, onPawClick, activeNav, setActiveNav, canCl
         <div style={{ display:'flex', paddingBottom:8 }}>
           <NavItem icon="🏠" label="Дом"     active={activeNav==='home'}    onClick={() => { setActiveNav('home'); onPawClick('home'); }}/>
           <NavItem icon="🛒" label="Магазин" active={activeNav==='shop'}    onClick={() => { setActiveNav('shop'); onPawClick('shop'); }}/>
+          <NavItem icon="💼" label="Работа"  active={activeNav==='work'}    onClick={() => { setActiveNav('work'); }}/>
           <NavItem icon="🏆" label="Успехи"  active={activeNav==='achieve'} dot={canClaimDaily} onClick={() => { setActiveNav('achieve'); }}/>
           <NavItem icon="📷" label="Альбом"  active={activeNav==='album'}   onClick={() => { setActiveNav('album'); }}/>
         </div>
@@ -2851,6 +3221,9 @@ function App() {
   const [skinFlash,      setSkinFlash]      = useState(false);
   const [trustPoints,    setTrustPoints]    = useState(_INIT.trustPoints   || 0);
   const [showTrustModal, setShowTrustModal] = useState(false);
+  // Freelance system
+  const [timezone,  setTimezone]  = useState(_INIT.timezone  || null);
+  const [freelance, setFreelance] = useState(_INIT.freelance || defaultFreelance());
   // Cloud sync
   const [syncStatus,     setSyncStatus]     = useState(null); // null | 'syncing' | 'ok' | 'error'
   // Toast/queue
@@ -2898,6 +3271,7 @@ function App() {
       roomLayout, ownedDecor, ownedBgs,
       walletAddress, ownedNFTs, activeNFT,
       trustPoints,
+      timezone, freelance,
       lastUpdate: Date.now(),
     };
     // Always save locally immediately
@@ -2914,7 +3288,7 @@ function App() {
     return () => {
       if (cloudSyncTimer.current) clearTimeout(cloudSyncTimer.current);
     };
-  }, [stats, coins, xp, lastDaily, dailyStreak, inventory, equipped, actionCounts, dailyMissions, roomLayout, ownedDecor, ownedBgs, walletAddress, ownedNFTs, activeNFT]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [stats, coins, xp, lastDaily, dailyStreak, inventory, equipped, actionCounts, dailyMissions, roomLayout, ownedDecor, ownedBgs, walletAddress, ownedNFTs, activeNFT, trustPoints, timezone, freelance]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Cloud Load on startup — sync from cloud if it's newer than local ──
   useEffect(() => {
@@ -2946,6 +3320,9 @@ function App() {
         if (cloud.walletAddress != null) setWalletAddress(cloud.walletAddress);
         if (cloud.ownedNFTs)    setOwnedNFTs(cloud.ownedNFTs);
         if (cloud.activeNFT  != null)   setActiveNFT(cloud.activeNFT);
+        if (cloud.trustPoints != null)  setTrustPoints(cloud.trustPoints);
+        if (cloud.timezone)     setTimezone(cloud.timezone);
+        if (cloud.freelance)    setFreelance({ ...defaultFreelance(), ...cloud.freelance });
         if (cloud.createdAt)    createdAt.current = cloud.createdAt;
 
         showToast('☁️ Прогресс загружен с облака');
@@ -3013,6 +3390,47 @@ function App() {
     return () => clearInterval(t);
   }, [level]);
 
+  // ── Freelance timer: check order completion, fatigue, urgent every 10s ──
+  useEffect(() => {
+    const check = () => {
+      const now = Date.now();
+      setFreelance(prev => {
+        let next = { ...prev };
+        // Check order completion
+        if (next.active && next.active.endTime <= now) {
+          const reward = Math.round(next.active.baseReward * (1 + next.active.bonusPct));
+          next.completedOrder = { type: next.active.type, reward };
+          const orderType = ORDER_TYPES.find(t => t.id === next.active.type);
+          const dur = orderType ? orderType.durationMs : 6 * 3600000;
+          const fatDur = Math.round(dur * (0.60 + Math.random() * 0.05));
+          next.fatigue = { endTime: now + fatDur };
+          next.active = null;
+          next.completedCount = (next.completedCount || 0) + 1;
+        }
+        // Check fatigue expiry
+        if (next.fatigue && next.fatigue.endTime <= now) next.fatigue = null;
+        // Check urgent offer expiry
+        if (next.urgentOffer && next.urgentOffer.endTime <= now) next.urgentOffer = null;
+        // Check if time to try spawning urgent offer
+        if (!next.urgentOffer && !next.active && next.nextUrgentAttempt && next.nextUrgentAttempt <= now && timezone) {
+          const hour = getLocalHour(timezone);
+          const fatOk = !next.fatigue || (next.fatigue.endTime - now) <= 20 * 60000;
+          if (hour >= 6 && fatOk) {
+            const baseReward = randBetween(630, 780);
+            next.urgentOffer = { endTime: now + 30 * 60000, baseReward };
+            next.nextUrgentAttempt = now + (3 + Math.random() * 2) * 86400000;
+          } else {
+            next.nextUrgentAttempt = now + 30 * 60000; // retry in 30 min
+          }
+        }
+        return next;
+      });
+    };
+    check();
+    const t = setInterval(check, 10000);
+    return () => clearInterval(t);
+  }, [timezone]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Sync stats to backend for push notifications ──
   useEffect(() => {
     syncBackend(stats, level); // immediate on every stats change
@@ -3035,6 +3453,7 @@ function App() {
           actionCounts, dailyMissions,
           roomLayout, ownedDecor, ownedBgs,
           walletAddress, ownedNFTs, activeNFT,
+          trustPoints, timezone, freelance,
           lastUpdate: Date.now(),
         };
         cloudSave(chatId, snapshot).catch(() => {});
@@ -3043,7 +3462,7 @@ function App() {
 
     document.addEventListener('visibilitychange', onVisibilityChange);
     return () => document.removeEventListener('visibilitychange', onVisibilityChange);
-  }, [stats, coins, xp, lastDaily, dailyStreak, inventory, equipped, achievements, highScores, actionCounts, dailyMissions, roomLayout, ownedDecor, ownedBgs, walletAddress, ownedNFTs, activeNFT]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [stats, coins, xp, lastDaily, dailyStreak, inventory, equipped, achievements, highScores, actionCounts, dailyMissions, roomLayout, ownedDecor, ownedBgs, walletAddress, ownedNFTs, activeNFT, trustPoints, timezone, freelance]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Walking cat animation ──
   useEffect(() => {
@@ -3130,6 +3549,50 @@ function App() {
       return next;
     });
   }, [showToast]);
+
+  // ── Freelance handlers ──
+  const handleTakeOrder = useCallback((typeId, overrideReward) => {
+    const type = ORDER_TYPES.find(t => t.id === typeId);
+    if (!type) return;
+    const baseReward = overrideReward != null ? overrideReward : randBetween(type.min, type.max);
+    const now = Date.now();
+    setFreelance(prev => ({
+      ...prev,
+      active: { type: typeId, endTime: now + type.durationMs, baseReward, bonusPct: 0, boostsUsed: 0, lastBoostTime: null },
+      urgentOffer: typeId === 'urgent' ? null : prev.urgentOffer,
+    }));
+    showToast(`💼 Заказ принят! ${type.label}`);
+  }, [showToast]);
+
+  const handleBoost = useCallback(() => {
+    setFreelance(prev => {
+      if (!prev.active || !canBoostNow(prev.active)) return prev;
+      const newEndTime = prev.active.endTime - 30 * 60000;
+      return {
+        ...prev,
+        active: {
+          ...prev.active,
+          endTime:      newEndTime,
+          bonusPct:     prev.active.bonusPct + 0.10,
+          boostsUsed:   prev.active.boostsUsed + 1,
+          lastBoostTime: Date.now(),
+        },
+      };
+    });
+    showToast('⚡ Ускорение применено! −30 мин, +10%');
+  }, [showToast]);
+
+  const handleClaimOrder = useCallback(() => {
+    setFreelance(prev => {
+      if (!prev.completedOrder) return prev;
+      const { reward } = prev.completedOrder;
+      setCoins(c => c + reward);
+      applyXP(Math.round(reward / 4));
+      applyTrust(3);
+      showToast(`✅ Получено: ${reward} монет!`);
+      return { ...prev, completedOrder: null };
+    });
+  }, [showToast, applyXP, applyTrust]);
 
   // ── Actions ──
   const handleFeed = useCallback((item) => {
@@ -3550,6 +4013,30 @@ function App() {
         onBuyDecor={handleBuyDecor} onBuyBg={handleBuyBg} onSetBg={handleSetBg}/>
       {toast && <Toast key={toastKey} msg={toast}/>}
       {achToast && <AchievementToastBanner achievement={achToast} onDone={() => setAchToast(null)}/>}
+    </div>
+  );
+
+  // Freelance / Work screen
+  if (activeNav === 'work' && screen === 'home') return (
+    <div style={{ width:'100%', height:'100%', position:'relative', overflow:'hidden', background:'#08101c' }}>
+      {!timezone && <TimezoneModal onSelect={(tz) => { setTimezone(tz); showToast('🌍 Часовой пояс сохранён'); }}/>}
+      {timezone && (
+        <FreelanceScreen
+          freelance={freelance}
+          timezone={timezone}
+          coins={coins}
+          level={level}
+          onTakeOrder={(typeId, reward) => {
+            if (freelance.active || freelance.fatigue) return;
+            if (typeId === 'urgent') { handleTakeOrder(typeId, reward); return; }
+            handleTakeOrder(typeId);
+          }}
+          onBoost={handleBoost}
+          onClaimOrder={handleClaimOrder}
+          onBack={() => setActiveNav('home')}
+        />
+      )}
+      {toast && <Toast key={toastKey} msg={toast}/>}
     </div>
   );
 

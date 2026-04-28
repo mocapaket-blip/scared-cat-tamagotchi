@@ -27,6 +27,17 @@ function defaultInventory() {
   };
 }
 
+function defaultFreelance() {
+  return {
+    active:             null,  // { type, endTime, baseReward, bonusPct, boostsUsed, lastBoostTime }
+    fatigue:            null,  // { endTime }
+    urgentOffer:        null,  // { endTime, baseReward }
+    nextUrgentAttempt:  Date.now() + (3 + Math.random() * 2) * 86400000, // 3-5 дней
+    completedOrder:     null,  // { type, reward } — ждёт получения
+    completedCount:     0,
+  };
+}
+
 function defaultState() {
   return {
     stats:        defaultStats(),
@@ -49,6 +60,9 @@ function defaultState() {
     walletAddress: null,
     ownedNFTs:    [],
     activeNFT:    null,
+    // Freelance & timezone
+    timezone:     null,
+    freelance:    defaultFreelance(),
   };
 }
 
@@ -131,6 +145,8 @@ const _INIT = (() => {
         ownedNFTs:     saved.ownedNFTs    || [],
         activeNFT:     saved.activeNFT    || null,
         trustPoints:   saved.trustPoints  || 0,
+        timezone:      saved.timezone     || null,
+        freelance:     saved.freelance    ? { ...defaultFreelance(), ...saved.freelance } : defaultFreelance(),
         complaint:     null,
         canClaimDaily: daily.canClaim,
         pendingStreak: daily.newStreak,
@@ -151,6 +167,8 @@ const _INIT = (() => {
     actionCounts:  defaultActionCounts(),
     dailyMissions: getOrUpdateDailyMissions(null),
     trustPoints:   0,
+    timezone:      null,
+    freelance:     defaultFreelance(),
     returnData:    null,
   };
 })();
