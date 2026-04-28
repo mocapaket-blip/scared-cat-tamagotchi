@@ -1900,16 +1900,13 @@ function RoomScreen({ roomId, fills, isCrit, activeNav, setActiveNav, onPawClick
       {/* Cat — also tappable for the cat-tap hotspot */}
       <div
         onPointerDown={() => { const o=def.objects.find(x=>x.isCatTap); if(o) handleTap(o); }}
-        style={{ position:'absolute', bottom:PANEL_H+18, left:catLeft, width:155,
+        style={{ position:'absolute', bottom:PANEL_H+18, left:catLeft, width:130,
           filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.7))',
           transform:`scaleX(${catFacing})`, transformOrigin:'center',
           transition:'left 0.55s ease-in-out',
           animation: catWalking ? 'catWalkBob 0.38s linear infinite' : 'floatY 2.5s ease-in-out infinite',
           cursor:'pointer', zIndex:16, userSelect:'none', touchAction:'none' }}>
-        {activeNFT
-          ? <img src={activeNFT.image} alt="кот" style={{ width:'100%', display:'block' }} draggable="false"/>
-          : <ScaredCatSVG emotion="normal" jumping={false}/>
-        }
+        <img src={CAT} alt="кот" style={{ width:'100%', display:'block' }} draggable="false"/>
       </div>
 
       {/* Thought bubble follows cat */}
@@ -3526,31 +3523,20 @@ function App() {
 
       {/* Walking / tapped cat — emotion animation + filter */}
       <div onClick={handleCatClick}
-           style={{ position:'absolute', zIndex:15, bottom: PANEL_H + 24, left: catX, width:168, cursor:'pointer', transition: showGif ? 'left 0.25s ease-out' : 'none' }}>
+           style={{ position:'absolute', zIndex:15, bottom: PANEL_H + 24, left: catX, width:155, cursor:'pointer', transition: showGif ? 'left 0.25s ease-out' : 'none' }}>
         {/* Outer div handles scaleX (facing direction) */}
         <div style={{ transform:`scaleX(${catFacing})`, transformOrigin:'center' }}>
-          {activeNFT ? (
-            /* NFT skin: show NFT image with gif animation */
-            <div style={{ filter: catFilterStr, animation: catAnimStyle, position:'relative' }}>
-              <img src={activeNFT.image} alt="кот" style={{ width:'100%', display:'block', userSelect:'none', pointerEvents:'none', opacity: showGif ? 0 : 1, transition:'opacity 0.2s' }} draggable="false"/>
-              {showGif && (
-                <img src={activeNFT.image} alt="анимация"
-                     style={{ position:'absolute', inset:0, width:'100%', display:'block', userSelect:'none', pointerEvents:'none' }}
-                     draggable="false"/>
-              )}
-              {skinFlash && (
-                <div style={{ position:'absolute', inset:'-20%', borderRadius:'50%', background:'radial-gradient(circle, rgba(180,100,255,0.9) 0%, rgba(80,200,255,0.5) 50%, transparent 75%)', animation:'nftFlash 0.6s ease-out forwards', pointerEvents:'none', zIndex:10 }}/>
-              )}
-            </div>
-          ) : (
-            /* Default: SVG emoji cat */
-            <div style={{ filter: catFilterStr, position:'relative' }}>
-              <ScaredCatSVG emotion={svgEmotion} jumping={showGif}/>
-              {skinFlash && (
-                <div style={{ position:'absolute', inset:'-20%', borderRadius:'50%', background:'radial-gradient(circle, rgba(180,100,255,0.9) 0%, rgba(80,200,255,0.5) 50%, transparent 75%)', animation:'nftFlash 0.6s ease-out forwards', pointerEvents:'none', zIndex:10 }}/>
-              )}
-            </div>
-          )}
+          <div style={{ filter: catFilterStr, animation: catAnimStyle, position:'relative' }}>
+            <img src={CAT} alt="кот" style={{ width:'100%', display:'block', userSelect:'none', pointerEvents:'none', opacity: showGif ? 0 : 1, transition:'opacity 0.2s' }} draggable="false"/>
+            {showGif && (
+              <img src={GIF} alt="анимация"
+                   style={{ position:'absolute', inset:0, width:'100%', display:'block', userSelect:'none', pointerEvents:'none' }}
+                   draggable="false"/>
+            )}
+            {skinFlash && (
+              <div style={{ position:'absolute', inset:'-20%', borderRadius:'50%', background:'radial-gradient(circle, rgba(180,100,255,0.9) 0%, rgba(80,200,255,0.5) 50%, transparent 75%)', animation:'nftFlash 0.6s ease-out forwards', pointerEvents:'none', zIndex:10 }}/>
+            )}
+          </div>
         </div>
       </div>
 
