@@ -878,9 +878,11 @@ function PawIndicator({ pawId, icon, label, fill, critical, onClick }) {
         {/* Top shine */}
         <div style={{ position:'absolute', top:0, left:0, right:0, height:'40%', background:'linear-gradient(to bottom,rgba(255,255,255,0.6),transparent)', borderRadius:'20px 20px 0 0', pointerEvents:'none' }}/>
         <span style={{
-          fontSize:30, lineHeight:1, zIndex:1,
+          fontSize:28, lineHeight:1, zIndex:1,
           animation: critical ? 'pawShake 0.42s linear infinite' : 'none',
-          display:'inline-block',
+          display:'flex', alignItems:'center', justifyContent:'center',
+          width:'100%', height:'100%',
+          position:'absolute', top:0, left:0,
           filter: critical ? 'drop-shadow(0 0 4px rgba(255,80,50,0.6))' : 'none',
         }}>{icon}</span>
       </div>
@@ -3523,7 +3525,7 @@ function App() {
 
       {/* Walking / tapped cat — emotion animation + filter */}
       <div onClick={handleCatClick}
-           style={{ position:'absolute', zIndex:15, bottom: PANEL_H + 24, left: catX, width:155, cursor:'pointer', transition: showGif ? 'left 0.25s ease-out' : 'none' }}>
+           style={{ position:'absolute', zIndex:15, bottom: PANEL_H + 24, left: catX, width:118, cursor:'pointer', transition: showGif ? 'left 0.25s ease-out' : 'none' }}>
         {/* Outer div handles scaleX (facing direction) */}
         <div style={{ transform:`scaleX(${catFacing})`, transformOrigin:'center' }}>
           <div style={{ filter: catFilterStr, animation: catAnimStyle, position:'relative' }}>
