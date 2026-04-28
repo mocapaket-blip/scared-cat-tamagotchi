@@ -4,6 +4,7 @@
    ═══════════════════════════════════════════════ */
 
 const { useState, useEffect, useRef, useCallback } = React;
+const APP_VERSION = '1.0.5';
 const CAT_DEFAULT = window.CAT_PNG || 'cat.png';
 const GIF_DEFAULT = window.CAT_GIF || 'cat-anim.gif';
 // These are overridden by the active NFT skin; use useCatSkin() hook below
@@ -3414,6 +3415,13 @@ function App() {
 
   return (
     <div style={{ width:'100%', height:'100%', position:'relative', overflow:'hidden', background:'#3a2010', fontFamily:"'Nunito',sans-serif" }}>
+
+      {/* Version badge */}
+      <div style={{ position:'absolute', top:8, right:10, zIndex:50, pointerEvents:'none',
+        background:'rgba(0,0,0,0.35)', borderRadius:8, padding:'2px 7px',
+        fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.55)', letterSpacing:0.5 }}>
+        v{APP_VERSION}
+      </div>
 
       {/* Room background */}
       <div style={{ position:'absolute', top:0, left:0, right:0, bottom:PANEL_H-30, overflow:'hidden' }}>
