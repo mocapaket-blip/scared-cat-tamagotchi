@@ -1900,13 +1900,16 @@ function RoomScreen({ roomId, fills, isCrit, activeNav, setActiveNav, onPawClick
       {/* Cat — also tappable for the cat-tap hotspot */}
       <div
         onPointerDown={() => { const o=def.objects.find(x=>x.isCatTap); if(o) handleTap(o); }}
-        style={{ position:'absolute', bottom:PANEL_H+18, left:catLeft, width:112,
+        style={{ position:'absolute', bottom:PANEL_H+18, left:catLeft, width:155,
           filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.7))',
           transform:`scaleX(${catFacing})`, transformOrigin:'center',
           transition:'left 0.55s ease-in-out',
           animation: catWalking ? 'catWalkBob 0.38s linear infinite' : 'floatY 2.5s ease-in-out infinite',
           cursor:'pointer', zIndex:16, userSelect:'none', touchAction:'none' }}>
-        <img src={CAT} alt="кот" style={{ width:'100%', display:'block' }} draggable="false"/>
+        {activeNFT
+          ? <img src={activeNFT.image} alt="кот" style={{ width:'100%', display:'block' }} draggable="false"/>
+          : <ScaredCatSVG emotion="normal" jumping={false}/>
+        }
       </div>
 
       {/* Thought bubble follows cat */}
@@ -2511,6 +2514,90 @@ function NFTSkinScreen({ walletAddress, ownedNFTs, activeNFT, onConnect, onDisco
         )}
       </div>
     </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════
+   SCARED CAT SVG — emoji-style black cat
+   ══════════════════════════════════════════════════ */
+function ScaredCatSVG({ emotion = 'normal', jumping = false }) {
+  const EH = { normal:{l:16,r:14}, scared:{l:20,r:18}, happy:{l:9,r:8},
+               sad:{l:12,r:11}, sick:{l:10,r:9}, excited:{l:19,r:17} };
+  const eh    = EH[emotion] || EH.normal;
+  const pupH  = emotion === 'happy'  ? 5
+              : emotion === 'scared' ? eh.l
+              : Math.round(eh.l * 0.78);
+  const pupW  = emotion === 'scared' ? 4 : 6;
+  const earTilt = (emotion === 'scared' || emotion === 'sick') ? 'rotate(-8,32,100)' : '';
+  const idleAnim = jumping
+    ? 'catScaredJump 0.68s cubic-bezier(0.36,0.07,0.19,0.97) forwards'
+    : emotion === 'happy'  || emotion === 'excited' ? 'catHappyBounce 0.95s ease-in-out infinite'
+    : emotion === 'sad'    || emotion === 'sick'    ? 'catSadDroop 2.4s ease-in-out infinite'
+    : emotion === 'scared'                          ? 'catShake 0.45s linear infinite'
+    :                                                 'catIdleBreathe 3.4s ease-in-out infinite';
+  const sadFilter = emotion === 'sad' ? 'saturate(0.45)' : '';
+  return (
+    React.createElement('div', { style:{ width:'100%', animation:idleAnim, filter:sadFilter, transformOrigin:'bottom center' } },
+      React.createElement('svg', { viewBox:'0 0 200 195', xmlns:'http://www.w3.org/2000/svg',
+          style:{ width:'100%', display:'block', overflow:'visible' } },
+        React.createElement('defs', null,
+          React.createElement('radialGradient', { id:'sct_bG', cx:'40%', cy:'30%', r:'62%' },
+            React.createElement('stop', { offset:'0%',   stopColor:'#3a3852' }),
+            React.createElement('stop', { offset:'50%',  stopColor:'#1c1a2e' }),
+            React.createElement('stop', { offset:'100%', stopColor:'#09071a' })
+          ),
+          React.createElement('radialGradient', { id:'sct_hlG', cx:'50%', cy:'44%', r:'50%' },
+            React.createElement('stop', { offset:'0%',   stopColor:'#8886a8', stopOpacity:'0.75' }),
+            React.createElement('stop', { offset:'55%',  stopColor:'#4a4868', stopOpacity:'0.38' }),
+            React.createElement('stop', { offset:'100%', stopColor:'#1c1a30', stopOpacity:'0'   })
+          ),
+          React.createElement('radialGradient', { id:'sct_eG', cx:'28%', cy:'18%', r:'66%' },
+            React.createElement('stop', { offset:'0%',   stopColor:'#ddff00' }),
+            React.createElement('stop', { offset:'36%',  stopColor:'#88cc00' }),
+            React.createElement('stop', { offset:'100%', stopColor:'#1e5500' })
+          ),
+          React.createElement('radialGradient', { id:'sct_pG', cx:'50%', cy:'38%', r:'55%' },
+            React.createElement('stop', { offset:'0%',   stopColor:'#18161e' }),
+            React.createElement('stop', { offset:'100%', stopColor:'#000000' })
+          ),
+          React.createElement('filter', { id:'sct_drp' },
+            React.createElement('feDropShadow', { dx:'0', dy:'7', stdDeviation:'9', floodColor:'#000', floodOpacity:'0.55' })
+          ),
+          React.createElement('filter', { id:'sct_eg' },
+            React.createElement('feGaussianBlur', { stdDeviation:'3.5', result:'b' }),
+            React.createElement('feMerge', null,
+              React.createElement('feMergeNode', { in:'b' }),
+              React.createElement('feMergeNode', { in:'SourceGraphic' })
+            )
+          )
+        ),
+        /* shadow */ React.createElement('ellipse', { cx:'100', cy:'192', rx:'70', ry:'8', fill:'black', opacity:'0.28' }),
+        /* tail  */ React.createElement('path', { d:'M 157,112 C 174,93 188,68 183,46 C 179,28 167,22 158,28 C 150,34 153,50 147,42', fill:'none', stroke:'#0a0818', strokeWidth:'17', strokeLinecap:'round' }),
+                   React.createElement('path', { d:'M 157,112 C 174,93 188,68 183,46 C 179,28 167,22 158,28 C 150,34 153,50 147,42', fill:'none', stroke:'#26243c', strokeWidth:'9',  strokeLinecap:'round' }),
+        /* body  */ React.createElement('path', {
+          d:'M 42,188 C 34,188 26,178 26,164 C 26,150 33,138 41,128 C 47,120 56,114 65,110 C 73,106 82,101 91,95 C 104,78 118,53 130,35 C 142,19 160,13 171,24 C 183,36 183,62 175,87 C 169,107 160,133 155,155 C 152,167 150,180 148,188 L 163,188 C 170,188 175,180 175,170 C 175,158 171,144 163,133 C 156,122 143,118 128,120 C 113,122 97,127 81,132 C 69,135 58,141 51,151 C 45,160 43,173 46,183 C 47,187 49,189 54,189 Z',
+          fill:'url(#sct_bG)', stroke:'#100e20', strokeWidth:'5', strokeLinejoin:'round', filter:'url(#sct_drp)' }),
+        /* gloss */ React.createElement('ellipse', { cx:'112', cy:'57', rx:'58', ry:'26', fill:'url(#sct_hlG)', transform:'rotate(-36, 112, 57)' }),
+        /* ears  */ React.createElement('path', { d:'M 30,100 L 16,60 L 52,82 Z', transform:earTilt, fill:'#14121e', stroke:'#100e20', strokeWidth:'4', strokeLinejoin:'round' }),
+                   React.createElement('path', { d:'M 32,98 L 22,65 L 49,83 Z', transform:earTilt, fill:'#2c1628' }),
+                   React.createElement('path', { d:'M 56,86 L 51,52 L 76,73 Z', fill:'#100e1c', stroke:'#100e20', strokeWidth:'3.5', strokeLinejoin:'round' }),
+                   React.createElement('path', { d:'M 58,85 L 54,57 L 73,73 Z', fill:'#1e1222' }),
+        /* head  */ React.createElement('ellipse', { cx:'50', cy:'116', rx:'36', ry:'33', fill:'url(#sct_bG)', stroke:'#100e20', strokeWidth:'5' }),
+                   React.createElement('ellipse', { cx:'37', cy:'104', rx:'15', ry:'10', fill:'rgba(80,76,114,0.36)', transform:'rotate(-20,37,104)' }),
+        /* L eye */ React.createElement('ellipse', { cx:'37', cy:'115', rx:'13', ry:eh.l, fill:'url(#sct_eG)', stroke:'#100e20', strokeWidth:'3.5', filter:'url(#sct_eg)',
+                     style:{ animation: jumping ? 'none' : 'catEyeBlink 4.5s ease-in-out infinite' } }),
+                   React.createElement('ellipse', { cx:'37', cy:'115', rx:pupW,            ry:pupH, fill:'url(#sct_pG)' }),
+                   React.createElement('circle',  { cx:'28', cy:'106', r:'5',   fill:'white', opacity:'0.95' }),
+                   React.createElement('circle',  { cx:'44', cy:'123', r:'2.2', fill:'white', opacity:'0.48' }),
+        /* R eye */ React.createElement('ellipse', { cx:'58', cy:'112', rx:'11', ry:eh.r, fill:'url(#sct_eG)', stroke:'#100e20', strokeWidth:'3', filter:'url(#sct_eg)',
+                     style:{ animation: jumping ? 'none' : 'catEyeBlink 4.5s ease-in-out 0.3s infinite' } }),
+                   React.createElement('ellipse', { cx:'58', cy:'112', rx:Math.max(pupW-1,4), ry:Math.max(pupH-1,4), fill:'url(#sct_pG)' }),
+                   React.createElement('circle',  { cx:'50', cy:'104', r:'4.2', fill:'white', opacity:'0.92' }),
+                   React.createElement('circle',  { cx:'65', cy:'120', r:'1.8', fill:'white', opacity:'0.45' }),
+        /* nose  */ React.createElement('path', { d:'M 46,127 L 49,131 L 52,127 L 49,123 Z', fill:'#c02f62', stroke:'#100e20', strokeWidth:'1' }),
+        emotion === 'sick' && React.createElement('ellipse', { cx:'100', cy:'108', rx:'95', ry:'100', fill:'#3adf3a', opacity:'0.18' })
+      )
+    )
   );
 }
 
@@ -3280,6 +3367,9 @@ function App() {
   const catAnimStyle  = showGif ? 'none' : catEmoCfg.anim;
   const catFilterStr  = catEmoCfg.filter === 'none' ? 'drop-shadow(0 8px 22px rgba(0,0,0,0.65))' : `drop-shadow(0 8px 22px rgba(0,0,0,0.65)) ${catEmoCfg.filter}`;
   // Map engine state → SVG emotion expression
+  const SVG_EMO_MAP = { veryScared:'scared', scared:'scared', sick:'sick', hungry:'normal',
+    tired:'sad', dirty:'normal', sad:'sad', playful:'excited', happy:'happy', special:'excited', neutral:'normal' };
+  const svgEmotion  = SVG_EMO_MAP[catEmoState] || 'normal';
   const activeBgObj   = BG_OVERLAYS.find(b => b.id === roomLayout.bg);
 
   return (
@@ -3393,21 +3483,31 @@ function App() {
 
       {/* Walking / tapped cat — emotion animation + filter */}
       <div onClick={handleCatClick}
-           style={{ position:'absolute', zIndex:15, bottom: PANEL_H + 24, left: catX, width:130, cursor:'pointer', transition: showGif ? 'left 0.25s ease-out' : 'none' }}>
+           style={{ position:'absolute', zIndex:15, bottom: PANEL_H + 24, left: catX, width:168, cursor:'pointer', transition: showGif ? 'left 0.25s ease-out' : 'none' }}>
         {/* Outer div handles scaleX (facing direction) */}
         <div style={{ transform:`scaleX(${catFacing})`, transformOrigin:'center' }}>
-          {/* Inner div handles emotion animation + filter */}
-          <div style={{ filter: catFilterStr, animation: catAnimStyle, position:'relative' }}>
-            <img src={CAT} alt="кот" style={{ width:'100%', display:'block', userSelect:'none', pointerEvents:'none', opacity: showGif ? 0 : 1, transition:'opacity 0.2s' }} draggable="false"/>
-            {showGif && (
-              <img src={GIF} alt="анимация"
-                   style={{ position:'absolute', inset:0, width:'100%', display:'block', userSelect:'none', pointerEvents:'none' }}
-                   draggable="false"/>
-            )}
-            {skinFlash && (
-              <div style={{ position:'absolute', inset:'-20%', borderRadius:'50%', background:'radial-gradient(circle, rgba(180,100,255,0.9) 0%, rgba(80,200,255,0.5) 50%, transparent 75%)', animation:'nftFlash 0.6s ease-out forwards', pointerEvents:'none', zIndex:10 }}/>
-            )}
-          </div>
+          {activeNFT ? (
+            /* NFT skin: show NFT image with gif animation */
+            <div style={{ filter: catFilterStr, animation: catAnimStyle, position:'relative' }}>
+              <img src={activeNFT.image} alt="кот" style={{ width:'100%', display:'block', userSelect:'none', pointerEvents:'none', opacity: showGif ? 0 : 1, transition:'opacity 0.2s' }} draggable="false"/>
+              {showGif && (
+                <img src={activeNFT.image} alt="анимация"
+                     style={{ position:'absolute', inset:0, width:'100%', display:'block', userSelect:'none', pointerEvents:'none' }}
+                     draggable="false"/>
+              )}
+              {skinFlash && (
+                <div style={{ position:'absolute', inset:'-20%', borderRadius:'50%', background:'radial-gradient(circle, rgba(180,100,255,0.9) 0%, rgba(80,200,255,0.5) 50%, transparent 75%)', animation:'nftFlash 0.6s ease-out forwards', pointerEvents:'none', zIndex:10 }}/>
+              )}
+            </div>
+          ) : (
+            /* Default: SVG emoji cat */
+            <div style={{ filter: catFilterStr, position:'relative' }}>
+              <ScaredCatSVG emotion={svgEmotion} jumping={showGif}/>
+              {skinFlash && (
+                <div style={{ position:'absolute', inset:'-20%', borderRadius:'50%', background:'radial-gradient(circle, rgba(180,100,255,0.9) 0%, rgba(80,200,255,0.5) 50%, transparent 75%)', animation:'nftFlash 0.6s ease-out forwards', pointerEvents:'none', zIndex:10 }}/>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
