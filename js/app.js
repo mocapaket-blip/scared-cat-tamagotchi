@@ -4,7 +4,7 @@
    ═══════════════════════════════════════════════ */
 
 const { useState, useEffect, useRef, useCallback } = React;
-const APP_VERSION = '1.0.7';
+const APP_VERSION = '1.0.8';
 
 // ── TRUST LEVEL SYSTEM ──────────────────────────────────────────────────────
 const TRUST_STAGES = [
@@ -131,13 +131,40 @@ function canBoostNow(active) {
   if (!active) return false;
   const type = ORDER_TYPES.find(t => t.id === active.type);
   if (!type || active.boostsUsed >= type.maxBoosts) return false;
-  if (!active.lastBoostTime) return true;
-  return Date.now() - active.lastBoostTime >= 4 * 3600000;
+  // Cooldown reference: last boost time, OR order start time if no boost yet
+  const ref = active.lastBoostTime || active.startTime || 0;
+  return Date.now() - ref >= 4 * 3600000;
 }
 
 function boostCooldownLeft(active) {
-  if (!active || !active.lastBoostTime) return 0;
-  return Math.max(0, active.lastBoostTime + 4 * 3600000 - Date.now());
+  if (!active) return 0;
+  const ref = active.lastBoostTime || active.startTime || 0;
+  return Math.max(0, ref + 4 * 3600000 - Date.now());
+}
+// ────────────────────────────────────────────────────────────────────────────
+
+// ── SCARED LVL SYSTEM ───────────────────────────────────────────────────────
+// Returns emoji icon + style info based on current scaredLvl
+function scaredIcon(lvl) {
+  if (lvl < 30) return { emoji:'😺', label:'Спокойный',        color:'#60d080', pulse:false };
+  if (lvl < 50) return { emoji:'😿', label:'Немного грустный', color:'#c0c040', pulse:false };
+  if (lvl < 70) return { emoji:'🙀', label:'Испуганный',       color:'#e08030', pulse:false };
+  if (lvl < 85) return { emoji:'😱', label:'Очень напуган',    color:'#e04040', pulse:true  };
+  return              { emoji:'💀', label:'Паника!',           color:'#ff2020', pulse:true  };
+}
+
+// fearMult: 1.0 at lvl=0, 0.30 at lvl=100
+function fearMult(lvl) { return 1 - (lvl / 100) * 0.70; }
+
+// Can this stat-action proceed? Returns null (ok) or block message string
+function scaredBlock(lvl, action) {
+  if (action === 'toilet' || action === 'bath') {
+    if (lvl > 70) return '🙀 Кот слишком напуган, чтобы это сделать';
+  }
+  if (action === 'medicine') {
+    if (lvl > 65) return '🙀 Кот не подпускает к себе';
+  }
+  return null;
 }
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -1117,6 +1144,7 @@ function TimezoneModal({ onSelect }) {
    ══════════════════════════════════════════════════ */
 function FreelanceScreen({ freelance, timezone, coins, level, onTakeOrder, onBoost, onClaimOrder, onBack }) {
   const [now, setNow] = React.useState(Date.now());
+  const [confirmOrder, setConfirmOrder] = React.useState(null); // { typeId, reward? }
   React.useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
@@ -1183,7 +1211,7 @@ function FreelanceScreen({ freelance, timezone, coins, level, onTakeOrder, onBoo
                   ⛔ Нельзя взять во время усталости (осталось {formatCountdownMs(fatigueLeft)})
                 </div>
               ) : (
-                <button onClick={() => onTakeOrder('urgent', urgentOffer.baseReward)}
+                <button onClick={() => !active && setConfirmOrder({ typeId:'urgent', reward: urgentOffer.baseReward })}
                   disabled={!!active}
                   style={{ width:'100%', padding:'12px', borderRadius:14, border:'none', cursor: active ? 'not-allowed' : 'pointer',
                     background: active ? 'rgba(100,40,30,0.5)' : 'linear-gradient(135deg,#e03020,#c02010)',
@@ -1293,7 +1321,7 @@ function FreelanceScreen({ freelance, timezone, coins, level, onTakeOrder, onBoo
               {availableOrders.map(type => {
                 const disabled = !!(fatigue && fatigueLeft > 0) || !!completedOrder;
                 return (
-                  <div key={type.id} onClick={() => !disabled && onTakeOrder(type.id)}
+                  <div key={type.id} onClick={() => !disabled && setConfirmOrder({ typeId: type.id })}
                     style={{ background: disabled ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.05)',
                       border:`1.5px solid ${disabled ? 'rgba(255,255,255,0.06)' : type.color + '44'}`,
                       borderRadius:18, padding:'16px', cursor: disabled ? 'not-allowed' : 'pointer',
@@ -1341,6 +1369,126 @@ function FreelanceScreen({ freelance, timezone, coins, level, onTakeOrder, onBoo
             </div>
           </div>
         </div>
+      </div>
+
+      {/* ── ПОДТВЕРЖДЕНИЕ ЗАКАЗА ── */}
+      {confirmOrder && (() => {
+        const type = ORDER_TYPES.find(t => t.id === confirmOrder.typeId);
+        const reward = confirmOrder.reward != null
+          ? confirmOrder.reward
+          : `${type?.min}–${type?.max}`;
+        return (
+          <div style={{ position:'absolute', inset:0, zIndex:200, background:'rgba(0,0,0,0.75)',
+            display:'flex', alignItems:'center', justifyContent:'center', padding:20,
+            backdropFilter:'blur(5px)', animation:'screenFade 0.2s ease' }}>
+            <div style={{ background:'linear-gradient(160deg,#141e30,#0a1020)',
+              borderRadius:24, padding:'28px 22px', width:'100%', maxWidth:320,
+              boxShadow:'0 12px 50px rgba(0,0,0,0.8), 0 0 0 1.5px rgba(80,140,255,0.25)',
+              border:'1.5px solid rgba(80,140,255,0.2)', textAlign:'center' }}>
+              <div style={{ fontSize:38, marginBottom:10 }}>{type?.icon}</div>
+              <div style={{ fontSize:18, fontWeight:900, color:'#c0d8ff', marginBottom:6 }}>Вы уверены?</div>
+              <div style={{ fontSize:14, fontWeight:800, color:'#80a0d0', marginBottom:4 }}>{type?.label}</div>
+              <div style={{ fontSize:12, color:'#4060a0', marginBottom:16, lineHeight:1.5 }}>
+                {type?.desc}<br/>
+                <span style={{ color:'#f5d060', fontWeight:800 }}>🪙 {reward}</span>
+                {'  '}
+                <span style={{ color:'#6080a0', fontWeight:700 }}>⏱ {fmtDuration(type?.durationMs || 0)}</span>
+              </div>
+              <div style={{ display:'flex', gap:10 }}>
+                <button onClick={() => setConfirmOrder(null)}
+                  style={{ flex:1, padding:'13px', borderRadius:14, border:'1.5px solid rgba(255,255,255,0.12)',
+                    background:'rgba(255,255,255,0.05)', color:'#7090b0', fontSize:14, fontWeight:800,
+                    cursor:'pointer', fontFamily:"'Nunito',sans-serif" }}>
+                  Отмена
+                </button>
+                <button onClick={() => {
+                    onTakeOrder(confirmOrder.typeId, confirmOrder.reward);
+                    setConfirmOrder(null);
+                  }}
+                  style={{ flex:1, padding:'13px', borderRadius:14, border:'none',
+                    background:`linear-gradient(135deg, ${type?.color || '#5080c0'}, ${type?.color || '#3060a0'})`,
+                    color:'white', fontSize:14, fontWeight:900, cursor:'pointer', fontFamily:"'Nunito',sans-serif",
+                    boxShadow:`0 4px 18px ${type?.color || '#3060a0'}66` }}>
+                  Взять! 💼
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════
+   SCARED LEVEL MODAL
+   ══════════════════════════════════════════════════ */
+function ScaredModal({ scaredLvl, onClose }) {
+  const info = scaredIcon(scaredLvl);
+  const tips = scaredLvl >= 85
+    ? ['😱 Кот в панике! Немедленно погладь его.', 'Лекарства, туалет и купание — недоступны.', 'Еда и сон работают очень плохо.']
+    : scaredLvl >= 70
+    ? ['🙀 Кот очень напуган.', 'Туалет и ванная — заблокированы.', 'Погладь кота или поиграй с ним.']
+    : scaredLvl >= 50
+    ? ['😿 Кот испуган.', 'Еда и игра восстанавливают меньше.', 'Регулярно гладь кота для успокоения.']
+    : scaredLvl >= 30
+    ? ['Кот немного тревожится.', 'Старайся почаще его гладить.']
+    : ['😺 Кот спокоен и доволен!', 'Продолжай заботиться о нём.'];
+
+  return (
+    <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(0,0,0,0.72)',
+      display:'flex', alignItems:'center', justifyContent:'center', padding:20, backdropFilter:'blur(5px)' }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background:'linear-gradient(160deg,#1a0a08,#100408)',
+        borderRadius:28, padding:'28px 22px 24px', maxWidth:320, width:'100%',
+        boxShadow:`0 12px 50px rgba(0,0,0,0.8), 0 0 0 1.5px ${info.color}44`,
+        border:`1.5px solid ${info.color}33`, animation:'modalIn 0.35s ease' }}>
+        <div style={{ textAlign:'center', marginBottom:16 }}>
+          <div style={{ fontSize:52, marginBottom:6, animation: info.pulse ? 'pulseCrit 1s ease-in-out infinite' : 'none' }}>
+            {info.emoji}
+          </div>
+          <div style={{ fontSize:20, fontWeight:900, color:'#f5e0d0', letterSpacing:-0.3 }}>Уровень Напуганности</div>
+          <div style={{ fontSize:14, fontWeight:800, color: info.color, marginTop:4 }}>{info.label}</div>
+        </div>
+        {/* Scared bar */}
+        <div style={{ marginBottom:16 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, fontWeight:700,
+            color:'rgba(255,255,255,0.4)', marginBottom:5 }}>
+            <span>Спокойствие</span>
+            <span style={{ color: info.color, fontWeight:900 }}>{Math.round(scaredLvl)}/100</span>
+            <span>Паника</span>
+          </div>
+          <div style={{ height:12, background:'rgba(255,255,255,0.08)', borderRadius:99, overflow:'hidden',
+            boxShadow:'inset 0 2px 4px rgba(0,0,0,0.5)' }}>
+            <div style={{ height:'100%', borderRadius:99, transition:'width 0.5s ease',
+              background:`linear-gradient(90deg, #60d080, #e08030, ${info.color})`,
+              width:`${scaredLvl}%`, boxShadow:`0 1px 8px ${info.color}88` }}/>
+          </div>
+        </div>
+        {/* Tips */}
+        <div style={{ background:'rgba(255,255,255,0.04)', borderRadius:14, padding:'12px 14px', marginBottom:18 }}>
+          {tips.map((tip, i) => (
+            <div key={i} style={{ fontSize:12, color: i === 0 ? '#f0d0b0' : 'rgba(255,255,255,0.5)',
+              fontWeight: i === 0 ? 800 : 600, marginBottom: i < tips.length-1 ? 5 : 0, lineHeight:1.4 }}>
+              {tip}
+            </div>
+          ))}
+        </div>
+        <div style={{ background:'rgba(255,200,100,0.08)', borderRadius:12, padding:'10px 14px',
+          border:'1px solid rgba(255,200,100,0.2)', marginBottom:18 }}>
+          <div style={{ fontSize:11, fontWeight:800, color:'#d0a050', marginBottom:3 }}>Как успокоить:</div>
+          <div style={{ fontSize:11, color:'rgba(255,220,160,0.7)', lineHeight:1.5 }}>
+            👋 Погладь кота (−8) &nbsp;•&nbsp; 🎮 Мини-игра (−3)<br/>
+            🍖 Корми из рук (−5) &nbsp;•&nbsp; 🎁 Ежедневка (−4)<br/>
+            🧸 Игрушка (−1)
+          </div>
+        </div>
+        <button onClick={onClose} style={{ width:'100%', padding:'14px', borderRadius:16, border:'none',
+          background:`linear-gradient(135deg, ${info.color}dd, ${info.color}99)`,
+          color:'white', fontSize:15, fontWeight:900, cursor:'pointer', fontFamily:"'Nunito',sans-serif",
+          boxShadow:`0 4px 18px ${info.color}55` }}>
+          Понятно {info.emoji}
+        </button>
       </div>
     </div>
   );
@@ -3224,6 +3372,9 @@ function App() {
   // Freelance system
   const [timezone,  setTimezone]  = useState(_INIT.timezone  || null);
   const [freelance, setFreelance] = useState(_INIT.freelance || defaultFreelance());
+  // Scared Level
+  const [scaredLvl,       setScaredLvl]       = useState(_INIT.scaredLvl ?? 85);
+  const [showScaredModal, setShowScaredModal] = useState(false);
   // Cloud sync
   const [syncStatus,     setSyncStatus]     = useState(null); // null | 'syncing' | 'ok' | 'error'
   // Toast/queue
@@ -3272,6 +3423,7 @@ function App() {
       walletAddress, ownedNFTs, activeNFT,
       trustPoints,
       timezone, freelance,
+      scaredLvl,
       lastUpdate: Date.now(),
     };
     // Always save locally immediately
@@ -3288,7 +3440,7 @@ function App() {
     return () => {
       if (cloudSyncTimer.current) clearTimeout(cloudSyncTimer.current);
     };
-  }, [stats, coins, xp, lastDaily, dailyStreak, inventory, equipped, actionCounts, dailyMissions, roomLayout, ownedDecor, ownedBgs, walletAddress, ownedNFTs, activeNFT, trustPoints, timezone, freelance]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [stats, coins, xp, lastDaily, dailyStreak, inventory, equipped, actionCounts, dailyMissions, roomLayout, ownedDecor, ownedBgs, walletAddress, ownedNFTs, activeNFT, trustPoints, timezone, freelance, scaredLvl]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Cloud Load on startup — sync from cloud if it's newer than local ──
   useEffect(() => {
@@ -3323,6 +3475,7 @@ function App() {
         if (cloud.trustPoints != null)  setTrustPoints(cloud.trustPoints);
         if (cloud.timezone)     setTimezone(cloud.timezone);
         if (cloud.freelance)    setFreelance({ ...defaultFreelance(), ...cloud.freelance });
+        if (cloud.scaredLvl != null)    setScaredLvl(cloud.scaredLvl);
         if (cloud.createdAt)    createdAt.current = cloud.createdAt;
 
         showToast('☁️ Прогресс загружен с облака');
@@ -3384,6 +3537,16 @@ function App() {
           try { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('warning'); } catch(_) {}
         }
         wasCritRef.current = nowCrit;
+        // ── Scared LvL drift (per 10s tick) ──
+        setScaredLvl(prev => {
+          let delta = 0.08; // baseline drift upward
+          if (next.hunger  >= 70) delta += 0.05;
+          if (next.fatigue >= 70) delta += 0.04;
+          if (next.toilet  >= 70) delta += 0.04;
+          if (next.mood    <= 30) delta += 0.06;
+          if (next.health  <= 30) delta += 0.08;
+          return Math.min(100, prev + delta);
+        });
         return next;
       });
     }, 10000);
@@ -3558,7 +3721,7 @@ function App() {
     const now = Date.now();
     setFreelance(prev => ({
       ...prev,
-      active: { type: typeId, endTime: now + type.durationMs, baseReward, bonusPct: 0, boostsUsed: 0, lastBoostTime: null },
+      active: { type: typeId, startTime: now, endTime: now + type.durationMs, baseReward, bonusPct: 0, boostsUsed: 0, lastBoostTime: null },
       urgentOffer: typeId === 'urgent' ? null : prev.urgentOffer,
     }));
     showToast(`💼 Заказ принят! ${type.label}`);
@@ -3599,12 +3762,19 @@ function App() {
     const count = inventory[item.id] || 0;
     if (count <= 0) return;
     setInventory(prev => ({ ...prev, [item.id]: prev[item.id] - 1 }));
+    const fm = fearMult(scaredLvl);
+    const hungerRaw   = item.hunger || 0;
+    const hungerGain  = hungerRaw * fm;               // scared → less hunger restored
+    // At scaredLvl > 80, floor: can't restore hunger below the fear-floor
+    const fearFloor   = scaredLvl > 80 ? (scaredLvl - 80) * 0.6 : 0;
     setStats(prev => ({
       ...prev,
-      hunger: clamp(prev.hunger + item.hunger, 0, 100),
-      mood:   clamp(prev.mood   + (item.mood   || 0), 0, 100),
-      health: clamp(prev.health + (item.health || 0), 0, 100),
+      hunger: Math.max(fearFloor, clamp(prev.hunger - hungerGain, 0, 100)),
+      mood:   clamp(prev.mood   + (item.mood   || 0) * fm, 0, 100),
+      health: clamp(prev.health + (item.health || 0),      0, 100),
     }));
+    // Feeding slightly calms the cat
+    setScaredLvl(p => Math.max(0, p - 0.5));
     const earned = earnCoins(8, level);
     setCoins(c => c + earned);
     applyXP(item.xp);
@@ -3614,17 +3784,20 @@ function App() {
     spawnHearts(3, 80);
     playSound('feed');
     showToast(`${item.emoji} +${earned}🪙 +${item.xp}XP`);
-  }, [inventory, level, applyXP, applyTrust, afterAction, spawnHearts, showToast]);
+  }, [inventory, level, scaredLvl, applyXP, applyTrust, afterAction, spawnHearts, showToast]);
 
   const handleUseToy = useCallback((item) => {
     const count = inventory[item.id] || 0;
     if (count <= 0) return;
     setInventory(prev => ({ ...prev, [item.id]: prev[item.id] - 1 }));
+    const fm = fearMult(scaredLvl);
     setStats(prev => ({
       ...prev,
-      mood:    clamp(prev.mood    + item.mood,    0, 100),
+      mood:    clamp(prev.mood    + item.mood * fm,    0, 100),
       fatigue: clamp(prev.fatigue + (item.fatigue || 0), 0, 100),
     }));
+    // Playing a little calms the cat
+    setScaredLvl(p => Math.max(0, p - 1));
     const earned = earnCoins(5, level);
     setCoins(c => c + earned);
     applyXP(item.xp);
@@ -3634,13 +3807,30 @@ function App() {
     spawnHearts(4, 100);
     playSound('toy');
     showToast(`${item.emoji} +${earned}🪙 +${item.xp}XP`);
-  }, [inventory, level, applyXP, applyTrust, afterAction, spawnHearts, showToast]);
+  }, [inventory, level, scaredLvl, applyXP, applyTrust, afterAction, spawnHearts, showToast]);
 
   // roomKey: 'bathroomCount' | 'sleepCount' | 'clinicCount'
   const handleRoomAction = useCallback((statChanges, baseXP, baseCoins, roomKey) => {
+    // ── Scared LvL blocks / reduces effects ──
+    const isToilet   = roomKey === 'bathroomCount' && (statChanges.toilet != null);
+    const isBath     = roomKey === 'bathroomCount' && (statChanges.toilet == null);
+    const isMedicine = roomKey === 'clinicCount';
+    const isSleep    = roomKey === 'sleepCount';
+
+    const blockMsg = isToilet   ? scaredBlock(scaredLvl, 'toilet')
+                   : isBath     ? scaredBlock(scaredLvl, 'bath')
+                   : isMedicine ? scaredBlock(scaredLvl, 'medicine')
+                   : null;
+    if (blockMsg) { showToast(blockMsg); return; }
+
+    const fm = fearMult(scaredLvl);
     setStats(prev => {
       const s = { ...prev };
-      Object.entries(statChanges).forEach(([k, v]) => { s[k] = clamp((s[k] || 0) + v, 0, 100); });
+      Object.entries(statChanges).forEach(([k, v]) => {
+        // Sleep and mood recovery reduced by fear
+        const mult = (isSleep && (k === 'fatigue' || k === 'mood')) ? fm : 1;
+        s[k] = clamp((s[k] || 0) + v * mult, 0, 100);
+      });
       return s;
     });
     const earned = earnCoins(baseCoins, level);
@@ -3653,7 +3843,7 @@ function App() {
     showToast(`+${earned}🪙 +${baseXP}XP`);
     setActionDone(true);
     setTimeout(() => { setScreen('home'); setActionDone(false); }, 1800);
-  }, [level, applyXP, applyTrust, afterAction, spawnHearts, showToast]);
+  }, [level, scaredLvl, applyXP, applyTrust, afterAction, spawnHearts, showToast]);
 
   // ── NFT Wallet handlers ──
   // ── TON Connect: persistent listener (fires when user returns from wallet app) ──
@@ -3842,6 +4032,8 @@ function App() {
     if (hungerReduce > 0) setStats(prev => ({ ...prev, hunger: clamp(prev.hunger - hungerReduce, 0, 100) }));
     if (bonusItem)        setInventory(prev => ({ ...prev, [bonusItem]: (prev[bonusItem] || 0) + 1 }));
     afterAction('minigameWins');
+    // Mini-games calm the cat (−3 scared)
+    setScaredLvl(p => Math.max(0, p - 3));
     playSound('coin');
     showToast(`🎉 +${earnedCoins}🪙 +${xpGain}XP${bonusItem ? ' +🎁' : ''}`);
     setScreen('home');
@@ -3893,6 +4085,8 @@ function App() {
     setDailyStreak(pendingStreak);
     setLastDaily(Date.now());
     setShowDailyModal(false);
+    // Daily reward calms the cat a bit
+    setScaredLvl(p => Math.max(0, p - 4));
     playSound('daily');
     showToast(`🎁 +${reward.coins}🪙 +${reward.xp}XP`);
   }, [pendingStreak, applyXP, showToast]);
@@ -3906,6 +4100,8 @@ function App() {
     const pEmoji = CAT_STATES[cs]?.particle || '❤️';
     spawnHearts(3, 80, pEmoji);
     applyTrust(2); // +2 trust for petting the cat
+    // Petting strongly calms the cat (−8 scared)
+    setScaredLvl(p => Math.max(0, p - 8));
     if (showGif) return;
     setShowGif(true);
     clearTimeout(gifTimer.current);
@@ -4081,6 +4277,7 @@ function App() {
 
   // ── HOME SCREEN ──
   const PANEL_H = 192;
+  const scaredInfo = scaredIcon(scaredLvl);
   // Emotion-state derived values (Phase 3)
   const catAnimStyle  = showGif ? 'none' : catEmoCfg.anim;
   const catFilterStr  = catEmoCfg.filter === 'none' ? 'drop-shadow(0 8px 22px rgba(0,0,0,0.65))' : `drop-shadow(0 8px 22px rgba(0,0,0,0.65)) ${catEmoCfg.filter}`;
@@ -4177,6 +4374,28 @@ function App() {
             </div>
             <div style={{ marginTop:2, fontSize:9, fontWeight:700, color:'#7060a0' }}>
               {trustProg.curPts} / {trustProg.needed || '—'} оч.
+            </div>
+          </div>
+          {/* Scared LvL row */}
+          <div onClick={() => setShowScaredModal(true)}
+            style={{ cursor:'pointer', marginTop:7, paddingTop:7, borderTop:'1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                <span style={{ fontSize:12, animation: scaredInfo.pulse ? 'pulseCrit 1s ease-in-out infinite' : 'none' }}>
+                  {scaredInfo.emoji}
+                </span>
+                <span style={{ fontSize:10, fontWeight:800, color:'rgba(255,200,160,0.8)', letterSpacing:0.2 }}>Страх</span>
+              </div>
+              <span style={{ fontSize:9, fontWeight:700, color: scaredInfo.color }}>{scaredInfo.label}</span>
+            </div>
+            <div style={{ height:4, background:'rgba(255,255,255,0.08)', borderRadius:99, overflow:'hidden', marginTop:4,
+              boxShadow:'inset 0 1px 2px rgba(0,0,0,0.5)' }}>
+              <div style={{
+                height:'100%', borderRadius:99,
+                background:`linear-gradient(90deg, #60d08088, ${scaredInfo.color})`,
+                width:`${scaredLvl}%`, transition:'width 0.6s ease',
+                boxShadow:`0 1px 4px ${scaredInfo.color}88`,
+              }}/>
             </div>
           </div>
         </div>
@@ -4281,7 +4500,8 @@ function App() {
       {showDailyModal && !returnData && <DailyRewardModal streak={pendingStreak} onClaim={handleClaimDaily}/>}
       {levelUpModal   && !returnData && <LevelUpModal     level={levelUpModal}  onClose={() => setLevelUpModal(null)}/>}
       {returnData     && <ReturnModal returnData={returnData} onClaim={handleClaimReturn}/>}
-      {showTrustModal && <TrustModal trustPoints={trustPoints} onClose={() => setShowTrustModal(false)}/>}
+      {showTrustModal  && <TrustModal trustPoints={trustPoints} onClose={() => setShowTrustModal(false)}/>}
+      {showScaredModal && <ScaredModal scaredLvl={scaredLvl} onClose={() => setShowScaredModal(false)}/>}
     </div>
   );
 }

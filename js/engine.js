@@ -63,6 +63,8 @@ function defaultState() {
     // Freelance & timezone
     timezone:     null,
     freelance:    defaultFreelance(),
+    // Scared Level
+    scaredLvl:    80 + Math.random() * 10,
   };
 }
 
@@ -147,6 +149,8 @@ const _INIT = (() => {
         trustPoints:   saved.trustPoints  || 0,
         timezone:      saved.timezone     || null,
         freelance:     saved.freelance    ? { ...defaultFreelance(), ...saved.freelance } : defaultFreelance(),
+        // Scared LvL: grows offline (+2 per 10 min), cap at 100
+        scaredLvl:     Math.min(100, (saved.scaredLvl ?? 85) + (minsAway / 10) * 2),
         complaint:     null,
         canClaimDaily: daily.canClaim,
         pendingStreak: daily.newStreak,
