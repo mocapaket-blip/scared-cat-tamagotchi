@@ -880,9 +880,7 @@ function PawIndicator({ pawId, icon, label, fill, critical, onClick }) {
         <span style={{
           fontSize:28, lineHeight:1, zIndex:1,
           animation: critical ? 'pawShake 0.42s linear infinite' : 'none',
-          display:'flex', alignItems:'center', justifyContent:'center',
-          width:'100%', height:'100%',
-          position:'absolute', top:0, left:0,
+          display:'block',
           filter: critical ? 'drop-shadow(0 0 4px rgba(255,80,50,0.6))' : 'none',
         }}>{icon}</span>
       </div>
