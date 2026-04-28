@@ -4,7 +4,7 @@
    ═══════════════════════════════════════════════ */
 
 const { useState, useEffect, useRef, useCallback } = React;
-const APP_VERSION = '1.0.9';
+const APP_VERSION = '1.0.10';
 
 // ── TRUST LEVEL SYSTEM ──────────────────────────────────────────────────────
 const TRUST_STAGES = [
@@ -1773,7 +1773,9 @@ function HomeRoom() {
   );
 }
 
-function KitchenRoom() {
+function KitchenRoom({ onFoodBowlClick, onWaterBowlClick, foodCooldown, waterCooldown }) {
+  const foodOnCd  = foodCooldown  > 0;
+  const waterOnCd = waterCooldown > 0;
   return (
     <svg viewBox="0 0 390 650" style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
       <defs>
@@ -1880,20 +1882,69 @@ function KitchenRoom() {
         <line key={i} x1={x} y1="288" x2={x} y2="650" stroke="#3a1800" strokeWidth="1.5" opacity="0.35"/>
       ))}
 
-      {/* ── Cat food bowls on floor ── */}
-      {/* Bowl 1 — water */}
-      <ellipse cx="130" cy="600" rx="44" ry="16" fill="#909aa0" stroke="#5a6268" strokeWidth="2.5" filter="url(#kShadow)"/>
-      <ellipse cx="130" cy="596" rx="36" ry="11" fill="#c8d8e0"/>
-      <ellipse cx="130" cy="594" rx="28" ry="7" fill="#80b8e0" opacity="0.9"/>
-      {/* Bowl 2 — food */}
-      <ellipse cx="258" cy="600" rx="44" ry="16" fill="url(#kbowlG)" stroke="#8a6040" strokeWidth="2.5" filter="url(#kShadow)"/>
-      <ellipse cx="258" cy="596" rx="36" ry="11" fill="#f0c890"/>
-      {/* Kibble pieces */}
-      {[[245,593,5],[258,591,6],[270,593,5],[252,598,5],[264,598,5]].map(([cx,cy,r],i)=>(
-        <circle key={i} cx={cx} cy={cy} r={r} fill={i%2===0?"#c86020":"#d87030"} stroke="#8a4010" strokeWidth="1.5"/>
-      ))}
-      {/* Placemat under bowls */}
-      <ellipse cx="194" cy="604" rx="90" ry="22" fill="#c04018" opacity="0.25"/>
+      {/* ── Placemat under bowls ── */}
+      <ellipse cx="194" cy="604" rx="98" ry="24" fill="#c04018" opacity="0.22"/>
+
+      {/* ── Water bowl (interactive) ── */}
+      <g onClick={onWaterBowlClick} style={{ cursor: waterOnCd ? 'not-allowed' : 'pointer' }}>
+        {/* Glow ring — animates when not on cooldown */}
+        {!waterOnCd && onWaterBowlClick && (
+          <ellipse cx="130" cy="600" rx="52" ry="20" fill="none" stroke="#60b8ff" strokeWidth="3" opacity="0.7">
+            <animate attributeName="opacity" values="0.3;0.85;0.3" dur="1.8s" repeatCount="indefinite"/>
+            <animate attributeName="rx"      values="50;58;50"      dur="1.8s" repeatCount="indefinite"/>
+            <animate attributeName="ry"      values="18;24;18"      dur="1.8s" repeatCount="indefinite"/>
+          </ellipse>
+        )}
+        {waterOnCd && (
+          <ellipse cx="130" cy="600" rx="50" ry="19" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="2" strokeDasharray="6 4"/>
+        )}
+        <ellipse cx="130" cy="600" rx="44" ry="16"
+          fill="#909aa0" stroke={waterOnCd ? '#4a5258' : '#5a6268'} strokeWidth="2.5" filter="url(#kShadow)"
+          opacity={waterOnCd ? 0.6 : 1}/>
+        <ellipse cx="130" cy="596" rx="36" ry="11" fill="#c8d8e0" opacity={waterOnCd ? 0.5 : 1}/>
+        <ellipse cx="130" cy="594" rx="28" ry="7"  fill="#80b8e0" opacity={waterOnCd ? 0.4 : 0.9}/>
+        {/* Label */}
+        {onWaterBowlClick && (
+          <text x="130" y="622" textAnchor="middle" fontSize="9" fontWeight="800"
+            fill={waterOnCd ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.55)'}
+            fontFamily="Nunito,sans-serif" letterSpacing="0.5">
+            {waterOnCd ? '⏳' : '💧 вода'}
+          </text>
+        )}
+      </g>
+
+      {/* ── Food bowl (interactive) ── */}
+      <g onClick={onFoodBowlClick} style={{ cursor: foodOnCd ? 'not-allowed' : 'pointer' }}>
+        {/* Glow ring */}
+        {!foodOnCd && onFoodBowlClick && (
+          <ellipse cx="258" cy="600" rx="52" ry="20" fill="none" stroke="#f5c040" strokeWidth="3" opacity="0.7">
+            <animate attributeName="opacity" values="0.3;0.85;0.3" dur="1.6s" repeatCount="indefinite"/>
+            <animate attributeName="rx"      values="50;58;50"      dur="1.6s" repeatCount="indefinite"/>
+            <animate attributeName="ry"      values="18;24;18"      dur="1.6s" repeatCount="indefinite"/>
+          </ellipse>
+        )}
+        {foodOnCd && (
+          <ellipse cx="258" cy="600" rx="50" ry="19" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="2" strokeDasharray="6 4"/>
+        )}
+        <ellipse cx="258" cy="600" rx="44" ry="16"
+          fill="url(#kbowlG)" stroke={foodOnCd ? '#5a4020' : '#8a6040'} strokeWidth="2.5" filter="url(#kShadow)"
+          opacity={foodOnCd ? 0.6 : 1}/>
+        <ellipse cx="258" cy="596" rx="36" ry="11" fill="#f0c890" opacity={foodOnCd ? 0.5 : 1}/>
+        {/* Kibble pieces */}
+        {[[245,593,5],[258,591,6],[270,593,5],[252,598,5],[264,598,5]].map(([cx,cy,r],i)=>(
+          <circle key={i} cx={cx} cy={cy} r={r}
+            fill={i%2===0?"#c86020":"#d87030"} stroke="#8a4010" strokeWidth="1.5"
+            opacity={foodOnCd ? 0.4 : 1}/>
+        ))}
+        {/* Label */}
+        {onFoodBowlClick && (
+          <text x="258" y="622" textAnchor="middle" fontSize="9" fontWeight="800"
+            fill={foodOnCd ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.55)'}
+            fontFamily="Nunito,sans-serif" letterSpacing="0.5">
+            {foodOnCd ? '⏳' : '🍔 еда'}
+          </text>
+        )}
+      </g>
     </svg>
   );
 }
@@ -2427,17 +2478,9 @@ const ROOM_DEFS = {
   kitchen: {
     RoomComp: KitchenRoom, bgColor:'#3a2008', roomName:'🍔 Голод', catDefaultX:'52%',
     minigameScreen:'minigame_catch', minigameLabel:'🎯 Поймай еду',
+    // bowl and faucet are now clickable SVG elements inside KitchenRoom, not hotspots
     objects:[
-      { id:'bowl',   emoji:'🥣', label:'Миска',    posX:'38%', posY:'80%', catTargetX:'30%', thought:'😋', cooldownMin:5,  isCatTap:false,
-        getEffect:(inv)=>{
-          const f = ['food_premium','food_tasty','food_basic'].find(k=>inv[k]>0);
-          if (!f) return { ok:false, msg:'Нет еды! Купи в магазине 🛒' };
-          const it = FOOD_ITEMS.find(i=>i.id===f);
-          return { ok:true, useItem:f, delta:{ hunger:it.hunger, mood:it.mood||0, health:it.health||0 }, xp:it.xp, particles:'🍖', msg:`${it.emoji} Кот поел!`, actionKey:'feedCount', premiumFed: f==='food_premium' };
-        }},
-      { id:'faucet', emoji:'🚰', label:'Водичка',  posX:'13%', posY:'37%', catTargetX:'8%',  thought:'💧', cooldownMin:2,  isCatTap:false,
-        getEffect:()=>({ ok:true, delta:{ hunger:-5, mood:2 }, xp:1, particles:'💧', msg:'💧 Кот попил водички!' })},
-      { id:'cat_k',  emoji:'🐾', label:'Котик',    posX:null,  posY:null,                    thought:'😺', cooldownMin:1,  isCatTap:true,
+      { id:'cat_k',  emoji:'🐾', label:'Котик', posX:null, posY:null, thought:'😺', cooldownMin:1, isCatTap:true,
         getEffect:()=>({ ok:true, delta:{ mood:3 }, xp:0, particles:'💕', msg:'Мурр~ 💕' })},
     ]
   },
@@ -2712,19 +2755,6 @@ function RoomScreen({ roomId, fills, isCrit, activeNav, setActiveNav, onPawClick
   function handleTap(obj) {
     const cdKey = `${roomId}_${obj.id}`;
     if ((cooldowns[cdKey] || 0) > Date.now()) return;
-
-    // ── Kitchen: open feed menu instead of direct action ──
-    if (roomId === 'kitchen' && obj.id === 'bowl') {
-      setKitchenMenuTab('food');
-      setKitchenMenuOpen(true);
-      return;
-    }
-    if (roomId === 'kitchen' && obj.id === 'faucet') {
-      setKitchenMenuTab('water');
-      setKitchenMenuOpen(true);
-      return;
-    }
-
     const result = obj.getEffect(inventory, stats);
     if (!result.ok) {
       setCatThought('😿');
@@ -2789,7 +2819,16 @@ function RoomScreen({ roomId, fills, isCrit, activeNav, setActiveNav, onPawClick
     <div style={{ position:'absolute', inset:0, background:def.bgColor, animation:'screenFade 0.3s ease' }}>
       {/* Room + hotspots */}
       <div style={{ position:'absolute', top:0, left:0, right:0, bottom:PANEL_H, overflow:'hidden' }}>
-        <def.RoomComp/>
+        {roomId === 'kitchen' ? (
+          <def.RoomComp
+            onFoodBowlClick={() => { setKitchenMenuTab('food');  setKitchenMenuOpen(true); }}
+            onWaterBowlClick={() => { setKitchenMenuTab('water'); setKitchenMenuOpen(true); }}
+            foodCooldown={Math.max(0, (cooldowns['kitchen_bowl']   || 0) - Date.now())}
+            waterCooldown={Math.max(0, (cooldowns['kitchen_faucet']|| 0) - Date.now())}
+          />
+        ) : (
+          <def.RoomComp/>
+        )}
         {def.objects.filter(o=>!o.isCatTap && o.posX).map(obj => {
           const cdKey = `${roomId}_${obj.id}`;
           const initCd = Math.max(0, (cooldowns[cdKey]||0) - Date.now());
