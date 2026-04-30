@@ -475,15 +475,14 @@ function CatchGameScreen({ level, onComplete, onBack }) {
     });
   }, [addParticle]);
 
-  // ── Compute rewards ──
-  const tier = score >= 300 ? 'gold' : score >= 150 ? 'silver' : 'bronze';
+  // ── Compute rewards (30–50 монет, 5–10 XP) ──
+  const tier = score >= 200 ? 'gold' : score >= 80 ? 'silver' : 'bronze';
   const tierEmoji = tier === 'gold' ? '🥇' : tier === 'silver' ? '🥈' : '🥉';
   const tierLabel = tier === 'gold' ? 'Золото!' : tier === 'silver' ? 'Серебро!' : 'Бронза!';
-  const baseCoins = tier === 'gold' ? 90 : tier === 'silver' ? 50 : 20;
-  const earnedCoins = earnCoins(baseCoins + refs.current.bonusCoins, level);
-  const xpGain = ACTION_XP.minigame_base + Math.min(Math.floor(score / 5) * 4, 80);
-  const hungerReduce = Math.min(refs.current.hungerSum, 40);
-  const bonusItem = tier === 'gold' ? 'food_premium' : null;
+  const baseCoins = tier === 'gold' ? 45 : tier === 'silver' ? 35 : 28;
+  const earnedCoins = Math.min(50, earnCoins(baseCoins, level));
+  const xpGain = tier === 'gold' ? 10 : tier === 'silver' ? 7 : 5;
+  const hungerReduce = Math.min(refs.current.hungerSum, 25);
 
   // ── Circular SVG timer ──
   const R = 22, CIRC = 2 * Math.PI * R;
@@ -500,10 +499,9 @@ function CatchGameScreen({ level, onComplete, onBack }) {
         <div style={{ fontSize:22, fontWeight:900, color:'#ffd060' }}>+{earnedCoins} 🪙</div>
         <div style={{ fontSize:15, color:'#a0c880', fontWeight:700 }}>+{xpGain} XP</div>
         {hungerReduce > 0 && <div style={{ fontSize:14, color:'#f0c060', fontWeight:700 }}>🍔 Голод −{Math.round(hungerReduce)}%</div>}
-        {bonusItem && <div style={{ fontSize:14, color:'#ffd060', fontWeight:800 }}>🎁 Премиум-еда ×1!</div>}
       </div>
       <button
-        onClick={() => onComplete(earnedCoins, xpGain, hungerReduce, bonusItem)}
+        onClick={() => onComplete(earnedCoins, xpGain, hungerReduce)}
         style={{ background:'linear-gradient(155deg,#ffd060,#f0a020)', border:'none', borderRadius:22, padding:'16px 0', fontSize:18, fontWeight:900, color:'white', cursor:'pointer', boxShadow:'0 6px 0 #c07808', width:'100%', maxWidth:280 }}>
         Забрать! 🎉
       </button>
@@ -666,9 +664,10 @@ function MemoryGameScreen({ level, onComplete, onBack }) {
   }, [cards, flipped, gameOver]);
 
   const matchedPairs = cards.filter(c => c.matched).length / 2;
-  const coinBase = won ? Math.round(60 + timeLeft * 1.5) : Math.max(0, matchedPairs * 12);
-  const earnedCoins = earnCoins(coinBase, level);
-  const xpGain = won ? ACTION_XP.minigame_base + 30 : ACTION_XP.minigame_base + matchedPairs * 3;
+  // Награды: 30–50 монет, 5–10 XP
+  const coinBase = won ? 45 : Math.max(28, matchedPairs * 4);
+  const earnedCoins = Math.min(50, earnCoins(coinBase, level));
+  const xpGain = won ? 10 : Math.max(5, matchedPairs);
 
   if (gameOver) return (
     <div style={{ position:'absolute', inset:0, background:'linear-gradient(180deg,#0a1828,#1a2e48)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:20, padding:32, animation:'screenFade 0.3s ease' }}>
@@ -3177,16 +3176,16 @@ function ComplaintOverlay({ text, onClose }) {
    PHASE 3 — RETURN HOME MODAL
    ══════════════════════════════════════════════════ */
 function ReturnModal({ returnData, onClaim }) {
-  const { minsAway, statsBefore, statsAfter, bonus } = returnData;
+  const { minsAway, statsBefore, statsAfter } = returnData;
   const h = Math.floor(minsAway / 60);
   const m = Math.floor(minsAway % 60);
-  const timeStr = h > 0 ? `${h} ч${m > 0 ? ' ' + m + ' мин' : ''}` : `${m} мин`;
+  const timeStr = h > 0
+    ? (m > 0 ? `${h} ч ${m} мин` : `${h} ч`)
+    : `${m} мин`;
 
-  // Derive severity label for the title
-  const rawMinsTotal = minsAway;
-  const titleText = rawMinsTotal >= 360
+  const titleText = minsAway >= 360
     ? 'Кот очень соскучился! 😢'
-    : rawMinsTotal >= 120
+    : minsAway >= 120
     ? 'Пока тебя не было... 😿'
     : 'Кот тебя ждал! 🐱';
 
@@ -3243,17 +3242,6 @@ function ReturnModal({ returnData, onClaim }) {
             );
           })}
         </div>
-
-        {/* Return bonus */}
-        {bonus.coins > 0 && (
-          <div style={{ background:'linear-gradient(135deg,rgba(255,210,60,0.14),rgba(255,130,20,0.14))', border:'1.5px solid rgba(255,210,60,0.38)', borderRadius:16, padding:'12px 16px', marginBottom:16, display:'flex', alignItems:'center', gap:14 }}>
-            <div style={{ fontSize:36, animation:'dailyBounce 1.4s ease-in-out infinite' }}>🎁</div>
-            <div style={{ textAlign:'left' }}>
-              <div style={{ fontSize:11, color:'#ffd060', fontWeight:800, textTransform:'uppercase', letterSpacing:0.4 }}>Бонус за ожидание</div>
-              <div style={{ fontSize:17, fontWeight:900, color:'#f5dfc0' }}>+{bonus.coins} 🪙 &nbsp;+{bonus.xp} XP</div>
-            </div>
-          </div>
-        )}
 
         <button onClick={onClaim} style={{ background:'linear-gradient(155deg,#ffd060,#f0a020)', border:'none', borderRadius:18, padding:'15px 36px', fontSize:17, fontWeight:900, color:'white', cursor:'pointer', boxShadow:'0 5px 0 #c07808', width:'100%', fontFamily:"'Nunito',sans-serif" }}>
           Я дома! 🏠
@@ -3928,15 +3916,18 @@ function App() {
   CAT = activeNFT ? activeNFT.image : CAT_DEFAULT;
   GIF = activeNFT ? activeNFT.image : GIF_DEFAULT;
 
-  const createdAt      = useRef(_INIT.createdAt);
-  const walkRef        = useRef({ x: 111, dir: 1 });
-  const gifTimer       = useRef(null);
-  const heartId        = useRef(0);
-  const toastTimer     = useRef(null);
-  const cloudSyncTimer = useRef(null);
-  const wasCritRef     = useRef({ hunger: false, fatigue: false, toilet: false, mood: false, health: false });
-  const nftBonusRef    = useRef(nftBonus);
-  nftBonusRef.current  = nftBonus; // always fresh inside callbacks
+  const createdAt        = useRef(_INIT.createdAt);
+  const walkRef          = useRef({ x: 111, dir: 1 });
+  const gifTimer         = useRef(null);
+  const heartId          = useRef(0);
+  const toastTimer       = useRef(null);
+  const cloudSyncTimer   = useRef(null);
+  const wasCritRef       = useRef({ hunger: false, fatigue: false, toilet: false, mood: false, health: false });
+  const nftBonusRef      = useRef(nftBonus);
+  nftBonusRef.current    = nftBonus; // always fresh inside callbacks
+  // ── Fear/Trust penalty tracking refs ──
+  const lastBadCheckRef  = useRef(Date.now()); // last time we ran the 30-min bad-state check
+  const allCritSinceRef  = useRef(null);        // timestamp when all-stats-below-15% condition started
 
   const day = Math.max(1, Math.floor((Date.now() - createdAt.current) / 86400000) + 1);
 
@@ -4070,6 +4061,7 @@ function App() {
   // ── In-app decay tick (every 10 seconds) ──
   useEffect(() => {
     const t = setInterval(() => {
+      const now = Date.now();
       setStats(p => {
         // NFT bonus: multiply decay minutes by nftBonus.decayMult (<1 = slower decay)
         const next = applyDecay(p, (10 / 60) * nftBonus.decayMult, level);
@@ -4087,6 +4079,7 @@ function App() {
           try { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('warning'); } catch(_) {}
         }
         wasCritRef.current = nowCrit;
+
         // ── Scared LvL drift (per 10s tick) ──
         setScaredLvl(prev => {
           let delta = 0.08; // baseline drift upward
@@ -4097,6 +4090,50 @@ function App() {
           if (next.health  <= 30) delta += 0.08;
           return Math.min(100, prev + delta);
         });
+
+        // ── 30-min fear/trust penalty check ──
+        if (now - lastBadCheckRef.current >= 30 * 60000) {
+          lastBadCheckRef.current = now;
+
+          // Count bad stats by display threshold:
+          // hunger/fatigue/toilet ≥ (100-pct) = displayed below pct%
+          // mood/health ≤ pct = displayed below pct%
+          const countBelow = (pct) => {
+            let c = 0;
+            if (next.hunger  >= 100 - pct) c++;
+            if (next.fatigue >= 100 - pct) c++;
+            if (next.toilet  >= 100 - pct) c++;
+            if (next.mood    <= pct)        c++;
+            if (next.health  <= pct)        c++;
+            return c;
+          };
+          const bad20  = countBelow(20);
+          const bad30  = countBelow(30);
+          const all15  = next.hunger  >= 85 && next.fatigue >= 85 && next.toilet >= 85
+                      && next.mood   <= 15 && next.health  <= 15;
+
+          // All-stats-critical 2h+ tracker
+          if (all15) {
+            if (!allCritSinceRef.current) allCritSinceRef.current = now;
+          } else {
+            allCritSinceRef.current = null;
+          }
+
+          if (bad30 >= 3) {
+            // ≥3 стата < 30% → страх +10, доверие −4 за 30 мин
+            setScaredLvl(sp => Math.min(100, sp + 10));
+            setTrustPoints(tp => Math.max(0, tp - 4));
+          } else if (bad20 >= 2) {
+            // ≥2 стата < 20% → страх +6 за 30 мин
+            setScaredLvl(sp => Math.min(100, sp + 6));
+          }
+
+          // Все статы < 15% дольше 2 часов → −6 доверия/30 мин (≈ −12/ч)
+          if (allCritSinceRef.current && (now - allCritSinceRef.current) >= 2 * 3600000) {
+            setTrustPoints(tp => Math.max(0, tp - 6));
+          }
+        }
+
         return next;
       });
     }, 10000);
@@ -4328,7 +4365,7 @@ function App() {
     const earned = earnCoins(8, level);
     setCoins(c => c + earned);
     applyXP(item.xp);
-    applyTrust(1);
+    applyTrust(9);
     afterAction('feedCount');
     if (item.id === 'food_premium') afterAction('premiumFed');
     spawnHearts(3, 80);
@@ -4351,7 +4388,7 @@ function App() {
     const earned = earnCoins(5, level);
     setCoins(c => c + earned);
     applyXP(item.xp);
-    applyTrust(2);
+    applyTrust(9);
     afterAction('toyCount');
     afterAction('playCount');
     spawnHearts(4, 100);
@@ -4578,19 +4615,37 @@ function App() {
     showToast(msg || '✨');
   }, [level, applyXP, afterAction, spawnHearts, showToast]);
 
-  const handleMinigameComplete = useCallback((earnedCoins, xpGain, hungerReduce = 0, bonusItem = null) => {
-    const finalCoins = Math.round(earnedCoins * nftBonusRef.current.earnMult);
+  const handleMinigameComplete = useCallback((earnedCoins, xpGain, hungerReduce = 0) => {
+    // Cap: 30–50 монет, 5–10 XP (по балансу)
+    const cappedCoins = Math.min(50, Math.max(28, earnedCoins));
+    const cappedXP    = Math.min(10, Math.max(5,  xpGain));
+    const finalCoins  = Math.round(cappedCoins * nftBonusRef.current.earnMult);
     setCoins(c => c + finalCoins);
-    applyXP(xpGain);
+    applyXP(cappedXP);
     if (hungerReduce > 0) setStats(prev => ({ ...prev, hunger: clamp(prev.hunger - hungerReduce, 0, 100) }));
-    if (bonusItem)        setInventory(prev => ({ ...prev, [bonusItem]: (prev[bonusItem] || 0) + 1 }));
     afterAction('minigameWins');
-    // Mini-games calm the cat (−3 scared)
+    // Мини-игры успокаивают кота (−3 страх)
     setScaredLvl(p => Math.max(0, p - 3));
+    // Кулдаун 2.5 часа после мини-игры
+    setCooldowns(prev => ({ ...prev, minigame: Date.now() + 2.5 * 3600000 }));
     playSound('coin');
-    showToast(`🎉 +${earnedCoins}🪙 +${xpGain}XP${bonusItem ? ' +🎁' : ''}`);
+    showToast(`🎉 +${finalCoins}🪙 +${cappedXP}XP`);
     setScreen('home');
   }, [applyXP, afterAction, showToast]);
+
+  // ── Запуск мини-игры с проверкой кулдауна ──
+  const handleMinigameStart = useCallback((gameScreen) => {
+    const cdEnd = cooldowns.minigame || 0;
+    if (cdEnd > Date.now()) {
+      const mins = Math.ceil((cdEnd - Date.now()) / 60000);
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      const timeStr = h > 0 ? `${h} ч ${m > 0 ? m + ' мин' : ''}` : `${m} мин`;
+      showToast(`⏳ Перерыв: ещё ${timeStr.trim()}`);
+      return;
+    }
+    setScreen(gameScreen);
+  }, [cooldowns, showToast]);
 
   const handleShopBuy = useCallback((item) => {
     if (coins < item.cost) { showToast('Недостаточно монет 😿'); return; }
@@ -4624,7 +4679,7 @@ function App() {
     const earned = earnCoins(8, level);
     setCoins(c => c + earned);
     applyXP(item.xp);
-    applyTrust(1);
+    applyTrust(9);
     afterAction('feedCount');
     if (item.id === 'food_premium') afterAction('premiumFed');
     if (cdKey && cooldownMs > 0) setCooldowns(prev => ({ ...prev, [cdKey]: Date.now() + cooldownMs }));
@@ -4697,13 +4752,10 @@ function App() {
   // ── Phase 3: Return Home ──
   const handleClaimReturn = useCallback(() => {
     if (!returnData) return;
-    const { bonus } = returnData;
-    if (bonus.coins > 0) setCoins(c => c + bonus.coins);
-    if (bonus.xp    > 0) applyXP(bonus.xp);
-    playSound('coin');
-    showToast(`🏠 Добро пожаловать! +${bonus.coins}🪙 +${bonus.xp}XP`);
+    playSound('tap');
+    showToast('🏠 С возвращением!');
     setReturnData(null);
-  }, [returnData, applyXP, showToast]);
+  }, [returnData, showToast]);
 
   // ── Phase 3: Room customization ──
   const handleBuyDecor = useCallback((item) => {
@@ -4847,7 +4899,7 @@ function App() {
         inventory={inventory} stats={stats} level={level}
         cooldowns={cooldowns}
         onObjectAction={handleTapObject}
-        onMinigame={ROOM_DEFS[screen].minigameScreen ? () => setScreen(ROOM_DEFS[screen].minigameScreen) : null}
+        onMinigame={ROOM_DEFS[screen].minigameScreen ? () => handleMinigameStart(ROOM_DEFS[screen].minigameScreen) : null}
         onBack={() => { setScreen('home'); setActiveNav('home'); }}
         activeNFT={activeNFT}
         onKitchenFeed={handleKitchenFeed}

@@ -9,20 +9,20 @@ const SAVE_KEY = 'scared_cat_v3';
 // ─── STAT DECAY RATES (per real-world minute) ───
 // hunger/fatigue/toilet INCREASE toward 100 (bad)
 // mood/health DECREASE toward 0 (bad)
-// Tuned to match My Talking Tom feel: 3–6 check-ins/day
-//   Голод     → critical in ~5.5 h  (fastest)
-//   Настроение→ critical in ~6.5 h  (very fast)
-//   Гигиена   → critical in ~11.5 h (medium)
-//   Сон       → critical in ~15 h   (slow)
-//   Здоровье  → very slow solo, fast under crisis (2+ crit)
+// Target: 3–5 check-ins/day (balanced pacing)
+//   Голод     → ~9.8%/h  → critical (~80%) in ~8h
+//   Настроение→ ~8.6%/h  → critical (~20%) in ~9.5h
+//   Гигиена   → ~6.4%/h  → critical (~80%) in ~12.5h
+//   Сон       → ~5.5%/h  → critical (~80%) in ~14.5h
+//   Здоровье  → ~2.8%/h  solo, fast in crisis (2+ crit)
 const RATES = {
-  hunger:  0.22,   // 🍔 Голод — fastest
-  fatigue: 0.07,   // 😴 Сон   — slowest
-  toilet:  0.11,   // 🚽 Гигиена — medium
-  mood:   -0.16,   // 🎮 Настроение — very fast
+  hunger:  0.163,  // 🍔 Голод — 9.8%/ч
+  fatigue: 0.092,  // 😴 Сон   — 5.5%/ч
+  toilet:  0.107,  // 🚽 Гигиена — 6.4%/ч
+  mood:   -0.143,  // 🎮 Настроение — 8.6%/ч
 };
-const HEALTH_RATE_NORMAL = -0.02;   // ❤️ normal: ~57 h alone
-const HEALTH_RATE_CRISIS  = -0.10;  // ❤️ crisis (2+ bad): ~12 h — falls mainly from combo
+const HEALTH_RATE_NORMAL = -0.047;  // ❤️ ~2.8%/ч в норме
+const HEALTH_RATE_CRISIS  = -0.12;  // ❤️ кризис (2+ плохих): ~7.2%/ч
 
 // ─── UTILITY ───
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
@@ -600,13 +600,9 @@ function buildComplaint(stats, minutes) {
 }
 
 // ─── PHASE 3: RETURN BONUS ───
+// Бонус отключён — возвращение показывает только потери, без наград
 function calcReturnBonus(minsAway) {
-  if (minsAway < 30) return { coins: 0, xp: 0 };
-  const t = Math.min(minsAway / 720, 1); // 0..1 over 12 h
-  return {
-    coins: Math.round(50 + t * 130),  // 50 → 180
-    xp:    Math.round(20 + t * 80),   // 20 → 100
-  };
+  return { coins: 0, xp: 0 };
 }
 
 // ─── PHASE 3: CAT EMOTION STATE MACHINE ───
