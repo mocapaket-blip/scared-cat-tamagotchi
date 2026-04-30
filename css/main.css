@@ -253,6 +253,38 @@ html, body { justify-content: flex-start; }
   60%       { transform-origin: bottom; transform: rotate(-6deg); }
 }
 
+/* ─── TRUST LEVEL ANIMATIONS ─── */
+
+@keyframes trustModalIn {
+  0%   { opacity: 0; transform: scale(0.82) translateY(28px); }
+  100% { opacity: 1; transform: scale(1)    translateY(0); }
+}
+
+@keyframes floatEmoji {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-5px); }
+}
+
+@keyframes twinkleStar {
+  0%, 100% { opacity: 0.1; transform: scale(1); }
+  50%       { opacity: 0.65; transform: scale(1.7); }
+}
+
+@keyframes pulseStar {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.14); }
+}
+
+@keyframes shimmerBar {
+  0%   { transform: translateX(-220%); }
+  100% { transform: translateX(220%); }
+}
+
+@keyframes glowText {
+  0%, 100% { opacity: 0.8; }
+  50%       { opacity: 1; text-shadow: 0 0 18px rgba(255,208,96,0.75); }
+}
+
 /* ─── SHOP TABS ─── */
 
 .shop-tab-active {

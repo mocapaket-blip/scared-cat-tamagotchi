@@ -1495,113 +1495,372 @@ function ScaredModal({ scaredLvl, onClose }) {
 }
 
 /* ══════════════════════════════════════════════════
+   SETTINGS MODAL
+   ══════════════════════════════════════════════════ */
+function SettingsModal({ onClose, handleManualSync, syncStatus }) {
+  const VOL_STEPS = [0, 0.25, 0.5, 0.75, 1.0];
+  const VOL_LABELS = ['🔇', '🔈', '🔉', '🔊', '🔊'];
+
+  const [sfxVol,   setSfxVolLocal]   = useState(() => getSfxVolume());
+  const [musicVol, setMusicVolLocal] = useState(() => getMusicVolume());
+  const [musicOn,  setMusicOnLocal]  = useState(() => getMusicEnabled());
+
+  const nearestStep = (v) => VOL_STEPS.reduce((a, b) => Math.abs(b - v) < Math.abs(a - v) ? b : a);
+
+  const sfxStep   = nearestStep(sfxVol);
+  const musicStep = nearestStep(musicVol);
+
+  const handleSfxStep = (v) => {
+    setSfxVolLocal(v);
+    setSfxVolume(v);
+    if (v > 0) setTimeout(() => playSound('tap'), 30);
+  };
+
+  const handleMusicStep = (v) => {
+    setMusicVolLocal(v);
+    setMusicVolume(v);
+    if (v === 0) {
+      setMusicOnLocal(false);
+      setMusicEnabled(false);
+    } else if (!musicOn) {
+      setMusicOnLocal(true);
+      setMusicEnabled(true);
+    }
+  };
+
+  const handleMusicToggle = () => {
+    const next = !musicOn;
+    setMusicOnLocal(next);
+    setMusicEnabled(next);
+  };
+
+  const DOT_SIZE = 36;
+
+  const VolumeRow = ({ label, icon, step, onStep, showToggle, toggleOn, onToggle }) => (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 10 }}>
+        <div style={{ display:'flex', alignItems:'center', gap: 8 }}>
+          <span style={{ fontSize: 20 }}>{icon}</span>
+          <span style={{ color:'rgba(255,255,255,0.9)', fontSize: 15, fontWeight: 700 }}>{label}</span>
+        </div>
+        {showToggle && (
+          <button onClick={onToggle} style={{
+            padding: '4px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 800,
+            background: toggleOn ? 'linear-gradient(135deg,#60e080,#30b050)' : 'rgba(255,255,255,0.12)',
+            color: toggleOn ? '#fff' : 'rgba(255,255,255,0.5)', transition: 'all 0.2s',
+          }}>{toggleOn ? 'ВКЛ' : 'ВЫКЛ'}</button>
+        )}
+      </div>
+      <div style={{ display:'flex', gap: 8, alignItems:'center' }}>
+        {VOL_STEPS.map((v, i) => {
+          const active = step === v;
+          return (
+            <button key={v} onClick={() => onStep(v)} style={{
+              width: DOT_SIZE, height: DOT_SIZE, borderRadius: 12, border: 'none', cursor: 'pointer',
+              background: active
+                ? 'linear-gradient(135deg, #ffd060, #f09020)'
+                : 'rgba(255,255,255,0.10)',
+              boxShadow: active ? '0 3px 10px rgba(240,160,32,0.55)' : 'none',
+              display:'flex', alignItems:'center', justifyContent:'center',
+              fontSize: active ? 16 : 14,
+              transform: active ? 'scale(1.08)' : 'scale(1)',
+              transition: 'all 0.15s',
+            }}>
+              <span style={{ filter: active ? 'none' : 'grayscale(0.6) opacity(0.6)' }}>
+                {VOL_LABELS[i]}
+              </span>
+            </button>
+          );
+        })}
+        <span style={{ marginLeft: 4, fontSize: 13, color:'rgba(255,255,255,0.45)', fontWeight: 700 }}>
+          {Math.round(step * 100)}%
+        </span>
+      </div>
+    </div>
+  );
+
+  return (
+    <div onClick={onClose} style={{
+      position:'fixed', inset:0, background:'rgba(0,0,0,0.62)', zIndex:300,
+      display:'flex', alignItems:'flex-end', justifyContent:'center',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width:'100%', maxWidth: 430,
+        background:'linear-gradient(175deg, rgba(30,18,50,0.98) 0%, rgba(18,10,34,0.99) 100%)',
+        borderRadius:'28px 28px 0 0',
+        padding:'28px 24px 32px',
+        boxShadow:'0 -8px 40px rgba(0,0,0,0.7)',
+        animation:'modalIn 0.3s cubic-bezier(0.34,1.56,0.64,1)',
+        border:'1.5px solid rgba(255,255,255,0.08)',
+        borderBottom:'none',
+      }}>
+        {/* Header */}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 24 }}>
+          <div style={{ display:'flex', alignItems:'center', gap: 10 }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: 14,
+              background:'linear-gradient(135deg,#7060d8,#5040b0)',
+              display:'flex', alignItems:'center', justifyContent:'center', fontSize: 20,
+              boxShadow:'0 4px 12px rgba(112,96,216,0.5)',
+            }}>⚙️</div>
+            <span style={{ fontSize: 19, fontWeight: 900, color:'#fff' }}>Настройки</span>
+          </div>
+          <button onClick={onClose} style={{
+            width: 32, height: 32, borderRadius: 10, border:'none', cursor:'pointer',
+            background:'rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.6)', fontSize: 16,
+          }}>✕</button>
+        </div>
+
+        {/* Divider */}
+        <div style={{ height: 1, background:'rgba(255,255,255,0.07)', marginBottom: 22 }}/>
+
+        {/* Music */}
+        <VolumeRow
+          label="Музыка" icon="🎵"
+          step={musicOn ? musicStep : 0}
+          onStep={handleMusicStep}
+          showToggle={true}
+          toggleOn={musicOn}
+          onToggle={handleMusicToggle}
+        />
+
+        {/* SFX */}
+        <VolumeRow
+          label="Звуки" icon="🔔"
+          step={sfxStep}
+          onStep={handleSfxStep}
+        />
+
+        {/* Divider */}
+        <div style={{ height: 1, background:'rgba(255,255,255,0.07)', margin:'4px 0 20px' }}/>
+
+        {/* Cloud sync */}
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ display:'flex', alignItems:'center', gap: 8, marginBottom: 12 }}>
+            <span style={{ fontSize: 20 }}>☁️</span>
+            <span style={{ color:'rgba(255,255,255,0.9)', fontSize: 15, fontWeight: 700 }}>Синхронизация</span>
+          </div>
+          <button
+            onClick={handleManualSync}
+            disabled={syncStatus === 'syncing'}
+            style={{
+              width:'100%', padding:'13px 0', borderRadius: 16, border:'none', cursor: syncStatus==='syncing' ? 'default':'pointer',
+              background: syncStatus==='ok'
+                ? 'linear-gradient(135deg,#40c060,#28a048)'
+                : syncStatus==='error'
+                ? 'linear-gradient(135deg,#d04040,#b02828)'
+                : 'linear-gradient(135deg,rgba(255,255,255,0.12),rgba(255,255,255,0.06))',
+              color:'#fff', fontSize: 15, fontWeight: 800,
+              boxShadow: syncStatus==='ok' ? '0 4px 14px rgba(40,160,72,0.45)' : '0 2px 8px rgba(0,0,0,0.3)',
+              opacity: syncStatus==='syncing' ? 0.6 : 1,
+              transition:'all 0.25s',
+              display:'flex', alignItems:'center', justifyContent:'center', gap: 8,
+            }}>
+            {syncStatus === 'syncing' ? '⏳ Синхронизация...'
+              : syncStatus === 'ok'    ? '✅ Синхронизировано!'
+              : syncStatus === 'error' ? '❌ Ошибка — повторить'
+              : '☁️ Синхронизировать прогресс'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════
    TRUST MODAL
    ══════════════════════════════════════════════════ */
 function TrustModal({ trustPoints, onClose }) {
-  const prog  = trustProgress(trustPoints);
-  const stage = getTrustStage(prog.lv);
-  const nextStage = getTrustStage(prog.lv + 1);
-  const isMax = prog.lv >= 50;
+  const prog      = trustProgress(trustPoints);
+  const stage     = getTrustStage(prog.lv);
+  const isMax     = prog.lv >= 50;
+  const stageIdx  = TRUST_STAGES.findIndex(s => prog.lv >= s.min && prog.lv <= s.max);
+  const stageRange = stage.max - stage.min + 1;
+  const lvInStage  = prog.lv - stage.min;
+  const stagePct   = isMax ? 1 : Math.min(1, (lvInStage + prog.pct) / stageRange);
+  const R = 38;
+  const circ = 2 * Math.PI * R;
+  const tipAngle = (-90 + 360 * stagePct) * Math.PI / 180;
 
   return (
-    <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(0,0,0,0.72)',
-      display:'flex', alignItems:'center', justifyContent:'center', padding:20, backdropFilter:'blur(5px)' }}>
+    <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:300,
+      background:'rgba(4,1,16,0.87)', display:'flex', alignItems:'center',
+      justifyContent:'center', padding:16, backdropFilter:'blur(8px)' }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background:'linear-gradient(160deg,#1a0e2e,#0e0818)',
-        borderRadius:28, padding:'28px 22px 24px', maxWidth:320, width:'100%',
-        boxShadow:`0 12px 50px rgba(0,0,0,0.7), 0 0 0 1.5px ${stage.color}55`,
-        border:`1.5px solid ${stage.color}44`,
-        animation:'modalIn 0.32s ease',
+        position:'relative',
+        background:'linear-gradient(165deg,#0e0820 0%,#13092b 50%,#090614 100%)',
+        borderRadius:28, padding:'26px 20px 20px', maxWidth:320, width:'100%',
+        boxShadow:`0 0 0 1px ${stage.color}28, 0 24px 70px rgba(0,0,0,0.95), 0 0 90px ${stage.color}14`,
+        animation:'trustModalIn 0.42s cubic-bezier(0.34,1.56,0.64,1)',
+        overflow:'hidden',
       }}>
-        {/* Header */}
-        <div style={{ textAlign:'center', marginBottom:20 }}>
-          <div style={{ fontSize:46, lineHeight:1, marginBottom:8 }}>{stage.emoji}</div>
-          <div style={{ fontSize:20, fontWeight:900, color:'#f0deff', letterSpacing:-0.3 }}>Уровень Доверия</div>
-          <div style={{ marginTop:4, fontSize:13, fontWeight:700, color: stage.color }}>{stage.name}</div>
+
+        {/* Ambient glow */}
+        <div style={{ position:'absolute', top:-60, left:'50%', transform:'translateX(-50%)',
+          width:180, height:180, borderRadius:'50%',
+          background:`radial-gradient(circle,${stage.color}26 0%,transparent 68%)`,
+          filter:'blur(22px)', pointerEvents:'none' }}/>
+
+        {/* Starfield */}
+        <div style={{ position:'absolute', inset:0, overflow:'hidden', borderRadius:28, pointerEvents:'none' }}>
+          {[...Array(18)].map((_,i) => (
+            <div key={i} style={{
+              position:'absolute',
+              width:i%4===0?2:1, height:i%4===0?2:1, borderRadius:'50%',
+              background:i%5===0?stage.color:'#fff',
+              opacity:0.1+(i%6)*0.06,
+              left:`${(i*41+13)%88+6}%`, top:`${(i*57+19)%82+6}%`,
+              animation:`twinkleStar ${1.8+i*0.25}s ease-in-out ${i*0.15}s infinite`,
+            }}/>
+          ))}
         </div>
 
-        {/* Level badge */}
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:10, marginBottom:18 }}>
-          <div style={{
-            background:`linear-gradient(135deg, ${stage.color}33, ${stage.color}11)`,
-            border:`1.5px solid ${stage.color}66`,
-            borderRadius:16, padding:'8px 20px', textAlign:'center',
-          }}>
-            <div style={{ fontSize:28, fontWeight:900, color: stage.color, lineHeight:1 }}>{prog.lv}</div>
-            <div style={{ fontSize:10, color:'#a090c0', fontWeight:700, marginTop:2 }}>уровень</div>
+        {/* SVG Ring + Emoji */}
+        <div style={{ textAlign:'center', marginBottom:14, position:'relative' }}>
+          <div style={{ display:'inline-flex', alignItems:'center', justifyContent:'center',
+            position:'relative', width:88, height:88 }}>
+            <svg width="88" height="88" style={{ position:'absolute', inset:0, transform:'rotate(-90deg)' }}>
+              <circle cx="44" cy="44" r={R} fill="none" stroke={`${stage.color}1a`} strokeWidth="5"/>
+              <circle cx="44" cy="44" r={R} fill="none" stroke={stage.color} strokeWidth="5"
+                strokeLinecap="round" strokeDasharray={`${circ}`}
+                strokeDashoffset={`${circ*(1-stagePct)}`}
+                style={{ transition:'stroke-dashoffset 1.1s cubic-bezier(0.34,1.56,0.64,1)',
+                  filter:`drop-shadow(0 0 5px ${stage.color})` }}/>
+              {!isMax && stagePct > 0.02 && (
+                <circle cx={44+R*Math.cos(tipAngle)} cy={44+R*Math.sin(tipAngle)}
+                  r="4.5" fill={stage.color}
+                  style={{ filter:`drop-shadow(0 0 5px ${stage.color})` }}/>
+              )}
+            </svg>
+            <div style={{ fontSize:36, lineHeight:1, position:'relative', zIndex:1,
+              animation:'floatEmoji 3.2s ease-in-out infinite' }}>
+              {stage.emoji}
+            </div>
           </div>
-          {!isMax && (
-            <div style={{ color:'#6050a0', fontSize:20, fontWeight:900 }}>→</div>
-          )}
-          {!isMax && (
-            <div style={{ background:'rgba(255,255,255,0.05)', border:'1.5px solid rgba(255,255,255,0.1)', borderRadius:16, padding:'8px 20px', textAlign:'center' }}>
-              <div style={{ fontSize:28, fontWeight:900, color:'#6050a0', lineHeight:1 }}>{prog.lv + 1}</div>
-              <div style={{ fontSize:10, color:'#6050a0', fontWeight:700, marginTop:2 }}>следующий</div>
+
+          <div style={{ marginTop:8, fontSize:10.5, fontWeight:900, color:stage.color,
+            letterSpacing:1.8, textTransform:'uppercase' }}>
+            Уровень {prog.lv}
+          </div>
+          <div style={{ marginTop:2, fontSize:14, fontWeight:800, color:'#e8d8ff' }}>
+            {stage.name}
+          </div>
+          {isMax && (
+            <div style={{ marginTop:6, fontSize:11, fontWeight:800, color:'#ffd060',
+              animation:'glowText 2.5s ease-in-out infinite' }}>
+              ✨ Максимальный уровень доверия
             </div>
           )}
         </div>
-
-        {/* Progress bar */}
-        {!isMax ? (
-          <div style={{ marginBottom:8 }}>
-            <div style={{ height:10, background:'rgba(255,255,255,0.08)', borderRadius:99, overflow:'hidden',
-              boxShadow:'inset 0 1px 3px rgba(0,0,0,0.5)' }}>
-              <div style={{
-                height:'100%', borderRadius:99,
-                background:`linear-gradient(90deg, ${stage.color}aa, ${stage.color})`,
-                width:`${prog.pct * 100}%`, transition:'width 0.6s ease',
-                boxShadow:`0 1px 6px ${stage.color}88`,
-              }}/>
-            </div>
-            <div style={{ marginTop:5, display:'flex', justifyContent:'space-between', fontSize:10, fontWeight:700, color:'#7060a0' }}>
-              <span>{prog.curPts} / {prog.needed} очков</span>
-              <span>до ур. {prog.lv + 1}: {prog.needed - prog.curPts} оч.</span>
-            </div>
-          </div>
-        ) : (
-          <div style={{ textAlign:'center', marginBottom:8, fontSize:13, fontWeight:800, color: stage.color }}>✨ Максимальный уровень доверия!</div>
-        )}
 
         {/* Description */}
-        <div style={{ background:'rgba(255,255,255,0.04)', borderRadius:16, padding:'12px 14px', marginBottom:20, marginTop:12 }}>
-          <div style={{ fontSize:12, color:'#c0b0e0', lineHeight:1.6, textAlign:'center' }}>{stage.desc}</div>
+        <div style={{ background:`linear-gradient(135deg,${stage.color}10,${stage.color}05)`,
+          border:`1px solid ${stage.color}20`, borderRadius:16,
+          padding:'10px 14px', marginBottom:14, textAlign:'center' }}>
+          <div style={{ fontSize:12, color:'#c0b0e0', lineHeight:1.65, fontStyle:'italic' }}>
+            {stage.desc}
+          </div>
         </div>
 
-        {/* All stages */}
-        <div style={{ marginBottom:20 }}>
-          <div style={{ fontSize:10, fontWeight:800, color:'#6050a0', letterSpacing:1, textTransform:'uppercase', marginBottom:8 }}>Этапы доверия</div>
-          <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+        {/* Level progress bar */}
+        {!isMax && (
+          <div style={{ marginBottom:16 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:5 }}>
+              <span style={{ fontSize:9, fontWeight:900, color:'#7060a8',
+                letterSpacing:0.8, textTransform:'uppercase' }}>до уровня {prog.lv+1}</span>
+              <span style={{ fontSize:10, fontWeight:900, color:stage.color }}>
+                {prog.curPts} / {prog.needed} оч.
+              </span>
+            </div>
+            <div style={{ height:8, background:'rgba(255,255,255,0.05)', borderRadius:99, overflow:'hidden' }}>
+              <div style={{
+                height:'100%', borderRadius:99,
+                background:`linear-gradient(90deg,${stage.color}80,${stage.color} 60%,rgba(255,255,255,0.45))`,
+                width:`${prog.pct*100}%`,
+                transition:'width 0.9s cubic-bezier(0.34,1.56,0.64,1)',
+                boxShadow:`0 0 10px ${stage.color}99, 0 0 3px ${stage.color}`,
+                position:'relative', overflow:'hidden',
+              }}>
+                <div style={{ position:'absolute', inset:0,
+                  background:'linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.28) 50%,transparent 100%)',
+                  animation:'shimmerBar 2.2s ease-in-out infinite' }}/>
+              </div>
+            </div>
+            <div style={{ marginTop:3, textAlign:'right', fontSize:9, fontWeight:700, color:'#504060aa' }}>
+              ещё {prog.needed-prog.curPts} оч.
+            </div>
+          </div>
+        )}
+
+        {/* Constellation path */}
+        <div style={{ marginBottom:18 }}>
+          <div style={{ fontSize:9, fontWeight:900, color:'#6050a0', letterSpacing:2,
+            textTransform:'uppercase', marginBottom:10, textAlign:'center' }}>
+            ✦ Путь доверия ✦
+          </div>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'center' }}>
             {TRUST_STAGES.map((s, i) => {
               const reached = prog.lv >= s.min;
               const current = prog.lv >= s.min && prog.lv <= s.max;
               return (
-                <div key={i} style={{
-                  display:'flex', alignItems:'center', gap:8,
-                  padding:'5px 10px', borderRadius:10,
-                  background: current ? `${s.color}22` : 'transparent',
-                  border: current ? `1px solid ${s.color}44` : '1px solid transparent',
-                  opacity: reached ? 1 : 0.35,
-                }}>
-                  <span style={{ fontSize:14 }}>{s.emoji}</span>
-                  <span style={{ fontSize:11, fontWeight: current ? 800 : 600,
-                    color: current ? s.color : reached ? '#a090c0' : '#5040708' }}>
-                    {s.name}
-                  </span>
-                  <span style={{ marginLeft:'auto', fontSize:9, color:'#5040708', fontWeight:700 }}>
-                    {s.min}–{s.max}
-                  </span>
-                </div>
+                <React.Fragment key={i}>
+                  <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, zIndex:2 }}>
+                    <div style={{
+                      width:current?26:18, height:current?26:18, borderRadius:'50%', flexShrink:0,
+                      background: current
+                        ? `radial-gradient(circle,#fff 0%,${s.color} 45%,${s.color}88 100%)`
+                        : reached
+                          ? `radial-gradient(circle,${s.color}cc,${s.color}44)`
+                          : 'rgba(255,255,255,0.05)',
+                      border: current ? `2px solid ${s.color}` : reached
+                        ? `1px solid ${s.color}55` : '1px solid rgba(255,255,255,0.07)',
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                      fontSize:current?12:8,
+                      boxShadow: current ? `0 0 14px ${s.color},0 0 28px ${s.color}44`
+                        : reached ? `0 0 4px ${s.color}33` : 'none',
+                      animation:current?'pulseStar 2.4s ease-in-out infinite':'none',
+                      transition:'all 0.3s',
+                    }}>
+                      {current ? s.emoji : reached ? '✦' : '·'}
+                    </div>
+                    <div style={{ fontSize:7, fontWeight:900, lineHeight:1,
+                      color:current?s.color:reached?s.color+'88':'rgba(255,255,255,0.12)' }}>
+                      {s.min}
+                    </div>
+                  </div>
+                  {i < TRUST_STAGES.length-1 && (
+                    <div style={{
+                      flex:1, height:1.5, marginBottom:10,
+                      background: prog.lv > s.max
+                        ? `linear-gradient(90deg,${s.color}66,${TRUST_STAGES[i+1].color}66)`
+                        : current
+                          ? `linear-gradient(90deg,${s.color}55,rgba(255,255,255,0.04))`
+                          : 'rgba(255,255,255,0.05)',
+                      boxShadow:prog.lv>s.max?`0 0 4px ${s.color}33`:'none',
+                    }}/>
+                  )}
+                </React.Fragment>
               );
             })}
           </div>
+          <div style={{ textAlign:'center', marginTop:8, fontSize:10, fontWeight:800,
+            color:`${stage.color}cc`, letterSpacing:0.3 }}>
+            Этап {stageIdx+1} из 10 · {stage.name}
+          </div>
         </div>
 
+        {/* Close button */}
         <button onClick={onClose} style={{
           width:'100%', padding:'13px', borderRadius:18, border:'none', cursor:'pointer',
-          background:`linear-gradient(135deg, ${stage.color}cc, ${stage.color}88)`,
-          color:'white', fontSize:15, fontWeight:900, fontFamily:"'Nunito',sans-serif",
-          boxShadow:`0 5px 18px ${stage.color}55`,
-        }}>Понятно 🐾</button>
+          background:`linear-gradient(135deg,${stage.color} 0%,${stage.color}bb 100%)`,
+          color:'#fff', fontSize:14, fontWeight:900, fontFamily:"'Nunito',sans-serif",
+          letterSpacing:0.5, position:'relative', overflow:'hidden',
+          boxShadow:`0 6px 22px ${stage.color}55, inset 0 1px 0 rgba(255,255,255,0.18)`,
+        }}>
+          <div style={{ position:'absolute', inset:0,
+            background:'linear-gradient(135deg,rgba(255,255,255,0.12) 0%,transparent 60%)' }}/>
+          <span style={{ position:'relative', zIndex:1 }}>Понятно {stage.emoji}</span>
+        </button>
       </div>
     </div>
   );
@@ -3643,7 +3902,8 @@ function App() {
   const [nftLoading,     setNftLoading]     = useState(false);
   const [skinFlash,      setSkinFlash]      = useState(false);
   const [trustPoints,    setTrustPoints]    = useState(_INIT.trustPoints   || 0);
-  const [showTrustModal, setShowTrustModal] = useState(false);
+  const [showTrustModal,    setShowTrustModal]    = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   // Freelance system
   const [timezone,  setTimezone]  = useState(_INIT.timezone  || null);
   const [freelance, setFreelance] = useState(_INIT.freelance || defaultFreelance());
@@ -3684,6 +3944,21 @@ function App() {
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
     if (tg) { tg.expand(); tg.ready(); }
+  }, []);
+
+  // ── Background music — start on first user interaction ──
+  useEffect(() => {
+    const onFirstInteraction = () => {
+      startMusic();
+      window.removeEventListener('touchstart', onFirstInteraction);
+      window.removeEventListener('click',      onFirstInteraction);
+    };
+    window.addEventListener('touchstart', onFirstInteraction, { passive: true });
+    window.addEventListener('click',      onFirstInteraction);
+    return () => {
+      window.removeEventListener('touchstart', onFirstInteraction);
+      window.removeEventListener('click',      onFirstInteraction);
+    };
   }, []);
 
   // ── Persist state (local + debounced cloud) ──
@@ -4114,7 +4389,10 @@ function App() {
     applyTrust(1);
     if (roomKey) afterAction(roomKey);
     spawnHearts(3, 120);
-    playSound('action');
+    if (isBath)     playSound('wash');
+    else if (isToilet)   playSound('toilet');
+    else if (isMedicine) playSound('med');
+    else                 playSound('action');
     showToast(`+${earned}🪙 +${baseXP}XP`);
     setActionDone(true);
     setTimeout(() => { setScreen('home'); setActionDone(false); }, 1800);
@@ -4351,7 +4629,7 @@ function App() {
     if (item.id === 'food_premium') afterAction('premiumFed');
     if (cdKey && cooldownMs > 0) setCooldowns(prev => ({ ...prev, [cdKey]: Date.now() + cooldownMs }));
     spawnHearts(3, 80);
-    playSound('feed');
+    playSound('pour');
     showToast(`${item.emoji} +${earned}🪙 +${item.xp}XP`);
   }, [inventory, level, scaredLvl, applyXP, applyTrust, afterAction, spawnHearts, showToast]);
 
@@ -4660,23 +4938,38 @@ function App() {
           {/* Trust level row */}
           <div onClick={() => setShowTrustModal(true)} style={{ cursor:'pointer' }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
-              <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-                <span style={{ fontSize:11 }}>🤍</span>
-                <span style={{ fontSize:10, fontWeight:800, color:'#d0b8f0', letterSpacing:0.2 }}>Доверие</span>
-                <span style={{ fontSize:10, fontWeight:900, color: trustStage.color }}>• {trustLv}</span>
+              <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+                <span style={{ fontSize:13, lineHeight:1, animation:'floatEmoji 3.2s ease-in-out infinite' }}>
+                  {trustStage.emoji}
+                </span>
+                <span style={{ fontSize:10, fontWeight:800, color:'#c8b0e8', letterSpacing:0.2 }}>Доверие</span>
+                <span style={{
+                  fontSize:9, fontWeight:900, color:trustStage.color,
+                  background:`${trustStage.color}1e`, padding:'1px 6px', borderRadius:6,
+                  border:`1px solid ${trustStage.color}30`,
+                  boxShadow:`0 0 6px ${trustStage.color}44`,
+                }}>Ур.{trustLv}</span>
               </div>
-              <span style={{ fontSize:9, fontWeight:700, color:'#7060a0' }}>{trustStage.name}</span>
+              <span style={{ fontSize:9, fontWeight:700, color:trustStage.color, opacity:0.85 }}>
+                {trustStage.name}
+              </span>
             </div>
-            {/* Trust progress bar — different style from XP */}
-            <div style={{ height:5, background:'rgba(160,120,255,0.12)', borderRadius:99, overflow:'hidden', boxShadow:'inset 0 1px 2px rgba(0,0,0,0.5)' }}>
+            {/* Trust progress bar */}
+            <div style={{ height:6, background:'rgba(140,100,255,0.1)', borderRadius:99,
+              overflow:'hidden', boxShadow:'inset 0 1px 3px rgba(0,0,0,0.4)' }}>
               <div style={{
                 height:'100%', borderRadius:99,
-                background:`linear-gradient(90deg, ${trustStage.color}99, ${trustStage.color})`,
-                width:`${trustProg.pct * 100}%`, transition:'width 0.6s ease',
-                boxShadow:`0 1px 5px ${trustStage.color}88`,
-              }}/>
+                background:`linear-gradient(90deg,${trustStage.color}80,${trustStage.color},rgba(255,255,255,0.42))`,
+                width:`${trustProg.pct*100}%`, transition:'width 0.7s ease',
+                boxShadow:`0 0 10px ${trustStage.color}aa, 0 0 4px ${trustStage.color}`,
+                position:'relative', overflow:'hidden',
+              }}>
+                <div style={{ position:'absolute', inset:0, borderRadius:99,
+                  background:'linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.22) 50%,transparent 100%)',
+                  animation:'shimmerBar 2.5s ease-in-out infinite' }}/>
+              </div>
             </div>
-            <div style={{ marginTop:2, fontSize:9, fontWeight:700, color:'#7060a0' }}>
+            <div style={{ marginTop:2, fontSize:9, fontWeight:700, color:'#60508888' }}>
               {trustProg.curPts} / {trustProg.needed || '—'} оч.
             </div>
           </div>
@@ -4732,11 +5025,11 @@ function App() {
               style={{ width:42, height:42, borderRadius:14, background:'rgba(38,16,2,0.78)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 14px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,220,120,0.1)', cursor:'pointer', fontSize:20, border:'1.5px solid rgba(200,150,70,0.3)', backdropFilter:'blur(8px)' }}>
               🛒
             </button>
-            {/* Cloud sync */}
-            <button onClick={handleManualSync} disabled={syncStatus === 'syncing'}
-              title="Синхронизировать прогресс"
-              style={{ width:42, height:42, borderRadius:14, cursor: syncStatus==='syncing' ? 'default' : 'pointer', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', border: `1.5px solid ${syncStatus==='ok' ? 'rgba(80,255,120,0.55)' : syncStatus==='error' ? 'rgba(255,80,80,0.55)' : 'rgba(200,150,70,0.3)'}`, background: syncStatus==='ok' ? 'rgba(30,130,50,0.5)' : syncStatus==='error' ? 'rgba(140,30,30,0.5)' : 'rgba(38,16,2,0.78)', boxShadow:'0 4px 14px rgba(0,0,0,0.5)', backdropFilter:'blur(8px)', transition:'background 0.3s, border 0.3s', opacity: syncStatus==='syncing' ? 0.6 : 1 }}>
-              {syncStatus === 'syncing' ? '⏳' : syncStatus === 'ok' ? '✅' : syncStatus === 'error' ? '❌' : '☁️'}
+            {/* Settings */}
+            <button onClick={() => setShowSettingsModal(true)}
+              title="Настройки"
+              style={{ width:42, height:42, borderRadius:14, cursor:'pointer', fontSize:20, display:'flex', alignItems:'center', justifyContent:'center', border:'1.5px solid rgba(200,150,70,0.3)', background:'rgba(38,16,2,0.78)', boxShadow:'0 4px 14px rgba(0,0,0,0.5)', backdropFilter:'blur(8px)' }}>
+              ⚙️
             </button>
           </div>
         </div>
@@ -4804,8 +5097,9 @@ function App() {
       {showDailyModal && !returnData && <DailyRewardModal streak={pendingStreak} onClaim={handleClaimDaily}/>}
       {levelUpModal   && !returnData && <LevelUpModal     level={levelUpModal}  onClose={() => setLevelUpModal(null)}/>}
       {returnData     && <ReturnModal returnData={returnData} onClaim={handleClaimReturn}/>}
-      {showTrustModal  && <TrustModal trustPoints={trustPoints} onClose={() => setShowTrustModal(false)}/>}
-      {showScaredModal && <ScaredModal scaredLvl={scaredLvl} onClose={() => setShowScaredModal(false)}/>}
+      {showTrustModal    && <TrustModal trustPoints={trustPoints} onClose={() => setShowTrustModal(false)}/>}
+      {showScaredModal   && <ScaredModal scaredLvl={scaredLvl} onClose={() => setShowScaredModal(false)}/>}
+      {showSettingsModal && <SettingsModal onClose={() => setShowSettingsModal(false)} handleManualSync={handleManualSync} syncStatus={syncStatus}/>}
     </div>
   );
 }

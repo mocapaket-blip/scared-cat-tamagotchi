@@ -373,6 +373,31 @@ function getOrUpdateDailyMissions(saved) {
 
 // ─── SOUND SYSTEM (Web Audio API — no files needed) ───
 let _audioCtx = null;
+let _sfxVol   = parseFloat(localStorage.getItem('sc_sfxVol')   ?? '1.0');
+let _musicVol  = parseFloat(localStorage.getItem('sc_musicVol') ?? '0.38');
+let _musicOn   = localStorage.getItem('sc_musicOn') !== 'false';
+let _musicPlaying = false;
+let _musicLoopTimer = null;
+
+// Cat-themed pentatonic melody — E major pentatonic, BPM 126
+// Each entry: [frequency_hz, duration_in_beats]
+const _MUSIC_BPM  = 126;
+const _MUSIC_BEAT = 60 / _MUSIC_BPM;
+const _MUSIC_NOTES = [
+  // ── Phrase A: playful ascending ──
+  [659.25, 0.5], [783.99, 0.5], [880.00, 0.5], [987.77, 0.5],
+  [1108.7, 1.0], [987.77, 0.5], [880.00, 0.5],
+  [0,      1.0],
+  // ── Phrase B: answering, warmer ──
+  [659.25, 0.5], [587.33, 0.5], [523.25, 0.5], [587.33, 0.5],
+  [659.25, 1.5], [0,      0.5],
+  // ── Phrase C: little skip ──
+  [880.00, 0.25],[659.25, 0.25],[783.99, 0.25],[659.25, 0.25],
+  [523.25, 1.0], [0,      0.5],
+  // ── Phrase D: gentle close ──
+  [659.25, 0.5], [587.33, 0.5], [523.25, 0.5], [493.88, 0.5],
+  [440.00, 2.0], [0,      1.0],
+];
 
 function getAudioCtx() {
   try {
@@ -389,11 +414,75 @@ function _note(ctx, freq, start, dur, vol, type) {
   const g = ctx.createGain();
   o.type = type || 'triangle';
   o.frequency.setValueAtTime(freq, start);
-  g.gain.setValueAtTime(vol, start);
+  g.gain.setValueAtTime(vol * _sfxVol, start);
   g.gain.exponentialRampToValueAtTime(0.001, start + dur);
   o.connect(g); g.connect(ctx.destination);
   o.start(start); o.stop(start + dur + 0.02);
 }
+
+function _musicNote(ctx, freq, start, dur, vol) {
+  if (!freq || vol <= 0) return;
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(freq, start);
+  g.gain.setValueAtTime(0, start);
+  g.gain.linearRampToValueAtTime(vol, start + 0.04);
+  g.gain.setValueAtTime(vol * 0.75, start + Math.max(0.04, dur * 0.75));
+  g.gain.exponentialRampToValueAtTime(0.001, start + dur);
+  o.connect(g); g.connect(ctx.destination);
+  o.start(start); o.stop(start + dur + 0.06);
+}
+
+function _scheduleMusicLoop(ctx, startTime) {
+  if (!_musicPlaying) return;
+  let t = startTime;
+  for (const [freq, beats] of _MUSIC_NOTES) {
+    const dur = beats * _MUSIC_BEAT;
+    _musicNote(ctx, freq, t, dur, _musicVol * 0.55);
+    t += dur;
+  }
+  const loopDurMs = (t - startTime - 0.5) * 1000;
+  _musicLoopTimer = setTimeout(() => {
+    if (_musicPlaying) {
+      const ctx2 = getAudioCtx();
+      if (ctx2) _scheduleMusicLoop(ctx2, ctx2.currentTime + 0.08);
+    }
+  }, Math.max(100, loopDurMs));
+}
+
+function startMusic() {
+  if (_musicPlaying || !_musicOn) return;
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  _musicPlaying = true;
+  _scheduleMusicLoop(ctx, ctx.currentTime + 0.12);
+}
+
+function stopMusic() {
+  _musicPlaying = false;
+  if (_musicLoopTimer) { clearTimeout(_musicLoopTimer); _musicLoopTimer = null; }
+}
+
+function setMusicVolume(v) {
+  _musicVol = Math.max(0, Math.min(1, v));
+  localStorage.setItem('sc_musicVol', String(_musicVol));
+}
+
+function setSfxVolume(v) {
+  _sfxVol = Math.max(0, Math.min(1, v));
+  localStorage.setItem('sc_sfxVol', String(_sfxVol));
+}
+
+function setMusicEnabled(on) {
+  _musicOn = on;
+  localStorage.setItem('sc_musicOn', on ? 'true' : 'false');
+  if (on) startMusic(); else stopMusic();
+}
+
+function getMusicEnabled() { return _musicOn; }
+function getMusicVolume()  { return _musicVol; }
+function getSfxVolume()    { return _sfxVol; }
 
 function playSound(type) {
   try {
@@ -409,10 +498,44 @@ function playSound(type) {
         _note(ctx,  440, t,       0.08, 0.14, 'sine');
         _note(ctx,  660, t+0.08,  0.12, 0.11, 'sine');
         break;
+      case 'pour':
+        // Kibble pellets hitting bowl — fast tapping drops
+        _note(ctx,  820, t+0.00,  0.05, 0.10, 'sine');
+        _note(ctx,  740, t+0.06,  0.05, 0.09, 'sine');
+        _note(ctx,  680, t+0.12,  0.05, 0.09, 'sine');
+        _note(ctx,  760, t+0.18,  0.05, 0.08, 'sine');
+        _note(ctx,  700, t+0.24,  0.07, 0.08, 'sine');
+        _note(ctx,  640, t+0.31,  0.09, 0.07, 'sine');
+        break;
       case 'toy':
         _note(ctx,  660, t,       0.07, 0.15, 'sine');
         _note(ctx,  880, t+0.07,  0.07, 0.13, 'sine');
         _note(ctx,  660, t+0.14,  0.1,  0.1,  'sine');
+        break;
+      case 'pet':
+        // Soft, warm tones — gentle petting
+        _note(ctx,  330, t,       0.22, 0.12, 'sine');
+        _note(ctx,  440, t+0.18,  0.22, 0.10, 'sine');
+        _note(ctx,  370, t+0.34,  0.28, 0.09, 'sine');
+        break;
+      case 'wash':
+        // Bubbly water splashes — descending
+        _note(ctx,  820, t+0.00,  0.07, 0.11, 'sine');
+        _note(ctx,  640, t+0.07,  0.08, 0.10, 'sine');
+        _note(ctx,  480, t+0.15,  0.09, 0.09, 'sine');
+        _note(ctx,  360, t+0.24,  0.14, 0.08, 'sine');
+        break;
+      case 'toilet':
+        // Swirling flush — descending sweep
+        _note(ctx,  520, t+0.00,  0.09, 0.10, 'sine');
+        _note(ctx,  400, t+0.09,  0.12, 0.09, 'sine');
+        _note(ctx,  280, t+0.21,  0.18, 0.08, 'sine');
+        break;
+      case 'med':
+        // Clinical beep-beep-confirm
+        _note(ctx,  880, t+0.00,  0.09, 0.13, 'sine');
+        _note(ctx,  880, t+0.14,  0.09, 0.13, 'sine');
+        _note(ctx, 1100, t+0.28,  0.22, 0.15, 'sine');
         break;
       case 'action':
         _note(ctx,  440, t,       0.1,  0.12, 'sine');
