@@ -16,14 +16,19 @@ function defaultStats() {
 
 function defaultInventory() {
   return {
-    food_basic:   3,
-    food_tasty:   0,
-    food_premium: 0,
-    toy_ball:     0,
-    toy_feather:  0,
-    toy_laser:    0,
-    med_basic:    0,
-    med_premium:  0,
+    food_basic:     3,
+    food_tasty:     0,
+    food_premium:   0,
+    toy_ball:       0,
+    toy_feather:    0,
+    toy_laser:      0,
+    med_basic:      0,
+    med_drops:      0,
+    med_premium:    0,
+    med_spray:      0,
+    treat_mint:     0,
+    treat_valerian: 0,
+    treat_fish:     0,
   };
 }
 
@@ -149,6 +154,8 @@ const _INIT = (() => {
         trustPoints:   saved.trustPoints  || 0,
         timezone:      saved.timezone     || null,
         freelance:     saved.freelance    ? { ...defaultFreelance(), ...saved.freelance } : defaultFreelance(),
+        // Cooldowns: timestamps survive reload (expired ones just return 0 on check)
+        cooldowns:     saved.cooldowns    || {},
         // Scared LvL: grows offline (+2 per 10 min), cap at 100
         scaredLvl:     Math.min(100, (saved.scaredLvl ?? 85) + (minsAway / 10) * 2),
         complaint:     null,

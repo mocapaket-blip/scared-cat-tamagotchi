@@ -4,7 +4,7 @@
    ═══════════════════════════════════════════════ */
 
 const { useState, useEffect, useRef, useCallback } = React;
-const APP_VERSION = '1.2.3';
+const APP_VERSION = '1.2.4';
 
 // ── TRUST LEVEL SYSTEM ──────────────────────────────────────────────────────
 const TRUST_STAGES = [
@@ -3913,10 +3913,8 @@ function AchievementsScreen({ onBack, canClaimDaily, onShowDaily, achievements, 
 /* ══════════════════════════════════════════════════
    NFT SKIN SCREEN — wallet + gallery
    ══════════════════════════════════════════════════ */
-function NFTSkinScreen({ walletAddress, ownedNFTs, activeNFT, onConnect, onDisconnect, onSelectNFT, onManualAddress, onBack, loading }) {
+function NFTSkinScreen({ walletAddress, ownedNFTs, activeNFT, onConnect, onDisconnect, onSelectNFT, onBack, loading }) {
   const [tab, setTab] = useState(walletAddress ? 'gallery' : 'connect');
-  const [showManual, setShowManual] = useState(true);   // open by default — main fallback
-  const [manualInput, setManualInput] = useState('');
 
   const tierCfg = activeNFT ? (NFT_TIER_BONUSES[SCARED_CAT_MODELS[activeNFT.name]?.tier] || NFT_TIER_BONUSES.common) : null;
 
@@ -4232,7 +4230,7 @@ function App() {
   const [catFacing,      setCatFacing]      = useState(1);
   const [showGif,        setShowGif]        = useState(false);
   const [actionDone,     setActionDone]     = useState(false);
-  const [cooldowns,      setCooldowns]      = useState({});
+  const [cooldowns,      setCooldowns]      = useState(_INIT.cooldowns || {});
   // NFT Skin System
   const [walletAddress,  setWalletAddress]  = useState(_INIT.walletAddress || null);
   const [ownedNFTs,      setOwnedNFTs]      = useState(_INIT.ownedNFTs     || []);
@@ -4315,6 +4313,7 @@ function App() {
       trustPoints,
       timezone, freelance,
       scaredLvl,
+      cooldowns,
       lastUpdate: Date.now(),
     };
     // Always save locally immediately
@@ -4331,7 +4330,7 @@ function App() {
     return () => {
       if (cloudSyncTimer.current) clearTimeout(cloudSyncTimer.current);
     };
-  }, [stats, coins, xp, lastDaily, dailyStreak, inventory, equipped, actionCounts, dailyMissions, roomLayout, ownedDecor, ownedBgs, walletAddress, ownedNFTs, activeNFT, trustPoints, timezone, freelance, scaredLvl]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [stats, coins, xp, lastDaily, dailyStreak, inventory, equipped, actionCounts, dailyMissions, roomLayout, ownedDecor, ownedBgs, walletAddress, ownedNFTs, activeNFT, trustPoints, timezone, freelance, scaredLvl, cooldowns]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Cloud Load on startup — sync from cloud if it's newer than local ──
   useEffect(() => {
@@ -4855,22 +4854,6 @@ function App() {
     showToast('Кошелёк отключён');
   }, [showToast]);
 
-  // Manual address fallback — user pastes their TON address directly
-  const handleManualWallet = useCallback(async (addr) => {
-    const clean = (addr || '').trim();
-    if (!clean) return;
-    // Basic TON address sanity check (EQ/UQ prefix or raw hex ≥ 40 chars)
-    const looksLikeTON = /^(EQ|UQ|0:)[A-Za-z0-9_\-]{40,}$/.test(clean) || /^[0-9a-fA-F]{64}$/.test(clean);
-    if (!looksLikeTON) { showToast('Неверный формат адреса 😿'); return; }
-    setWalletAddress(clean);
-    setNftLoading(true);
-    const nfts = await fetchScaredCatNFTs(clean);
-    setOwnedNFTs(nfts);
-    setNftLoading(false);
-    if (nfts.length > 0) showToast(`🎉 Найдено ${nfts.length} NFT!`);
-    else showToast('NFT коллекции не найдены 😿');
-  }, [showToast]);
-
   // ── Manual cloud sync (sync button) ──
   const handleManualSync = useCallback(async () => {
     const chatId = getChatId();
@@ -5254,7 +5237,6 @@ function App() {
         onConnect={handleConnectWallet}
         onDisconnect={handleDisconnectWallet}
         onSelectNFT={handleSelectNFT}
-        onManualAddress={handleManualWallet}
         onBack={() => setScreen('home')}/>
       {toast && <Toast key={toastKey} msg={toast}/>}
     </div>
