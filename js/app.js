@@ -4,7 +4,7 @@
    ═══════════════════════════════════════════════ */
 
 const { useState, useEffect, useRef, useCallback } = React;
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.2.1';
 
 // ── TRUST LEVEL SYSTEM ──────────────────────────────────────────────────────
 const TRUST_STAGES = [
@@ -1649,127 +1649,116 @@ function ScaredModal({ scaredLvl, onClose }) {
 }
 
 /* ══════════════════════════════════════════════════
-   SETTINGS MODAL
+   SETTINGS MODAL — VolumeRow must live OUTSIDE
+   SettingsModal so React never remounts it on re-render
    ══════════════════════════════════════════════════ */
+
+// Defined at module level → stable component identity → slider keeps focus during drag
+function VolumeRow({ label, icon, volume, isOn, onRawChange, onToggle }) {
+  const pct    = Math.round(volume * 100);
+  const dimmed = !isOn;
+  const volIcon = !isOn || volume === 0 ? '🔇' : volume < 0.4 ? '🔈' : volume < 0.75 ? '🔉' : '🔊';
+
+  // Handle native input event (fires on every pixel of drag on mobile)
+  const handleInput = (e) => {
+    const v = parseInt(e.target.value, 10);
+    onRawChange(v);
+  };
+
+  return (
+    <div style={{ marginBottom: 24 }}>
+      {/* Label row + toggle */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 12 }}>
+        <div style={{ display:'flex', alignItems:'center', gap: 8 }}>
+          <span style={{ fontSize: 22, opacity: dimmed ? 0.4 : 1, transition:'opacity 0.2s' }}>{icon}</span>
+          <span style={{ color: dimmed ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.9)',
+            fontSize: 15, fontWeight: 700, transition:'color 0.2s' }}>{label}</span>
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap: 10 }}>
+          <span style={{ fontSize: 13, fontWeight: 800, minWidth: 44, textAlign:'right',
+            color: dimmed ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.55)', transition:'color 0.2s' }}>
+            {volIcon} {isOn ? `${pct}%` : '—'}
+          </span>
+          {/* onPointerDown — более надёжно в TMA чем onClick */}
+          <button
+            onPointerDown={e => { e.stopPropagation(); onToggle(); }}
+            style={{
+              padding: '5px 14px', borderRadius: 20, border: 'none', cursor: 'pointer',
+              fontSize: 12, fontWeight: 800, letterSpacing: 0.3,
+              background: isOn ? 'linear-gradient(135deg,#60e080,#30b050)' : 'rgba(255,255,255,0.10)',
+              color: isOn ? '#fff' : 'rgba(255,255,255,0.4)',
+              boxShadow: isOn ? '0 2px 8px rgba(48,176,80,0.4)' : 'none',
+              transition: 'all 0.18s',
+            }}>{isOn ? 'ВКЛ' : 'ВЫКЛ'}</button>
+        </div>
+      </div>
+      {/* Slider track + native input */}
+      <div style={{ position:'relative', height: 36, display:'flex', alignItems:'center' }}>
+        {/* Filled portion */}
+        <div style={{
+          position:'absolute', left: 0, top:'50%', marginTop: -3,
+          width:`${pct}%`, height: 6,
+          borderRadius:'99px 0 0 99px',
+          background: dimmed ? 'rgba(255,255,255,0.15)' : 'linear-gradient(90deg,#e08010,#ffd060)',
+          pointerEvents:'none', opacity: dimmed ? 0.5 : 1,
+        }}/>
+        {/* Empty portion */}
+        <div style={{
+          position:'absolute', left:`${pct}%`, top:'50%', marginTop: -3,
+          width:`${100-pct}%`, height: 6,
+          borderRadius:'0 99px 99px 0',
+          background:'rgba(255,255,255,0.08)',
+          pointerEvents:'none',
+        }}/>
+        {/* The actual range input — NOT disabled, uses onInput for smooth drag */}
+        <input
+          type="range"
+          className="vol-slider"
+          min={0} max={100} step={1}
+          value={pct}
+          onChange={handleInput}
+          onInput={handleInput}
+          style={{ opacity: dimmed ? 0.5 : 1, position:'relative', zIndex: 2 }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function SettingsModal({ onClose, handleManualSync, syncStatus }) {
   const [sfxVol,   setSfxVolLocal]   = useState(() => getSfxVolume());
   const [musicVol, setMusicVolLocal] = useState(() => getMusicVolume());
   const [musicOn,  setMusicOnLocal]  = useState(() => getMusicEnabled());
   const [sfxOn,    setSfxOnLocal]    = useState(() => getSfxEnabled());
 
-  // Music slider: changes volume in real time; if was off and dragged > 0, auto-enable
+  // Music: raw 0–100 integer from slider
   const handleMusicChange = (v) => {
     const val = v / 100;
     setMusicVolLocal(val);
     setMusicVolume(val);
-    // If was muted and slider moved above 0 — turn on
-    if (val > 0 && !musicOn) {
-      setMusicOnLocal(true);
-      setMusicEnabled(true);
-    }
-    // If slider dragged to 0 — turn off
-    if (val === 0 && musicOn) {
-      setMusicOnLocal(false);
-      setMusicEnabled(false);
-    }
+    if (val > 0 && !musicOn) { setMusicOnLocal(true);  setMusicEnabled(true);  }
+    if (val === 0 && musicOn) { setMusicOnLocal(false); setMusicEnabled(false); }
   };
-
   const handleMusicToggle = () => {
     const next = !musicOn;
     setMusicOnLocal(next);
     setMusicEnabled(next);
   };
 
-  // SFX slider: changes volume in real time, plays a preview tap
+  // SFX: raw 0–100 integer from slider
   const handleSfxChange = (v) => {
     const val = v / 100;
     setSfxVolLocal(val);
     setSfxVolume(val);
-    if (val > 0 && !sfxOn) {
-      setSfxOnLocal(true);
-      setSfxEnabled(true);
-    }
-    if (val === 0 && sfxOn) {
-      setSfxOnLocal(false);
-      setSfxEnabled(false);
-    }
-    // Tiny preview sound so user hears the new volume immediately
+    if (val > 0 && !sfxOn) { setSfxOnLocal(true);  setSfxEnabled(true);  }
+    if (val === 0 && sfxOn)  { setSfxOnLocal(false); setSfxEnabled(false); }
     if (val > 0) playSound('tap');
   };
-
   const handleSfxToggle = () => {
     const next = !sfxOn;
     setSfxOnLocal(next);
     setSfxEnabled(next);
     if (next) playSound('tap');
-  };
-
-  const volIcon = (on, v) => !on || v === 0 ? '🔇' : v < 0.4 ? '🔈' : v < 0.75 ? '🔉' : '🔊';
-
-  // VolumeRow — slider always shows real volume; dimmed when off
-  const VolumeRow = ({ label, icon, volume, isOn, onChange, onToggle }) => {
-    const pct = Math.round(volume * 100);
-    const dimmed = !isOn;
-    return (
-      <div style={{ marginBottom: 24 }}>
-        {/* Label row + toggle */}
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 12 }}>
-          <div style={{ display:'flex', alignItems:'center', gap: 8 }}>
-            <span style={{ fontSize: 22, opacity: dimmed ? 0.4 : 1, transition:'opacity 0.2s' }}>{icon}</span>
-            <span style={{ color: dimmed ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.9)',
-              fontSize: 15, fontWeight: 700, transition:'color 0.2s' }}>{label}</span>
-          </div>
-          <div style={{ display:'flex', alignItems:'center', gap: 10 }}>
-            <span style={{ fontSize: 13, fontWeight: 800, minWidth: 44, textAlign:'right',
-              color: dimmed ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.55)', transition:'color 0.2s' }}>
-              {volIcon(isOn, volume)} {isOn ? pct : '—'}%
-            </span>
-            <button onClick={onToggle} style={{
-              padding: '5px 14px', borderRadius: 20, border: 'none', cursor: 'pointer',
-              fontSize: 12, fontWeight: 800, letterSpacing: 0.3,
-              background: isOn
-                ? 'linear-gradient(135deg,#60e080,#30b050)'
-                : 'rgba(255,255,255,0.10)',
-              color: isOn ? '#fff' : 'rgba(255,255,255,0.4)',
-              boxShadow: isOn ? '0 2px 8px rgba(48,176,80,0.4)' : 'none',
-              transition: 'all 0.18s',
-            }}>{isOn ? 'ВКЛ' : 'ВЫКЛ'}</button>
-          </div>
-        </div>
-        {/* Slider with gradient fill — NO transition so it's instant */}
-        <div style={{ position:'relative', height: 28, display:'flex', alignItems:'center' }}>
-          {/* Colored fill track */}
-          <div style={{
-            position:'absolute', left: 0, top:'50%', marginTop:-3,
-            width:`${pct}%`, height: 6,
-            borderRadius:'99px 0 0 99px',
-            background: dimmed
-              ? 'rgba(255,255,255,0.15)'
-              : 'linear-gradient(90deg,#e08010,#ffd060)',
-            pointerEvents:'none',
-            opacity: dimmed ? 0.5 : 1,
-            // NO transition here — instant response to drag
-          }}/>
-          {/* Grey remaining track */}
-          <div style={{
-            position:'absolute', left:`${pct}%`, top:'50%', marginTop:-3,
-            width:`${100-pct}%`, height: 6,
-            borderRadius:'0 99px 99px 0',
-            background:'rgba(255,255,255,0.08)',
-            pointerEvents:'none',
-          }}/>
-          <input
-            type="range"
-            className="vol-slider"
-            min={0} max={100} step={1}
-            value={pct}
-            disabled={!isOn && volume === 0}
-            onChange={e => isOn || parseInt(e.target.value) > 0 ? onChange(parseInt(e.target.value)) : null}
-            style={{ opacity: dimmed ? 0.5 : 1, transition:'opacity 0.2s' }}
-          />
-        </div>
-      </div>
-    );
   };
 
   return (
@@ -1807,7 +1796,7 @@ function SettingsModal({ onClose, handleManualSync, syncStatus }) {
           label="Музыка" icon="🎵"
           volume={musicVol}
           isOn={musicOn}
-          onChange={handleMusicChange}
+          onRawChange={handleMusicChange}
           onToggle={handleMusicToggle}
         />
 
@@ -1816,7 +1805,7 @@ function SettingsModal({ onClose, handleManualSync, syncStatus }) {
           label="Звуки" icon="🔔"
           volume={sfxVol}
           isOn={sfxOn}
-          onChange={handleSfxChange}
+          onRawChange={handleSfxChange}
           onToggle={handleSfxToggle}
         />
 
@@ -3860,7 +3849,7 @@ function AchievementsScreen({ onBack, canClaimDaily, onShowDaily, achievements, 
    ══════════════════════════════════════════════════ */
 function NFTSkinScreen({ walletAddress, ownedNFTs, activeNFT, onConnect, onDisconnect, onSelectNFT, onManualAddress, onBack, loading }) {
   const [tab, setTab] = useState(walletAddress ? 'gallery' : 'connect');
-  const [showManual, setShowManual] = useState(false);
+  const [showManual, setShowManual] = useState(true);   // open by default — main fallback
   const [manualInput, setManualInput] = useState('');
 
   const tierCfg = activeNFT ? (NFT_TIER_BONUSES[SCARED_CAT_MODELS[activeNFT.name]?.tier] || NFT_TIER_BONUSES.common) : null;
@@ -3937,33 +3926,37 @@ function NFTSkinScreen({ walletAddress, ownedNFTs, activeNFT, onConnect, onDisco
                 </div>
               ))}
             </div>
-            <button onClick={onConnect} disabled={loading}
+            {/* TON Connect button */}
+            <button
+              onPointerDown={e => { e.preventDefault(); if (!loading) onConnect(); }}
+              disabled={loading}
               style={{ background:'linear-gradient(135deg,#6040ff,#a060ff)', border:'none', borderRadius:22, padding:'16px 48px', fontSize:17, fontWeight:900, color:'white', cursor:loading?'default':'pointer', boxShadow:'0 6px 0 #3020a0', width:'100%', fontFamily:"'Nunito',sans-serif", opacity:loading?0.7:1 }}>
-              {loading ? '⏳ Подключаем...' : '👛 Подключить кошелёк'}
+              {loading ? '⏳ Подключаем...' : '👛 Подключить TON кошелёк'}
             </button>
 
-            {/* Manual address fallback */}
+            {/* Manual address — primary fallback, shown by default */}
             <div style={{ width:'100%' }}>
-              <button onClick={() => setShowManual(v => !v)}
+              <button
+                onPointerDown={e => { e.stopPropagation(); setShowManual(v => !v); }}
                 style={{ background:'none', border:'none', color:'rgba(255,255,255,0.4)', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:"'Nunito',sans-serif", textDecoration:'underline', padding:'4px 0' }}>
-                {showManual ? '▲ Скрыть' : '✏️ Ввести адрес вручную'}
+                {showManual ? '▲ Скрыть ввод адреса' : '✏️ Ввести TON-адрес вручную'}
               </button>
               {showManual && (
-                <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop:6 }}>
+                <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop:8 }}>
                   <div style={{ fontSize:11, color:'rgba(255,255,255,0.45)', lineHeight:1.5 }}>
-                    Если кошелёк не подключается автоматически — вставь свой TON-адрес:
+                    Вставь свой TON-адрес (EQ... или UQ...) чтобы найти NFT:
                   </div>
                   <input
                     value={manualInput}
                     onChange={e => setManualInput(e.target.value)}
-                    placeholder="EQ... или UQ..."
+                    placeholder="EQD... или UQ..."
                     style={{ background:'rgba(255,255,255,0.1)', border:'1.5px solid rgba(255,255,255,0.2)', borderRadius:14, padding:'12px 14px', fontSize:13, color:'white', fontFamily:'monospace', outline:'none', width:'100%' }}
                   />
                   <button
-                    onClick={() => { onManualAddress(manualInput); setShowManual(false); setManualInput(''); }}
+                    onPointerDown={e => { e.preventDefault(); if (manualInput.trim() && !loading) { onManualAddress(manualInput); setManualInput(''); } }}
                     disabled={!manualInput.trim() || loading}
-                    style={{ background:'rgba(96,64,255,0.4)', border:'1.5px solid rgba(120,80,255,0.6)', borderRadius:14, padding:'12px', fontSize:14, fontWeight:800, color:'white', cursor:'pointer', fontFamily:"'Nunito',sans-serif", opacity:(!manualInput.trim() || loading)?0.5:1 }}>
-                    🔍 Найти NFT
+                    style={{ background:'linear-gradient(135deg,#4060e0,#6080ff)', border:'1.5px solid rgba(120,80,255,0.6)', borderRadius:14, padding:'12px', fontSize:14, fontWeight:800, color:'white', cursor:'pointer', fontFamily:"'Nunito',sans-serif", opacity:(!manualInput.trim() || loading)?0.5:1 }}>
+                    🔍 Найти NFT по адресу
                   </button>
                 </div>
               )}
