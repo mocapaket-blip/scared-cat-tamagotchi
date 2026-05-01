@@ -4,7 +4,7 @@
    ═══════════════════════════════════════════════ */
 
 const { useState, useEffect, useRef, useCallback } = React;
-const APP_VERSION = '1.2.1';
+const APP_VERSION = '1.2.2';
 
 // ── TRUST LEVEL SYSTEM ──────────────────────────────────────────────────────
 const TRUST_STAGES = [
@@ -1725,7 +1725,92 @@ function VolumeRow({ label, icon, volume, isOn, onRawChange, onToggle }) {
   );
 }
 
-function SettingsModal({ onClose, handleManualSync, syncStatus }) {
+// WalletSection — module-level component used inside SettingsModal
+function WalletSection({ walletAddress, loading, onConnect, onDisconnect, onManual }) {
+  const [manualInput, setManualInput] = useState('');
+  const [showInput,   setShowInput]   = useState(false);
+
+  if (walletAddress) {
+    return (
+      <div>
+        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:12 }}>
+          <span style={{ fontSize:20 }}>👛</span>
+          <span style={{ color:'rgba(255,255,255,0.9)', fontSize:15, fontWeight:700 }}>Кошелёк</span>
+        </div>
+        {/* Connected state */}
+        <div style={{ padding:'12px 14px', borderRadius:16, background:'rgba(60,200,100,0.1)',
+          border:'1.5px solid rgba(60,200,100,0.3)', marginBottom:10,
+          display:'flex', alignItems:'center', gap:10 }}>
+          <span style={{ fontSize:20 }}>✅</span>
+          <div style={{ flex:1 }}>
+            <div style={{ fontSize:12, fontWeight:800, color:'#60e890' }}>Подключён</div>
+            <div style={{ fontSize:10, color:'rgba(255,255,255,0.4)', fontFamily:'monospace', marginTop:2, wordBreak:'break-all' }}>
+              {walletAddress.slice(0,10)}…{walletAddress.slice(-6)}
+            </div>
+          </div>
+        </div>
+        <button
+          onPointerDown={e => { e.stopPropagation(); onDisconnect(); }}
+          style={{ width:'100%', padding:'11px 0', borderRadius:14, border:'none', cursor:'pointer',
+            background:'rgba(220,60,60,0.18)', color:'#ff8888', fontSize:13, fontWeight:800,
+            fontFamily:"'Nunito',sans-serif" }}>
+          🔌 Отключить кошелёк
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:12 }}>
+        <span style={{ fontSize:20 }}>👛</span>
+        <span style={{ color:'rgba(255,255,255,0.9)', fontSize:15, fontWeight:700 }}>Кошелёк (NFT скины)</span>
+      </div>
+      {/* TON Connect button */}
+      <button
+        onPointerDown={e => { e.preventDefault(); if (!loading) onConnect(); }}
+        disabled={loading}
+        style={{ width:'100%', padding:'13px 0', borderRadius:16, border:'none', cursor:loading?'default':'pointer',
+          background:'linear-gradient(135deg,#6040ff,#a060ff)', color:'#fff', fontSize:14, fontWeight:800,
+          boxShadow:'0 4px 14px rgba(80,40,220,0.45)', opacity:loading?0.7:1,
+          display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+          fontFamily:"'Nunito',sans-serif", marginBottom:10 }}>
+        {loading ? '⏳ Подключаем...' : '👛 Подключить TON кошелёк'}
+      </button>
+      {/* Manual input toggle */}
+      <button
+        onPointerDown={e => { e.stopPropagation(); setShowInput(v => !v); }}
+        style={{ background:'none', border:'none', color:'rgba(255,255,255,0.38)', fontSize:11,
+          fontWeight:700, cursor:'pointer', fontFamily:"'Nunito',sans-serif",
+          textDecoration:'underline', padding:'2px 0', marginBottom:6 }}>
+        {showInput ? '▲ Скрыть' : '✏️ Ввести TON-адрес вручную'}
+      </button>
+      {showInput && (
+        <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop:4 }}>
+          <input
+            value={manualInput}
+            onChange={e => setManualInput(e.target.value)}
+            placeholder="EQ... или UQ..."
+            style={{ background:'rgba(255,255,255,0.08)', border:'1.5px solid rgba(255,255,255,0.18)',
+              borderRadius:12, padding:'10px 12px', fontSize:12, color:'white',
+              fontFamily:'monospace', outline:'none', width:'100%' }}
+          />
+          <button
+            onPointerDown={e => { e.preventDefault(); if (manualInput.trim() && !loading) { onManual(manualInput); setManualInput(''); setShowInput(false); } }}
+            disabled={!manualInput.trim() || loading}
+            style={{ padding:'11px 0', borderRadius:12, border:'none', cursor:'pointer',
+              background:'linear-gradient(135deg,#4060d0,#6080ff)', color:'#fff',
+              fontSize:13, fontWeight:800, fontFamily:"'Nunito',sans-serif",
+              opacity:(!manualInput.trim() || loading)?0.45:1 }}>
+            🔍 Найти NFT
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SettingsModal({ onClose, handleManualSync, syncStatus, walletAddress, onConnectWallet, onDisconnectWallet, onManualWallet, nftLoading }) {
   const [sfxVol,   setSfxVolLocal]   = useState(() => getSfxVolume());
   const [musicVol, setMusicVolLocal] = useState(() => getMusicVolume());
   const [musicOn,  setMusicOnLocal]  = useState(() => getMusicEnabled());
@@ -1813,13 +1898,13 @@ function SettingsModal({ onClose, handleManualSync, syncStatus }) {
         <div style={{ height: 1, background:'rgba(255,255,255,0.07)', margin:'4px 0 20px' }}/>
 
         {/* Cloud sync */}
-        <div style={{ marginBottom: 8 }}>
+        <div style={{ marginBottom: 20 }}>
           <div style={{ display:'flex', alignItems:'center', gap: 8, marginBottom: 12 }}>
             <span style={{ fontSize: 20 }}>☁️</span>
             <span style={{ color:'rgba(255,255,255,0.9)', fontSize: 15, fontWeight: 700 }}>Синхронизация</span>
           </div>
           <button
-            onClick={handleManualSync}
+            onPointerDown={e => { e.stopPropagation(); handleManualSync(); }}
             disabled={syncStatus === 'syncing'}
             style={{
               width:'100%', padding:'13px 0', borderRadius: 16, border:'none', cursor: syncStatus==='syncing' ? 'default':'pointer',
@@ -1840,6 +1925,18 @@ function SettingsModal({ onClose, handleManualSync, syncStatus }) {
               : '☁️ Синхронизировать прогресс'}
           </button>
         </div>
+
+        {/* Divider */}
+        <div style={{ height: 1, background:'rgba(255,255,255,0.07)', margin:'0 0 20px' }}/>
+
+        {/* Wallet section */}
+        <WalletSection
+          walletAddress={walletAddress}
+          loading={nftLoading}
+          onConnect={onConnectWallet}
+          onDisconnect={onDisconnectWallet}
+          onManual={onManualWallet}
+        />
       </div>
     </div>
   );
@@ -3907,8 +4004,8 @@ function NFTSkinScreen({ walletAddress, ownedNFTs, activeNFT, onConnect, onDisco
       {/* Main content */}
       <div style={{ flex:1, overflowY:'auto', padding:'12px 16px 24px' }}>
         {!walletAddress ? (
-          /* ── Connect screen ── */
-          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:300, gap:20, textAlign:'center' }}>
+          /* ── Not connected: prompt to go to Settings ── */
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:300, gap:18, textAlign:'center' }}>
             <div style={{ fontSize:72 }}>🐱</div>
             <div style={{ fontSize:16, fontWeight:900, color:'white' }}>Подключи TON кошелёк</div>
             <div style={{ fontSize:13, color:'rgba(255,255,255,0.55)', lineHeight:1.7 }}>
@@ -3926,40 +4023,14 @@ function NFTSkinScreen({ walletAddress, ownedNFTs, activeNFT, onConnect, onDisco
                 </div>
               ))}
             </div>
-            {/* TON Connect button */}
-            <button
-              onPointerDown={e => { e.preventDefault(); if (!loading) onConnect(); }}
-              disabled={loading}
-              style={{ background:'linear-gradient(135deg,#6040ff,#a060ff)', border:'none', borderRadius:22, padding:'16px 48px', fontSize:17, fontWeight:900, color:'white', cursor:loading?'default':'pointer', boxShadow:'0 6px 0 #3020a0', width:'100%', fontFamily:"'Nunito',sans-serif", opacity:loading?0.7:1 }}>
-              {loading ? '⏳ Подключаем...' : '👛 Подключить TON кошелёк'}
-            </button>
-
-            {/* Manual address — primary fallback, shown by default */}
-            <div style={{ width:'100%' }}>
-              <button
-                onPointerDown={e => { e.stopPropagation(); setShowManual(v => !v); }}
-                style={{ background:'none', border:'none', color:'rgba(255,255,255,0.4)', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:"'Nunito',sans-serif", textDecoration:'underline', padding:'4px 0' }}>
-                {showManual ? '▲ Скрыть ввод адреса' : '✏️ Ввести TON-адрес вручную'}
-              </button>
-              {showManual && (
-                <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop:8 }}>
-                  <div style={{ fontSize:11, color:'rgba(255,255,255,0.45)', lineHeight:1.5 }}>
-                    Вставь свой TON-адрес (EQ... или UQ...) чтобы найти NFT:
-                  </div>
-                  <input
-                    value={manualInput}
-                    onChange={e => setManualInput(e.target.value)}
-                    placeholder="EQD... или UQ..."
-                    style={{ background:'rgba(255,255,255,0.1)', border:'1.5px solid rgba(255,255,255,0.2)', borderRadius:14, padding:'12px 14px', fontSize:13, color:'white', fontFamily:'monospace', outline:'none', width:'100%' }}
-                  />
-                  <button
-                    onPointerDown={e => { e.preventDefault(); if (manualInput.trim() && !loading) { onManualAddress(manualInput); setManualInput(''); } }}
-                    disabled={!manualInput.trim() || loading}
-                    style={{ background:'linear-gradient(135deg,#4060e0,#6080ff)', border:'1.5px solid rgba(120,80,255,0.6)', borderRadius:14, padding:'12px', fontSize:14, fontWeight:800, color:'white', cursor:'pointer', fontFamily:"'Nunito',sans-serif", opacity:(!manualInput.trim() || loading)?0.5:1 }}>
-                    🔍 Найти NFT по адресу
-                  </button>
-                </div>
-              )}
+            {/* Hint: go to Settings */}
+            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'14px 18px', borderRadius:18,
+              background:'rgba(112,80,220,0.15)', border:'1.5px solid rgba(140,100,255,0.35)', width:'100%' }}>
+              <span style={{ fontSize:24 }}>⚙️</span>
+              <div style={{ textAlign:'left' }}>
+                <div style={{ fontSize:13, fontWeight:800, color:'rgba(200,180,255,0.95)' }}>Подключение в Настройках</div>
+                <div style={{ fontSize:11, color:'rgba(255,255,255,0.45)', marginTop:2 }}>Нажми ⚙️ на главном экране → раздел «Кошелёк»</div>
+              </div>
             </div>
           </div>
         ) : loading ? (
@@ -5591,7 +5662,16 @@ function App() {
       {returnData     && <ReturnModal returnData={returnData} onClaim={handleClaimReturn}/>}
       {showTrustModal    && <TrustModal trustPoints={trustPoints} onClose={() => setShowTrustModal(false)}/>}
       {showScaredModal   && <ScaredModal scaredLvl={scaredLvl} onClose={() => setShowScaredModal(false)}/>}
-      {showSettingsModal && <SettingsModal onClose={() => setShowSettingsModal(false)} handleManualSync={handleManualSync} syncStatus={syncStatus}/>}
+      {showSettingsModal && <SettingsModal
+        onClose={() => setShowSettingsModal(false)}
+        handleManualSync={handleManualSync}
+        syncStatus={syncStatus}
+        walletAddress={walletAddress}
+        onConnectWallet={handleConnectWallet}
+        onDisconnectWallet={handleDisconnectWallet}
+        onManualWallet={handleManualWallet}
+        nftLoading={nftLoading}
+      />}
     </div>
   );
 }

@@ -473,6 +473,12 @@ function startMusic() {
 function stopMusic() {
   _musicPlaying = false;
   if (_musicLoopTimer) { clearTimeout(_musicLoopTimer); _musicLoopTimer = null; }
+  // Close AudioContext → all in-flight oscillator nodes die immediately.
+  // getAudioCtx() will create a fresh one next time music starts.
+  if (_audioCtx) {
+    try { _audioCtx.close(); } catch (_) {}
+    _audioCtx = null;
+  }
 }
 
 function setMusicVolume(v) {
