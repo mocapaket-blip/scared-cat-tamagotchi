@@ -4,7 +4,7 @@
    ═══════════════════════════════════════════════ */
 
 const { useState, useEffect, useRef, useCallback } = React;
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.0';
 
 // ── TRUST LEVEL SYSTEM ──────────────────────────────────────────────────────
 const TRUST_STAGES = [
@@ -1655,24 +1655,22 @@ function SettingsModal({ onClose, handleManualSync, syncStatus }) {
   const [sfxVol,   setSfxVolLocal]   = useState(() => getSfxVolume());
   const [musicVol, setMusicVolLocal] = useState(() => getMusicVolume());
   const [musicOn,  setMusicOnLocal]  = useState(() => getMusicEnabled());
+  const [sfxOn,    setSfxOnLocal]    = useState(() => getSfxEnabled());
 
-  const handleSfxChange = (v) => {
-    const val = v / 100;
-    setSfxVolLocal(val);
-    setSfxVolume(val);
-    if (val > 0) setTimeout(() => playSound('tap'), 30);
-  };
-
+  // Music slider: changes volume in real time; if was off and dragged > 0, auto-enable
   const handleMusicChange = (v) => {
     const val = v / 100;
     setMusicVolLocal(val);
     setMusicVolume(val);
-    if (val === 0) {
-      setMusicOnLocal(false);
-      setMusicEnabled(false);
-    } else if (!musicOn) {
+    // If was muted and slider moved above 0 — turn on
+    if (val > 0 && !musicOn) {
       setMusicOnLocal(true);
       setMusicEnabled(true);
+    }
+    // If slider dragged to 0 — turn off
+    if (val === 0 && musicOn) {
+      setMusicOnLocal(false);
+      setMusicEnabled(false);
     }
   };
 
@@ -1682,44 +1680,92 @@ function SettingsModal({ onClose, handleManualSync, syncStatus }) {
     setMusicEnabled(next);
   };
 
-  // Volume label icon
-  const volIcon = (v) => v === 0 ? '🔇' : v < 0.4 ? '🔈' : v < 0.75 ? '🔉' : '🔊';
+  // SFX slider: changes volume in real time, plays a preview tap
+  const handleSfxChange = (v) => {
+    const val = v / 100;
+    setSfxVolLocal(val);
+    setSfxVolume(val);
+    if (val > 0 && !sfxOn) {
+      setSfxOnLocal(true);
+      setSfxEnabled(true);
+    }
+    if (val === 0 && sfxOn) {
+      setSfxOnLocal(false);
+      setSfxEnabled(false);
+    }
+    // Tiny preview sound so user hears the new volume immediately
+    if (val > 0) playSound('tap');
+  };
 
-  const VolumeRow = ({ label, icon, value, onChange, showToggle, toggleOn, onToggle }) => {
-    const pct = Math.round(value * 100);
+  const handleSfxToggle = () => {
+    const next = !sfxOn;
+    setSfxOnLocal(next);
+    setSfxEnabled(next);
+    if (next) playSound('tap');
+  };
+
+  const volIcon = (on, v) => !on || v === 0 ? '🔇' : v < 0.4 ? '🔈' : v < 0.75 ? '🔉' : '🔊';
+
+  // VolumeRow — slider always shows real volume; dimmed when off
+  const VolumeRow = ({ label, icon, volume, isOn, onChange, onToggle }) => {
+    const pct = Math.round(volume * 100);
+    const dimmed = !isOn;
     return (
-      <div style={{ marginBottom: 22 }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 10 }}>
+      <div style={{ marginBottom: 24 }}>
+        {/* Label row + toggle */}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 12 }}>
           <div style={{ display:'flex', alignItems:'center', gap: 8 }}>
-            <span style={{ fontSize: 22 }}>{icon}</span>
-            <span style={{ color:'rgba(255,255,255,0.9)', fontSize: 15, fontWeight: 700 }}>{label}</span>
+            <span style={{ fontSize: 22, opacity: dimmed ? 0.4 : 1, transition:'opacity 0.2s' }}>{icon}</span>
+            <span style={{ color: dimmed ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.9)',
+              fontSize: 15, fontWeight: 700, transition:'color 0.2s' }}>{label}</span>
           </div>
           <div style={{ display:'flex', alignItems:'center', gap: 10 }}>
-            <span style={{ fontSize: 13, fontWeight: 800, color:'rgba(255,255,255,0.5)', minWidth: 38, textAlign:'right' }}>
-              {volIcon(value)} {pct}%
+            <span style={{ fontSize: 13, fontWeight: 800, minWidth: 44, textAlign:'right',
+              color: dimmed ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.55)', transition:'color 0.2s' }}>
+              {volIcon(isOn, volume)} {isOn ? pct : '—'}%
             </span>
-            {showToggle && (
-              <button onClick={onToggle} style={{
-                padding: '4px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 800,
-                background: toggleOn ? 'linear-gradient(135deg,#60e080,#30b050)' : 'rgba(255,255,255,0.12)',
-                color: toggleOn ? '#fff' : 'rgba(255,255,255,0.5)', transition: 'all 0.2s',
-              }}>{toggleOn ? 'ВКЛ' : 'ВЫКЛ'}</button>
-            )}
+            <button onClick={onToggle} style={{
+              padding: '5px 14px', borderRadius: 20, border: 'none', cursor: 'pointer',
+              fontSize: 12, fontWeight: 800, letterSpacing: 0.3,
+              background: isOn
+                ? 'linear-gradient(135deg,#60e080,#30b050)'
+                : 'rgba(255,255,255,0.10)',
+              color: isOn ? '#fff' : 'rgba(255,255,255,0.4)',
+              boxShadow: isOn ? '0 2px 8px rgba(48,176,80,0.4)' : 'none',
+              transition: 'all 0.18s',
+            }}>{isOn ? 'ВКЛ' : 'ВЫКЛ'}</button>
           </div>
         </div>
-        {/* Slider track wrapper with gradient fill */}
-        <div style={{ position:'relative', paddingBottom: 4 }}>
+        {/* Slider with gradient fill — NO transition so it's instant */}
+        <div style={{ position:'relative', height: 28, display:'flex', alignItems:'center' }}>
+          {/* Colored fill track */}
           <div style={{
-            position:'absolute', top:'50%', left: 0, width:`${pct}%`,
-            height: 6, borderRadius:'99px 0 0 99px', marginTop:-3,
-            background:'linear-gradient(90deg,#f09020,#ffd060)',
-            pointerEvents:'none', transition:'width 0.05s',
+            position:'absolute', left: 0, top:'50%', marginTop:-3,
+            width:`${pct}%`, height: 6,
+            borderRadius:'99px 0 0 99px',
+            background: dimmed
+              ? 'rgba(255,255,255,0.15)'
+              : 'linear-gradient(90deg,#e08010,#ffd060)',
+            pointerEvents:'none',
+            opacity: dimmed ? 0.5 : 1,
+            // NO transition here — instant response to drag
+          }}/>
+          {/* Grey remaining track */}
+          <div style={{
+            position:'absolute', left:`${pct}%`, top:'50%', marginTop:-3,
+            width:`${100-pct}%`, height: 6,
+            borderRadius:'0 99px 99px 0',
+            background:'rgba(255,255,255,0.08)',
+            pointerEvents:'none',
           }}/>
           <input
-            type="range" className="vol-slider"
+            type="range"
+            className="vol-slider"
             min={0} max={100} step={1}
             value={pct}
-            onChange={e => onChange(parseInt(e.target.value))}
+            disabled={!isOn && volume === 0}
+            onChange={e => isOn || parseInt(e.target.value) > 0 ? onChange(parseInt(e.target.value)) : null}
+            style={{ opacity: dimmed ? 0.5 : 1, transition:'opacity 0.2s' }}
           />
         </div>
       </div>
@@ -1728,54 +1774,50 @@ function SettingsModal({ onClose, handleManualSync, syncStatus }) {
 
   return (
     <div onClick={onClose} style={{
-      position:'fixed', inset:0, background:'rgba(0,0,0,0.62)', zIndex:300,
+      position:'fixed', inset:0, background:'rgba(0,0,0,0.65)', zIndex:300,
       display:'flex', alignItems:'flex-end', justifyContent:'center',
     }}>
       <div onClick={e => e.stopPropagation()} style={{
         width:'100%', maxWidth: 430,
-        background:'linear-gradient(175deg, rgba(30,18,50,0.98) 0%, rgba(18,10,34,0.99) 100%)',
+        background:'linear-gradient(175deg, rgba(26,14,46,0.99) 0%, rgba(14,8,28,0.99) 100%)',
         borderRadius:'28px 28px 0 0',
-        padding:'28px 24px 32px',
-        boxShadow:'0 -8px 40px rgba(0,0,0,0.7)',
-        animation:'modalIn 0.3s cubic-bezier(0.34,1.56,0.64,1)',
-        border:'1.5px solid rgba(255,255,255,0.08)',
+        padding:'28px 24px 34px',
+        boxShadow:'0 -8px 48px rgba(0,0,0,0.75)',
+        animation:'modalIn 0.28s cubic-bezier(0.34,1.56,0.64,1)',
+        border:'1.5px solid rgba(255,255,255,0.07)',
         borderBottom:'none',
       }}>
         {/* Header */}
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 24 }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 22 }}>
           <div style={{ display:'flex', alignItems:'center', gap: 10 }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: 14,
+            <div style={{ width:40, height:40, borderRadius:14,
               background:'linear-gradient(135deg,#7060d8,#5040b0)',
-              display:'flex', alignItems:'center', justifyContent:'center', fontSize: 20,
-              boxShadow:'0 4px 12px rgba(112,96,216,0.5)',
-            }}>⚙️</div>
-            <span style={{ fontSize: 19, fontWeight: 900, color:'#fff' }}>Настройки</span>
+              display:'flex', alignItems:'center', justifyContent:'center', fontSize:20,
+              boxShadow:'0 4px 12px rgba(112,96,216,0.45)' }}>⚙️</div>
+            <span style={{ fontSize:19, fontWeight:900, color:'#fff' }}>Настройки</span>
           </div>
-          <button onClick={onClose} style={{
-            width: 32, height: 32, borderRadius: 10, border:'none', cursor:'pointer',
-            background:'rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.6)', fontSize: 16,
-          }}>✕</button>
+          <button onClick={onClose} style={{ width:32, height:32, borderRadius:10, border:'none', cursor:'pointer',
+            background:'rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.6)', fontSize:16 }}>✕</button>
         </div>
 
-        {/* Divider */}
-        <div style={{ height: 1, background:'rgba(255,255,255,0.07)', marginBottom: 22 }}/>
+        <div style={{ height:1, background:'rgba(255,255,255,0.07)', marginBottom:22 }}/>
 
         {/* Music */}
         <VolumeRow
           label="Музыка" icon="🎵"
-          value={musicOn ? musicVol : 0}
+          volume={musicVol}
+          isOn={musicOn}
           onChange={handleMusicChange}
-          showToggle={true}
-          toggleOn={musicOn}
           onToggle={handleMusicToggle}
         />
 
         {/* SFX */}
         <VolumeRow
           label="Звуки" icon="🔔"
-          value={sfxVol}
+          volume={sfxVol}
+          isOn={sfxOn}
           onChange={handleSfxChange}
+          onToggle={handleSfxToggle}
         />
 
         {/* Divider */}
@@ -4613,7 +4655,7 @@ function App() {
       const { reward } = prev.completedOrder;
       setCoins(c => c + reward);
       applyXP(Math.round(reward / 4));
-      applyTrust(3);
+      applyTrust(2);
       showToast(`✅ Получено: ${reward} монет!`);
       return { ...prev, completedOrder: null };
     });
@@ -4640,7 +4682,7 @@ function App() {
     const earned = earnCoins(8, level);
     setCoins(c => c + earned);
     applyXP(item.xp);
-    applyTrust(9);
+    applyTrust(6);
     afterAction('feedCount');
     if (item.id === 'food_premium') afterAction('premiumFed');
     spawnHearts(3, 80);
@@ -4663,7 +4705,7 @@ function App() {
     const earned = earnCoins(5, level);
     setCoins(c => c + earned);
     applyXP(item.xp);
-    applyTrust(9);
+    applyTrust(6);
     afterAction('toyCount');
     afterAction('playCount');
     spawnHearts(4, 100);
@@ -4982,7 +5024,7 @@ function App() {
     const earned = earnCoins(8, level);
     setCoins(c => c + earned);
     applyXP(item.xp);
-    applyTrust(9);
+    applyTrust(6);
     afterAction('feedCount');
     if (item.id === 'food_premium') afterAction('premiumFed');
     if (cdKey && cooldownMs > 0) setCooldowns(prev => ({ ...prev, [cdKey]: Date.now() + cooldownMs }));
@@ -5025,6 +5067,19 @@ function App() {
     showToast(`${treat.emoji} Кот успокоился! −${treat.scaredReduction}`);
   }, [inventory, spawnHearts, showToast]);
 
+  // Emergency petting: available only at high fear, single-use per episode
+  // Re-available when fear rises 5+ points above the level it was used at
+  const handleEmergencyPet = useCallback(() => {
+    const threshold = cooldowns.emergencyPetThreshold || 0;
+    if (scaredLvl <= threshold + 5) return; // still on cooldown for this episode
+    const reduction = 22;
+    setScaredLvl(p => Math.max(0, p - reduction));
+    setCooldowns(prev => ({ ...prev, emergencyPetThreshold: scaredLvl }));
+    spawnHearts(5, 100, '🖐️');
+    playSound('tap');
+    showToast(`🖐️ Кот немного успокоился! −${reduction} страха`);
+  }, [scaredLvl, cooldowns, spawnHearts, showToast]);
+
   const handleShopEquip = useCallback((item) => {
     setEquipped(prev => {
       const wasEquipped = prev[item.slot] === item.id;
@@ -5064,21 +5119,26 @@ function App() {
   }, [pendingStreak, applyXP, showToast]);
 
   const handleCatClick = useCallback(() => {
+    const now = Date.now();
+    const cdEnd = cooldowns.normalPet || 0;
+    if (now < cdEnd) {
+      const minsLeft = Math.ceil((cdEnd - now) / 60000);
+      showToast(`🖐️ Кот устал от ласки! Ещё ${minsLeft} мин.`);
+      return;
+    }
     playSound('tap');
     walkRef.current.x = 111; walkRef.current.dir = 1;
     setCatX(111); setCatFacing(1);
-    // Spawn emotion-specific particles
-    const cs  = getCatState(stats, level);
+    const cs     = getCatState(stats, level);
     const pEmoji = CAT_STATES[cs]?.particle || '❤️';
     spawnHearts(3, 80, pEmoji);
-    applyTrust(2); // +2 trust for petting the cat
-    // Petting strongly calms the cat (−8 scared)
-    setScaredLvl(p => Math.max(0, p - 8));
+    applyTrust(2);
+    setCooldowns(prev => ({ ...prev, normalPet: now + 60 * 60000 }));
     if (showGif) return;
     setShowGif(true);
     clearTimeout(gifTimer.current);
     gifTimer.current = setTimeout(() => setShowGif(false), 3000);
-  }, [showGif, stats, level, spawnHearts, applyTrust]);
+  }, [showGif, stats, level, cooldowns, spawnHearts, applyTrust, showToast]);
 
   const handlePawClick = useCallback((dest) => {
     if (dest === 'home')  { setScreen('home'); setActionDone(false); setActiveNav('home'); return; }
@@ -5391,18 +5451,23 @@ function App() {
           {scaredLvl >= 70 && (() => {
             const hasTreat = CALM_TREATS.some(t => (inventory[t.id] || 0) > 0);
             const bestTreat = CALM_TREATS.slice().sort((a,b) => b.scaredReduction - a.scaredReduction).find(t => (inventory[t.id]||0)>0);
+            const petAvail = scaredLvl > (cooldowns.emergencyPetThreshold || 0) + 5;
             return (
               <div style={{ marginTop:8, display:'flex', gap:6 }}>
-                <div onClick={handleCatClick}
+                <div onClick={petAvail ? handleEmergencyPet : undefined}
                   style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:5,
-                    padding:'7px 8px', borderRadius:12, cursor:'pointer',
-                    background:'rgba(255,120,50,0.14)', border:'1px solid rgba(255,120,50,0.3)',
+                    padding:'7px 8px', borderRadius:12, cursor: petAvail ? 'pointer' : 'default',
+                    background: petAvail ? 'rgba(255,120,50,0.14)' : 'rgba(120,120,120,0.08)',
+                    border: petAvail ? '1px solid rgba(255,120,50,0.3)' : '1px solid rgba(180,180,180,0.12)',
+                    opacity: petAvail ? 1 : 0.45,
                     transition:'transform 0.1s' }}
-                  onPointerDown={e=>e.currentTarget.style.transform='scale(0.95)'}
+                  onPointerDown={e=>{ if(petAvail) e.currentTarget.style.transform='scale(0.95)'; }}
                   onPointerUp={e=>e.currentTarget.style.transform='scale(1)'}
                   onPointerLeave={e=>e.currentTarget.style.transform='scale(1)'}>
                   <span style={{ fontSize:13 }}>🖐️</span>
-                  <span style={{ fontSize:10, fontWeight:800, color:'rgba(255,180,130,0.9)' }}>Погладить</span>
+                  <span style={{ fontSize:10, fontWeight:800, color: petAvail ? 'rgba(255,180,130,0.9)' : 'rgba(180,180,180,0.5)' }}>
+                    {petAvail ? 'Погладить' : 'Устал'}
+                  </span>
                 </div>
                 {hasTreat && bestTreat && (
                   <div onClick={() => handleGiveTreat(bestTreat)}

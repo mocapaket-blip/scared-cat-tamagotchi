@@ -385,6 +385,7 @@ let _audioCtx = null;
 let _sfxVol   = parseFloat(localStorage.getItem('sc_sfxVol')   ?? '1.0');
 let _musicVol  = parseFloat(localStorage.getItem('sc_musicVol') ?? '0.38');
 let _musicOn   = localStorage.getItem('sc_musicOn') !== 'false';
+let _sfxOn     = localStorage.getItem('sc_sfxOn')   !== 'false';
 let _musicPlaying = false;
 let _musicLoopTimer = null;
 
@@ -419,6 +420,7 @@ function getAudioCtx() {
 }
 
 function _note(ctx, freq, start, dur, vol, type) {
+  if (!_sfxOn || _sfxVol <= 0) return;
   const o = ctx.createOscillator();
   const g = ctx.createGain();
   o.type = type || 'triangle';
@@ -492,6 +494,12 @@ function setMusicEnabled(on) {
 function getMusicEnabled() { return _musicOn; }
 function getMusicVolume()  { return _musicVol; }
 function getSfxVolume()    { return _sfxVol; }
+function getSfxEnabled()   { return _sfxOn; }
+
+function setSfxEnabled(on) {
+  _sfxOn = on;
+  localStorage.setItem('sc_sfxOn', on ? 'true' : 'false');
+}
 
 function playSound(type) {
   try {
