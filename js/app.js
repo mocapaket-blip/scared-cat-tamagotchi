@@ -4,7 +4,7 @@
    ═══════════════════════════════════════════════ */
 
 const { useState, useEffect, useRef, useCallback } = React;
-const APP_VERSION = '1.2.2';
+const APP_VERSION = '1.2.3';
 
 // ── TRUST LEVEL SYSTEM ──────────────────────────────────────────────────────
 const TRUST_STAGES = [
@@ -1726,10 +1726,8 @@ function VolumeRow({ label, icon, volume, isOn, onRawChange, onToggle }) {
 }
 
 // WalletSection — module-level component used inside SettingsModal
-function WalletSection({ walletAddress, loading, onConnect, onDisconnect, onManual }) {
-  const [manualInput, setManualInput] = useState('');
-  const [showInput,   setShowInput]   = useState(false);
-
+// Manual address input removed: TON Connect only
+function WalletSection({ walletAddress, loading, onConnect, onDisconnect }) {
   if (walletAddress) {
     return (
       <div>
@@ -1737,7 +1735,6 @@ function WalletSection({ walletAddress, loading, onConnect, onDisconnect, onManu
           <span style={{ fontSize:20 }}>👛</span>
           <span style={{ color:'rgba(255,255,255,0.9)', fontSize:15, fontWeight:700 }}>Кошелёк</span>
         </div>
-        {/* Connected state */}
         <div style={{ padding:'12px 14px', borderRadius:16, background:'rgba(60,200,100,0.1)',
           border:'1.5px solid rgba(60,200,100,0.3)', marginBottom:10,
           display:'flex', alignItems:'center', gap:10 }}>
@@ -1750,7 +1747,7 @@ function WalletSection({ walletAddress, loading, onConnect, onDisconnect, onManu
           </div>
         </div>
         <button
-          onPointerDown={e => { e.stopPropagation(); onDisconnect(); }}
+          onClick={onDisconnect}
           style={{ width:'100%', padding:'11px 0', borderRadius:14, border:'none', cursor:'pointer',
             background:'rgba(220,60,60,0.18)', color:'#ff8888', fontSize:13, fontWeight:800,
             fontFamily:"'Nunito',sans-serif" }}>
@@ -1766,84 +1763,57 @@ function WalletSection({ walletAddress, loading, onConnect, onDisconnect, onManu
         <span style={{ fontSize:20 }}>👛</span>
         <span style={{ color:'rgba(255,255,255,0.9)', fontSize:15, fontWeight:700 }}>Кошелёк (NFT скины)</span>
       </div>
-      {/* TON Connect button */}
       <button
-        onPointerDown={e => { e.preventDefault(); if (!loading) onConnect(); }}
+        onClick={() => { if (!loading) onConnect(); }}
         disabled={loading}
-        style={{ width:'100%', padding:'13px 0', borderRadius:16, border:'none', cursor:loading?'default':'pointer',
-          background:'linear-gradient(135deg,#6040ff,#a060ff)', color:'#fff', fontSize:14, fontWeight:800,
-          boxShadow:'0 4px 14px rgba(80,40,220,0.45)', opacity:loading?0.7:1,
+        style={{ width:'100%', padding:'14px 0', borderRadius:16, border:'none',
+          cursor: loading ? 'default' : 'pointer',
+          background:'linear-gradient(135deg,#6040ff,#a060ff)', color:'#fff',
+          fontSize:15, fontWeight:800,
+          boxShadow:'0 4px 14px rgba(80,40,220,0.45)', opacity: loading ? 0.7 : 1,
           display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-          fontFamily:"'Nunito',sans-serif", marginBottom:10 }}>
-        {loading ? '⏳ Подключаем...' : '👛 Подключить TON кошелёк'}
+          fontFamily:"'Nunito',sans-serif" }}>
+        {loading ? '⏳ Подключаем...' : '👛 Подключить TON Wallet'}
       </button>
-      {/* Manual input toggle */}
-      <button
-        onPointerDown={e => { e.stopPropagation(); setShowInput(v => !v); }}
-        style={{ background:'none', border:'none', color:'rgba(255,255,255,0.38)', fontSize:11,
-          fontWeight:700, cursor:'pointer', fontFamily:"'Nunito',sans-serif",
-          textDecoration:'underline', padding:'2px 0', marginBottom:6 }}>
-        {showInput ? '▲ Скрыть' : '✏️ Ввести TON-адрес вручную'}
-      </button>
-      {showInput && (
-        <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop:4 }}>
-          <input
-            value={manualInput}
-            onChange={e => setManualInput(e.target.value)}
-            placeholder="EQ... или UQ..."
-            style={{ background:'rgba(255,255,255,0.08)', border:'1.5px solid rgba(255,255,255,0.18)',
-              borderRadius:12, padding:'10px 12px', fontSize:12, color:'white',
-              fontFamily:'monospace', outline:'none', width:'100%' }}
-          />
-          <button
-            onPointerDown={e => { e.preventDefault(); if (manualInput.trim() && !loading) { onManual(manualInput); setManualInput(''); setShowInput(false); } }}
-            disabled={!manualInput.trim() || loading}
-            style={{ padding:'11px 0', borderRadius:12, border:'none', cursor:'pointer',
-              background:'linear-gradient(135deg,#4060d0,#6080ff)', color:'#fff',
-              fontSize:13, fontWeight:800, fontFamily:"'Nunito',sans-serif",
-              opacity:(!manualInput.trim() || loading)?0.45:1 }}>
-            🔍 Найти NFT
-          </button>
-        </div>
-      )}
     </div>
   );
 }
 
-function SettingsModal({ onClose, handleManualSync, syncStatus, walletAddress, onConnectWallet, onDisconnectWallet, onManualWallet, nftLoading }) {
+function SettingsModal({ onClose, handleManualSync, syncStatus, walletAddress, onConnectWallet, onDisconnectWallet, nftLoading }) {
   const [sfxVol,   setSfxVolLocal]   = useState(() => getSfxVolume());
   const [musicVol, setMusicVolLocal] = useState(() => getMusicVolume());
   const [musicOn,  setMusicOnLocal]  = useState(() => getMusicEnabled());
   const [sfxOn,    setSfxOnLocal]    = useState(() => getSfxEnabled());
 
-  // Music: raw 0–100 integer from slider
+  // Music slider: setMusicVolume() instantly updates _masterGain → no stop/restart
   const handleMusicChange = (v) => {
     const val = v / 100;
     setMusicVolLocal(val);
-    setMusicVolume(val);
-    if (val > 0 && !musicOn) { setMusicOnLocal(true);  setMusicEnabled(true);  }
-    if (val === 0 && musicOn) { setMusicOnLocal(false); setMusicEnabled(false); }
+    setMusicVolume(val);       // ← hits _masterGain.gain.value in real time
+    // If music was off and user dragged slider above 0 — auto-enable
+    if (val > 0 && !musicOn) { setMusicOnLocal(true); setMusicEnabled(true); }
+    // Slider to 0 just silences through master gain — NOT stopping the loop
   };
+  // Toggle only: explicitly start or stop the music loop
   const handleMusicToggle = () => {
     const next = !musicOn;
     setMusicOnLocal(next);
     setMusicEnabled(next);
   };
 
-  // SFX: raw 0–100 integer from slider
+  // SFX slider: volume only, no preview sound
   const handleSfxChange = (v) => {
     const val = v / 100;
     setSfxVolLocal(val);
     setSfxVolume(val);
     if (val > 0 && !sfxOn) { setSfxOnLocal(true);  setSfxEnabled(true);  }
     if (val === 0 && sfxOn)  { setSfxOnLocal(false); setSfxEnabled(false); }
-    if (val > 0) playSound('tap');
+    // No playSound('tap') — slider changes volume silently
   };
   const handleSfxToggle = () => {
     const next = !sfxOn;
     setSfxOnLocal(next);
     setSfxEnabled(next);
-    if (next) playSound('tap');
   };
 
   return (
@@ -1935,7 +1905,6 @@ function SettingsModal({ onClose, handleManualSync, syncStatus, walletAddress, o
           loading={nftLoading}
           onConnect={onConnectWallet}
           onDisconnect={onDisconnectWallet}
-          onManual={onManualWallet}
         />
       </div>
     </div>
@@ -5667,9 +5636,12 @@ function App() {
         handleManualSync={handleManualSync}
         syncStatus={syncStatus}
         walletAddress={walletAddress}
-        onConnectWallet={handleConnectWallet}
+        onConnectWallet={() => {
+          // Close Settings first — its backdrop must not intercept the TC modal
+          setShowSettingsModal(false);
+          setTimeout(() => handleConnectWallet(), 120);
+        }}
         onDisconnectWallet={handleDisconnectWallet}
-        onManualWallet={handleManualWallet}
         nftLoading={nftLoading}
       />}
     </div>

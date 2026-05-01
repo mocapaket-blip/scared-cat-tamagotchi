@@ -382,6 +382,7 @@ function getOrUpdateDailyMissions(saved) {
 
 // ─── SOUND SYSTEM (Web Audio API — no files needed) ───
 let _audioCtx = null;
+let _masterGain = null;          // master GainNode for music — volume changes hit it instantly
 let _sfxVol   = parseFloat(localStorage.getItem('sc_sfxVol')   ?? '1.0');
 let _musicVol  = parseFloat(localStorage.getItem('sc_musicVol') ?? '0.38');
 let _musicOn   = localStorage.getItem('sc_musicOn') !== 'false';
@@ -413,7 +414,13 @@ function getAudioCtx() {
   try {
     const Cls = window.AudioContext || window.webkitAudioContext;
     if (!Cls) return null;
-    if (!_audioCtx) _audioCtx = new Cls();
+    if (!_audioCtx) {
+      _audioCtx = new Cls();
+      // Master gain node — changing its .gain.value changes music volume instantly
+      _masterGain = _audioCtx.createGain();
+      _masterGain.gain.value = _musicVol;
+      _masterGain.connect(_audioCtx.destination);
+    }
     if (_audioCtx.state === 'suspended') _audioCtx.resume();
     return _audioCtx;
   } catch (e) { return null; }
@@ -431,17 +438,21 @@ function _note(ctx, freq, start, dur, vol, type) {
   o.start(start); o.stop(start + dur + 0.02);
 }
 
-function _musicNote(ctx, freq, start, dur, vol) {
-  if (!freq || vol <= 0) return;
+// _musicNote: volume is controlled by _masterGain, not per-note gain
+// Per-note gain only shapes the ADSR envelope (attack/decay), level is always 0.55
+function _musicNote(ctx, freq, start, dur) {
+  if (!freq) return;
   const o = ctx.createOscillator();
   const g = ctx.createGain();
   o.type = 'sine';
   o.frequency.setValueAtTime(freq, start);
   g.gain.setValueAtTime(0, start);
-  g.gain.linearRampToValueAtTime(vol, start + 0.04);
-  g.gain.setValueAtTime(vol * 0.75, start + Math.max(0.04, dur * 0.75));
+  g.gain.linearRampToValueAtTime(0.55, start + 0.04);
+  g.gain.setValueAtTime(0.55 * 0.75, start + Math.max(0.04, dur * 0.75));
   g.gain.exponentialRampToValueAtTime(0.001, start + dur);
-  o.connect(g); g.connect(ctx.destination);
+  o.connect(g);
+  // Route through master gain so setMusicVolume() works in real time
+  g.connect(_masterGain || ctx.destination);
   o.start(start); o.stop(start + dur + 0.06);
 }
 
@@ -450,7 +461,7 @@ function _scheduleMusicLoop(ctx, startTime) {
   let t = startTime;
   for (const [freq, beats] of _MUSIC_NOTES) {
     const dur = beats * _MUSIC_BEAT;
-    _musicNote(ctx, freq, t, dur, _musicVol * 0.55);
+    _musicNote(ctx, freq, t, dur);   // no vol arg — master gain controls level
     t += dur;
   }
   const loopDurMs = (t - startTime - 0.5) * 1000;
@@ -474,16 +485,19 @@ function stopMusic() {
   _musicPlaying = false;
   if (_musicLoopTimer) { clearTimeout(_musicLoopTimer); _musicLoopTimer = null; }
   // Close AudioContext → all in-flight oscillator nodes die immediately.
-  // getAudioCtx() will create a fresh one next time music starts.
+  // getAudioCtx() will create a fresh one (with a new _masterGain) next time.
   if (_audioCtx) {
     try { _audioCtx.close(); } catch (_) {}
     _audioCtx = null;
+    _masterGain = null;
   }
 }
 
 function setMusicVolume(v) {
   _musicVol = Math.max(0, Math.min(1, v));
   localStorage.setItem('sc_musicVol', String(_musicVol));
+  // Instantly update the master gain — music keeps playing without restart
+  if (_masterGain) _masterGain.gain.value = _musicVol;
 }
 
 function setSfxVolume(v) {
