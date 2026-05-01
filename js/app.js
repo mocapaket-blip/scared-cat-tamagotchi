@@ -4,7 +4,7 @@
    ═══════════════════════════════════════════════ */
 
 const { useState, useEffect, useRef, useCallback } = React;
-const APP_VERSION = '1.0.10';
+const APP_VERSION = '1.1.0';
 
 // ── TRUST LEVEL SYSTEM ──────────────────────────────────────────────────────
 const TRUST_STAGES = [
@@ -158,11 +158,23 @@ function fearMult(lvl) { return 1 - (lvl / 100) * 0.70; }
 
 // Can this stat-action proceed? Returns null (ok) or block message string
 function scaredBlock(lvl, action) {
-  if (action === 'toilet' || action === 'bath') {
-    if (lvl > 70) return '🙀 Кот слишком напуган, чтобы это сделать';
+  // At panic level (≥85) — almost everything is blocked
+  if (lvl >= 85) {
+    if (action === 'eat')      return '😱 В панике кот не ест — сначала успокой его!';
+    if (action === 'drink')    return '😱 В панике кот не пьёт — сначала успокой его!';
+    if (action === 'sleep')    return '😱 В панике кот не может спать — погладь сначала!';
+    if (action === 'play')     return '😱 В панике кот не играет — успокой его!';
+    if (action === 'toilet')   return '😱 В панике кот не подходит к лотку!';
+    if (action === 'bath')     return '😱 В панике кот не даётся мыться!';
+    if (action === 'medicine') return '😱 В панике кот не подпускает к себе!';
   }
+  // Very scared (≥70) — toilet/bath blocked
+  if (action === 'toilet' || action === 'bath') {
+    if (lvl >= 70) return '🙀 Кот слишком напуган, чтобы это сделать';
+  }
+  // Scared (≥65) — medicine blocked
   if (action === 'medicine') {
-    if (lvl > 65) return '🙀 Кот не подпускает к себе';
+    if (lvl >= 65) return '🙀 Кот не подпускает к себе';
   }
   return null;
 }
@@ -730,8 +742,8 @@ function MemoryGameScreen({ level, onComplete, onBack }) {
    SHOP SCREEN 🛒
    ══════════════════════════════════════════════════ */
 function ShopScreen({ coins, inventory, equipped, achievements, onBuy, onEquip, onBack,
-                      ownedDecor, ownedBgs, roomLayout, onBuyDecor, onBuyBg, onSetBg }) {
-  const [tab, setTab] = useState('food');
+                      ownedDecor, ownedBgs, roomLayout, onBuyDecor, onBuyBg, onSetBg, initialTab }) {
+  const [tab, setTab] = useState(initialTab || 'food');
   const tabs = [
     { id:'food',  label:'🍽️ Еда'      },
     { id:'med',   label:'💊 Аптека'   },
@@ -850,6 +862,72 @@ function ShopScreen({ coins, inventory, equipped, achievements, onBuy, onEquip, 
                       🪙 {item.cost}
                     </button>
                   )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── MED TAB ── */}
+        {tab === 'med' && (
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            {/* Section: Medicines */}
+            <div style={{ fontSize:11, fontWeight:800, color:'rgba(60,24,8,0.5)', letterSpacing:0.5, textTransform:'uppercase', marginBottom:2 }}>💊 Лекарства</div>
+            {MED_ITEMS.map(item => {
+              const count = inventory[item.id] || 0;
+              const canAfford = coins >= item.cost;
+              return (
+                <div key={item.id} style={{ background:'rgba(255,255,255,0.65)', borderRadius:18, padding:'14px 16px', display:'flex', alignItems:'center', gap:14, border:'2px solid rgba(255,255,255,0.9)', boxShadow:'0 4px 12px rgba(0,0,0,0.06)' }}>
+                  <div style={{ fontSize:40, flexShrink:0 }}>{item.emoji}</div>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontSize:15, fontWeight:900, color:'#1a3060' }}>{item.name}</div>
+                    <div style={{ fontSize:12, color:'#6080a0', marginTop:1 }}>{item.desc}</div>
+                    <div style={{ display:'flex', gap:6, marginTop:4, flexWrap:'wrap' }}>
+                      <span style={{ fontSize:11, color:'#20a060', fontWeight:700 }}>❤️+{item.health}</span>
+                      {item.mood > 0 && <span style={{ fontSize:11, color:'#e08020', fontWeight:700 }}>😺+{item.mood}</span>}
+                      {item.scaredReduction > 0 && <span style={{ fontSize:11, color:'#4090d0', fontWeight:700 }}>😌−{item.scaredReduction}</span>}
+                      <span style={{ fontSize:11, color:'#6080e0', fontWeight:700 }}>✨+{item.xp}XP</span>
+                    </div>
+                  </div>
+                  <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
+                    {count > 0 && <div style={{ fontSize:12, fontWeight:900, color:'#2060a0', background:'rgba(32,96,160,0.1)', borderRadius:99, padding:'2px 8px' }}>×{count}</div>}
+                    <button onClick={() => canAfford && onBuy(item)}
+                      style={{ padding:'9px 14px', borderRadius:13, border:'none', cursor: canAfford ? 'pointer' : 'default', fontSize:13, fontWeight:900, fontFamily:"'Nunito',sans-serif", background: canAfford ? 'linear-gradient(135deg,#3090d0,#1860a0)' : '#ccc', color:'white', boxShadow: canAfford ? '0 3px 0 #1050a0' : 'none', opacity: canAfford ? 1 : 0.65, whiteSpace:'nowrap' }}>
+                      🪙 {item.cost}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Section: Calm Treats */}
+            <div style={{ fontSize:11, fontWeight:800, color:'rgba(60,24,8,0.5)', letterSpacing:0.5, textTransform:'uppercase', marginTop:8, marginBottom:2 }}>🌿 Успокоительные лакомства</div>
+            <div style={{ fontSize:12, color:'rgba(60,24,8,0.4)', marginBottom:4, lineHeight:1.4 }}>
+              Снижают уровень страха. Необходимы при панике (≥85).
+            </div>
+            {CALM_TREATS.map(item => {
+              const count = inventory[item.id] || 0;
+              const canAfford = coins >= item.cost;
+              return (
+                <div key={item.id} style={{ background:'rgba(255,255,255,0.65)', borderRadius:18, padding:'14px 16px', display:'flex', alignItems:'center', gap:14, border:'2px solid rgba(200,230,200,0.8)', boxShadow:'0 4px 12px rgba(0,0,0,0.06)' }}>
+                  <div style={{ fontSize:40, flexShrink:0 }}>{item.emoji}</div>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontSize:15, fontWeight:900, color:'#1a4020' }}>{item.name}</div>
+                    <div style={{ fontSize:12, color:'#4a7050', marginTop:1 }}>{item.desc}</div>
+                    <div style={{ display:'flex', gap:6, marginTop:4, flexWrap:'wrap' }}>
+                      <span style={{ fontSize:11, color:'#2090a0', fontWeight:700 }}>😌−{item.scaredReduction} страх</span>
+                      {item.mood > 0 && <span style={{ fontSize:11, color:'#e08020', fontWeight:700 }}>😺+{item.mood}</span>}
+                      {item.hunger && item.hunger < 0 && <span style={{ fontSize:11, color:'#e06030', fontWeight:700 }}>🍔{item.hunger}</span>}
+                      <span style={{ fontSize:11, color:'#6080e0', fontWeight:700 }}>✨+{item.xp}XP</span>
+                    </div>
+                  </div>
+                  <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
+                    {count > 0 && <div style={{ fontSize:12, fontWeight:900, color:'#208050', background:'rgba(32,128,80,0.1)', borderRadius:99, padding:'2px 8px' }}>×{count}</div>}
+                    <button onClick={() => canAfford && onBuy(item)}
+                      style={{ padding:'9px 14px', borderRadius:13, border:'none', cursor: canAfford ? 'pointer' : 'default', fontSize:13, fontWeight:900, fontFamily:"'Nunito',sans-serif", background: canAfford ? 'linear-gradient(135deg,#50c060,#28a040)' : '#ccc', color:'white', boxShadow: canAfford ? '0 3px 0 #188030' : 'none', opacity: canAfford ? 1 : 0.65, whiteSpace:'nowrap' }}>
+                      🪙 {item.cost}
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -1040,12 +1118,14 @@ function PawIndicator({ pawId, icon, label, fill, critical, onClick }) {
         }}/>
         {/* Top shine */}
         <div style={{ position:'absolute', top:0, left:0, right:0, height:'40%', background:'linear-gradient(to bottom,rgba(255,255,255,0.6),transparent)', borderRadius:'20px 20px 0 0', pointerEvents:'none' }}/>
-        <span style={{
-          fontSize:28, lineHeight:1, zIndex:1,
-          animation: critical ? 'pawShake 0.42s linear infinite' : 'none',
-          display:'block',
-          filter: critical ? 'drop-shadow(0 0 4px rgba(255,80,50,0.6))' : 'none',
-        }}>{icon}</span>
+        <div className="paw-icon-inner">
+          <span style={{
+            fontSize:26, lineHeight:1,
+            animation: critical ? 'pawShake 0.42s linear infinite' : 'none',
+            filter: critical ? 'drop-shadow(0 0 4px rgba(255,80,50,0.6))' : 'none',
+            display:'block',
+          }}>{icon}</span>
+        </div>
       </div>
       <span style={{ fontSize:9, fontWeight:800, color: critical ? '#c03010' : '#6a3810', letterSpacing:0.3 }}>{label}</span>
     </div>
@@ -1424,65 +1504,140 @@ function FreelanceScreen({ freelance, timezone, coins, level, onTakeOrder, onBoo
    ══════════════════════════════════════════════════ */
 function ScaredModal({ scaredLvl, onClose }) {
   const info = scaredIcon(scaredLvl);
-  const tips = scaredLvl >= 85
-    ? ['😱 Кот в панике! Немедленно погладь его.', 'Лекарства, туалет и купание — недоступны.', 'Еда и сон работают очень плохо.']
+
+  // State description
+  const stateDesc = scaredLvl >= 85
+    ? 'Кот в состоянии полной паники. Он забился в угол, дрожит и не идёт на контакт. Большинство действий заблокированы.'
     : scaredLvl >= 70
-    ? ['🙀 Кот очень напуган.', 'Туалет и ванная — заблокированы.', 'Погладь кота или поиграй с ним.']
+    ? 'Кот очень напуган и не доверяет тебе. Туалет и купание недоступны. Нужно потратить время на успокоение.'
     : scaredLvl >= 50
-    ? ['😿 Кот испуган.', 'Еда и игра восстанавливают меньше.', 'Регулярно гладь кота для успокоения.']
+    ? 'Кот испуган. Все действия работают хуже из-за стресса. Чаще гладь и корми для восстановления доверия.'
     : scaredLvl >= 30
-    ? ['Кот немного тревожится.', 'Старайся почаще его гладить.']
-    : ['😺 Кот спокоен и доволен!', 'Продолжай заботиться о нём.'];
+    ? 'Кот немного тревожится, но в целом в порядке. Продолжай заботиться — он скоро успокоится.'
+    : 'Кот спокоен и доволен! Продолжай в том же духе — он тебе доверяет.';
+
+  // Calming steps — shown only when scared
+  const showSteps = scaredLvl >= 50;
+  const calmSteps = scaredLvl >= 85
+    ? [
+        { num:'1', emoji:'🖐️', title:'Поглаживание', desc:'Нажимай на кота 3–5 раз подряд. Каждое прикосновение снижает страх на 8 единиц.' },
+        { num:'2', emoji:'🌿', title:'Вкусняшка', desc:'После поглаживаний дай коту успокоительное угощение из магазина (Мята / Валериана).' },
+        { num:'3', emoji:'🎮', title:'Поиграй', desc:'Используй игрушку или мини-игру — это окончательно снимет панику.' },
+        { num:'4', emoji:'✅', title:'Обычный уход', desc:'Теперь можно кормить, лечить и выполнять все действия в обычном режиме.' },
+      ]
+    : scaredLvl >= 70
+    ? [
+        { num:'1', emoji:'🖐️', title:'Поглаживание', desc:'Нажимай на кота несколько раз — каждое снижает страх на 8 единиц.' },
+        { num:'2', emoji:'🌿', title:'Угощение', desc:'Дай успокоительное из магазина для более быстрого эффекта.' },
+        { num:'3', emoji:'🎮', title:'Мини-игра', desc:'Поиграй с котом — это сильно восстанавливает настроение и снижает страх.' },
+      ]
+    : [
+        { num:'1', emoji:'🖐️', title:'Поглаживание', desc:'Регулярно гладь кота — это лучший способ снизить тревогу.' },
+        { num:'2', emoji:'🍖', title:'Кормление', desc:'Хорошая еда успокаивает и поднимает настроение одновременно.' },
+      ];
+
+  // What's blocked
+  const blockedActions = scaredLvl >= 85
+    ? ['🍔 Еда', '💧 Вода', '😴 Сон', '🎮 Игра', '🚽 Туалет', '🛁 Купание', '💊 Лечение']
+    : scaredLvl >= 70
+    ? ['🚽 Туалет', '🛁 Купание']
+    : scaredLvl >= 65
+    ? ['💊 Лечение']
+    : [];
 
   return (
-    <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(0,0,0,0.72)',
-      display:'flex', alignItems:'center', justifyContent:'center', padding:20, backdropFilter:'blur(5px)' }}>
+    <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(0,0,0,0.78)',
+      display:'flex', alignItems:'center', justifyContent:'center', padding:16, backdropFilter:'blur(6px)' }}>
       <div onClick={e => e.stopPropagation()} style={{
         background:'linear-gradient(160deg,#1a0a08,#100408)',
-        borderRadius:28, padding:'28px 22px 24px', maxWidth:320, width:'100%',
-        boxShadow:`0 12px 50px rgba(0,0,0,0.8), 0 0 0 1.5px ${info.color}44`,
+        borderRadius:28, padding:'24px 20px', maxWidth:340, width:'100%', maxHeight:'88vh', overflowY:'auto',
+        boxShadow:`0 12px 50px rgba(0,0,0,0.85), 0 0 0 1.5px ${info.color}44`,
         border:`1.5px solid ${info.color}33`, animation:'modalIn 0.35s ease' }}>
-        <div style={{ textAlign:'center', marginBottom:16 }}>
-          <div style={{ fontSize:52, marginBottom:6, animation: info.pulse ? 'pulseCrit 1s ease-in-out infinite' : 'none' }}>
+
+        {/* Header */}
+        <div style={{ textAlign:'center', marginBottom:14 }}>
+          <div style={{ fontSize:50, marginBottom:6, animation: info.pulse ? 'pulseCrit 1s ease-in-out infinite' : 'none' }}>
             {info.emoji}
           </div>
-          <div style={{ fontSize:20, fontWeight:900, color:'#f5e0d0', letterSpacing:-0.3 }}>Уровень Напуганности</div>
-          <div style={{ fontSize:14, fontWeight:800, color: info.color, marginTop:4 }}>{info.label}</div>
+          <div style={{ fontSize:19, fontWeight:900, color:'#f5e0d0', letterSpacing:-0.3 }}>Уровень напуганности</div>
+          <div style={{ fontSize:14, fontWeight:800, color: info.color, marginTop:3 }}>{info.label}</div>
         </div>
-        {/* Scared bar */}
-        <div style={{ marginBottom:16 }}>
+
+        {/* Bar */}
+        <div style={{ marginBottom:14 }}>
           <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, fontWeight:700,
             color:'rgba(255,255,255,0.4)', marginBottom:5 }}>
-            <span>Спокойствие</span>
+            <span>😺 Спокойствие</span>
             <span style={{ color: info.color, fontWeight:900 }}>{Math.round(scaredLvl)}/100</span>
-            <span>Паника</span>
+            <span>😱 Паника</span>
           </div>
-          <div style={{ height:12, background:'rgba(255,255,255,0.08)', borderRadius:99, overflow:'hidden',
-            boxShadow:'inset 0 2px 4px rgba(0,0,0,0.5)' }}>
+          <div style={{ height:10, background:'rgba(255,255,255,0.08)', borderRadius:99, overflow:'hidden' }}>
             <div style={{ height:'100%', borderRadius:99, transition:'width 0.5s ease',
               background:`linear-gradient(90deg, #60d080, #e08030, ${info.color})`,
-              width:`${scaredLvl}%`, boxShadow:`0 1px 8px ${info.color}88` }}/>
+              width:`${scaredLvl}%`, boxShadow:`0 1px 6px ${info.color}88` }}/>
           </div>
         </div>
-        {/* Tips */}
-        <div style={{ background:'rgba(255,255,255,0.04)', borderRadius:14, padding:'12px 14px', marginBottom:18 }}>
-          {tips.map((tip, i) => (
-            <div key={i} style={{ fontSize:12, color: i === 0 ? '#f0d0b0' : 'rgba(255,255,255,0.5)',
-              fontWeight: i === 0 ? 800 : 600, marginBottom: i < tips.length-1 ? 5 : 0, lineHeight:1.4 }}>
-              {tip}
+
+        {/* State description */}
+        <div style={{ background:'rgba(255,255,255,0.04)', borderRadius:14, padding:'11px 14px', marginBottom:14 }}>
+          <div style={{ fontSize:12, color:'rgba(255,220,190,0.8)', fontWeight:600, lineHeight:1.5 }}>
+            {stateDesc}
+          </div>
+        </div>
+
+        {/* Blocked actions */}
+        {blockedActions.length > 0 && (
+          <div style={{ background:'rgba(220,50,30,0.1)', borderRadius:12, padding:'10px 14px',
+            border:'1px solid rgba(220,80,50,0.25)', marginBottom:14 }}>
+            <div style={{ fontSize:11, fontWeight:800, color:'#e06050', marginBottom:5 }}>⛔ Заблокировано:</div>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+              {blockedActions.map(a => (
+                <span key={a} style={{ fontSize:11, fontWeight:700, color:'rgba(255,180,160,0.8)',
+                  background:'rgba(220,60,40,0.15)', borderRadius:8, padding:'2px 8px' }}>{a}</span>
+              ))}
             </div>
-          ))}
-        </div>
-        <div style={{ background:'rgba(255,200,100,0.08)', borderRadius:12, padding:'10px 14px',
-          border:'1px solid rgba(255,200,100,0.2)', marginBottom:18 }}>
-          <div style={{ fontSize:11, fontWeight:800, color:'#d0a050', marginBottom:3 }}>Как успокоить:</div>
-          <div style={{ fontSize:11, color:'rgba(255,220,160,0.7)', lineHeight:1.5 }}>
-            👋 Погладь кота (−8) &nbsp;•&nbsp; 🎮 Мини-игра (−3)<br/>
-            🍖 Корми из рук (−5) &nbsp;•&nbsp; 🎁 Ежедневка (−4)<br/>
-            🧸 Игрушка (−1)
           </div>
-        </div>
-        <button onClick={onClose} style={{ width:'100%', padding:'14px', borderRadius:16, border:'none',
+        )}
+
+        {/* Calming steps */}
+        {showSteps && (
+          <div style={{ marginBottom:14 }}>
+            <div style={{ fontSize:12, fontWeight:800, color:'#d0a050', marginBottom:10 }}>
+              🧡 Как успокоить кота:
+            </div>
+            {calmSteps.map((step, i) => (
+              <div key={i} style={{ display:'flex', gap:10, marginBottom: i < calmSteps.length-1 ? 10 : 0, alignItems:'flex-start' }}>
+                <div style={{ width:28, height:28, borderRadius:99, flexShrink:0,
+                  background:`linear-gradient(135deg, ${info.color}cc, ${info.color}66)`,
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  fontSize:13, fontWeight:900, color:'white' }}>
+                  {step.num}
+                </div>
+                <div>
+                  <div style={{ fontSize:12, fontWeight:800, color:'#f0d0a0', marginBottom:1 }}>
+                    {step.emoji} {step.title}
+                  </div>
+                  <div style={{ fontSize:11, color:'rgba(255,220,170,0.65)', lineHeight:1.4 }}>
+                    {step.desc}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Quick tips when calm */}
+        {!showSteps && (
+          <div style={{ background:'rgba(80,200,80,0.07)', borderRadius:12, padding:'10px 14px',
+            border:'1px solid rgba(80,200,80,0.2)', marginBottom:14 }}>
+            <div style={{ fontSize:11, color:'rgba(180,240,180,0.8)', lineHeight:1.5 }}>
+              👋 Поглаживание (−8) &nbsp;•&nbsp; 🌿 Вкусняшка (−15..25)<br/>
+              🎮 Мини-игра (−3) &nbsp;•&nbsp; 🍖 Кормление (−0.5)
+            </div>
+          </div>
+        )}
+
+        <button onClick={onClose} style={{ width:'100%', padding:'13px', borderRadius:16, border:'none',
           background:`linear-gradient(135deg, ${info.color}dd, ${info.color}99)`,
           color:'white', fontSize:15, fontWeight:900, cursor:'pointer', fontFamily:"'Nunito',sans-serif",
           boxShadow:`0 4px 18px ${info.color}55` }}>
@@ -1497,28 +1652,22 @@ function ScaredModal({ scaredLvl, onClose }) {
    SETTINGS MODAL
    ══════════════════════════════════════════════════ */
 function SettingsModal({ onClose, handleManualSync, syncStatus }) {
-  const VOL_STEPS = [0, 0.25, 0.5, 0.75, 1.0];
-  const VOL_LABELS = ['🔇', '🔈', '🔉', '🔊', '🔊'];
-
   const [sfxVol,   setSfxVolLocal]   = useState(() => getSfxVolume());
   const [musicVol, setMusicVolLocal] = useState(() => getMusicVolume());
   const [musicOn,  setMusicOnLocal]  = useState(() => getMusicEnabled());
 
-  const nearestStep = (v) => VOL_STEPS.reduce((a, b) => Math.abs(b - v) < Math.abs(a - v) ? b : a);
-
-  const sfxStep   = nearestStep(sfxVol);
-  const musicStep = nearestStep(musicVol);
-
-  const handleSfxStep = (v) => {
-    setSfxVolLocal(v);
-    setSfxVolume(v);
-    if (v > 0) setTimeout(() => playSound('tap'), 30);
+  const handleSfxChange = (v) => {
+    const val = v / 100;
+    setSfxVolLocal(val);
+    setSfxVolume(val);
+    if (val > 0) setTimeout(() => playSound('tap'), 30);
   };
 
-  const handleMusicStep = (v) => {
-    setMusicVolLocal(v);
-    setMusicVolume(v);
-    if (v === 0) {
+  const handleMusicChange = (v) => {
+    const val = v / 100;
+    setMusicVolLocal(val);
+    setMusicVolume(val);
+    if (val === 0) {
       setMusicOnLocal(false);
       setMusicEnabled(false);
     } else if (!musicOn) {
@@ -1533,50 +1682,49 @@ function SettingsModal({ onClose, handleManualSync, syncStatus }) {
     setMusicEnabled(next);
   };
 
-  const DOT_SIZE = 36;
+  // Volume label icon
+  const volIcon = (v) => v === 0 ? '🔇' : v < 0.4 ? '🔈' : v < 0.75 ? '🔉' : '🔊';
 
-  const VolumeRow = ({ label, icon, step, onStep, showToggle, toggleOn, onToggle }) => (
-    <div style={{ marginBottom: 20 }}>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 10 }}>
-        <div style={{ display:'flex', alignItems:'center', gap: 8 }}>
-          <span style={{ fontSize: 20 }}>{icon}</span>
-          <span style={{ color:'rgba(255,255,255,0.9)', fontSize: 15, fontWeight: 700 }}>{label}</span>
+  const VolumeRow = ({ label, icon, value, onChange, showToggle, toggleOn, onToggle }) => {
+    const pct = Math.round(value * 100);
+    return (
+      <div style={{ marginBottom: 22 }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 10 }}>
+          <div style={{ display:'flex', alignItems:'center', gap: 8 }}>
+            <span style={{ fontSize: 22 }}>{icon}</span>
+            <span style={{ color:'rgba(255,255,255,0.9)', fontSize: 15, fontWeight: 700 }}>{label}</span>
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap: 10 }}>
+            <span style={{ fontSize: 13, fontWeight: 800, color:'rgba(255,255,255,0.5)', minWidth: 38, textAlign:'right' }}>
+              {volIcon(value)} {pct}%
+            </span>
+            {showToggle && (
+              <button onClick={onToggle} style={{
+                padding: '4px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 800,
+                background: toggleOn ? 'linear-gradient(135deg,#60e080,#30b050)' : 'rgba(255,255,255,0.12)',
+                color: toggleOn ? '#fff' : 'rgba(255,255,255,0.5)', transition: 'all 0.2s',
+              }}>{toggleOn ? 'ВКЛ' : 'ВЫКЛ'}</button>
+            )}
+          </div>
         </div>
-        {showToggle && (
-          <button onClick={onToggle} style={{
-            padding: '4px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 800,
-            background: toggleOn ? 'linear-gradient(135deg,#60e080,#30b050)' : 'rgba(255,255,255,0.12)',
-            color: toggleOn ? '#fff' : 'rgba(255,255,255,0.5)', transition: 'all 0.2s',
-          }}>{toggleOn ? 'ВКЛ' : 'ВЫКЛ'}</button>
-        )}
+        {/* Slider track wrapper with gradient fill */}
+        <div style={{ position:'relative', paddingBottom: 4 }}>
+          <div style={{
+            position:'absolute', top:'50%', left: 0, width:`${pct}%`,
+            height: 6, borderRadius:'99px 0 0 99px', marginTop:-3,
+            background:'linear-gradient(90deg,#f09020,#ffd060)',
+            pointerEvents:'none', transition:'width 0.05s',
+          }}/>
+          <input
+            type="range" className="vol-slider"
+            min={0} max={100} step={1}
+            value={pct}
+            onChange={e => onChange(parseInt(e.target.value))}
+          />
+        </div>
       </div>
-      <div style={{ display:'flex', gap: 8, alignItems:'center' }}>
-        {VOL_STEPS.map((v, i) => {
-          const active = step === v;
-          return (
-            <button key={v} onClick={() => onStep(v)} style={{
-              width: DOT_SIZE, height: DOT_SIZE, borderRadius: 12, border: 'none', cursor: 'pointer',
-              background: active
-                ? 'linear-gradient(135deg, #ffd060, #f09020)'
-                : 'rgba(255,255,255,0.10)',
-              boxShadow: active ? '0 3px 10px rgba(240,160,32,0.55)' : 'none',
-              display:'flex', alignItems:'center', justifyContent:'center',
-              fontSize: active ? 16 : 14,
-              transform: active ? 'scale(1.08)' : 'scale(1)',
-              transition: 'all 0.15s',
-            }}>
-              <span style={{ filter: active ? 'none' : 'grayscale(0.6) opacity(0.6)' }}>
-                {VOL_LABELS[i]}
-              </span>
-            </button>
-          );
-        })}
-        <span style={{ marginLeft: 4, fontSize: 13, color:'rgba(255,255,255,0.45)', fontWeight: 700 }}>
-          {Math.round(step * 100)}%
-        </span>
-      </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div onClick={onClose} style={{
@@ -1616,8 +1764,8 @@ function SettingsModal({ onClose, handleManualSync, syncStatus }) {
         {/* Music */}
         <VolumeRow
           label="Музыка" icon="🎵"
-          step={musicOn ? musicStep : 0}
-          onStep={handleMusicStep}
+          value={musicOn ? musicVol : 0}
+          onChange={handleMusicChange}
           showToggle={true}
           toggleOn={musicOn}
           onToggle={handleMusicToggle}
@@ -1626,8 +1774,8 @@ function SettingsModal({ onClose, handleManualSync, syncStatus }) {
         {/* SFX */}
         <VolumeRow
           label="Звуки" icon="🔔"
-          step={sfxStep}
-          onStep={handleSfxStep}
+          value={sfxVol}
+          onChange={handleSfxChange}
         />
 
         {/* Divider */}
@@ -2730,11 +2878,112 @@ function Hotspot({ emoji, label, posX, posY, initCdMs, onTap }) {
 }
 
 /* ══════════════════════════════════════════════════
+   CLINIC MED MENU — bottom sheet for using medicines
+   ══════════════════════════════════════════════════ */
+function ClinicMedMenu({ inventory, onUseMed, onGoShop, onClose }) {
+  const allMeds = MED_ITEMS;
+  const hasMed  = allMeds.some(it => (inventory[it.id] || 0) > 0);
+
+  return (
+    <div onClick={onClose}
+      style={{ position:'absolute', inset:0, zIndex:90,
+        background:'rgba(0,0,0,0.6)', backdropFilter:'blur(4px)' }}>
+      <div onClick={e => e.stopPropagation()}
+        style={{ position:'absolute', bottom:192, left:0, right:0,
+          background:'linear-gradient(160deg,#060e18,#040a12)',
+          borderRadius:'22px 22px 0 0',
+          boxShadow:'0 -6px 32px rgba(0,0,0,0.7), 0 0 0 1px rgba(80,200,255,0.12)',
+          maxHeight:'65%', display:'flex', flexDirection:'column',
+          animation:'slideUp 0.22s ease' }}>
+
+        {/* Handle */}
+        <div style={{ display:'flex', justifyContent:'center', padding:'10px 0 4px' }}>
+          <div style={{ width:40, height:4, background:'rgba(255,255,255,0.1)', borderRadius:99 }}/>
+        </div>
+        {/* Header */}
+        <div style={{ padding:'6px 18px 12px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <div style={{ width:36, height:36, borderRadius:12,
+              background:'linear-gradient(135deg,#3090d0,#1860a0)',
+              display:'flex', alignItems:'center', justifyContent:'center', fontSize:20 }}>💊</div>
+            <div>
+              <div style={{ fontSize:16, fontWeight:900, color:'#b0d8f8' }}>Аптечка</div>
+              <div style={{ fontSize:11, color:'rgba(100,180,255,0.5)', fontWeight:700 }}>Выбери лекарство для кота</div>
+            </div>
+          </div>
+          <button onClick={onClose}
+            style={{ background:'rgba(255,255,255,0.08)', border:'none', borderRadius:10,
+              width:30, height:30, cursor:'pointer', color:'rgba(255,255,255,0.4)',
+              fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
+        </div>
+
+        {/* Content */}
+        <div style={{ overflowY:'auto', flex:1, padding:'0 16px 16px', display:'flex', flexDirection:'column', gap:8 }}>
+          {hasMed ? (
+            allMeds.map(it => {
+              const count = inventory[it.id] || 0;
+              const disabled = count <= 0;
+              return (
+                <div key={it.id} onClick={() => !disabled && onUseMed(it)}
+                  style={{
+                    display:'flex', alignItems:'center', gap:12,
+                    background: disabled ? 'rgba(255,255,255,0.02)' : 'rgba(60,160,255,0.07)',
+                    border:`1.5px solid ${disabled ? 'rgba(255,255,255,0.05)' : 'rgba(80,180,255,0.2)'}`,
+                    borderRadius:16, padding:'12px 14px',
+                    cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.35 : 1,
+                    transition:'transform 0.1s',
+                  }}
+                  onPointerDown={e => { if (!disabled) e.currentTarget.style.transform='scale(0.97)'; }}
+                  onPointerUp={e   => { e.currentTarget.style.transform='scale(1)'; }}
+                  onPointerLeave={e=> { e.currentTarget.style.transform='scale(1)'; }}>
+                  <div style={{ width:46, height:46, borderRadius:14,
+                    background:'rgba(60,130,200,0.12)',
+                    display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, flexShrink:0 }}>
+                    {it.emoji}
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:14, fontWeight:900, color:'#90d0ff', marginBottom:3 }}>{it.name}</div>
+                    <div style={{ display:'flex', gap:5, flexWrap:'wrap' }}>
+                      <span style={{ fontSize:11, fontWeight:700, color:'#60e080', background:'rgba(40,200,80,0.12)', borderRadius:7, padding:'1px 7px' }}>
+                        ❤️ +{it.health}
+                      </span>
+                      {it.mood > 0 && <span style={{ fontSize:11, fontWeight:700, color:'#c0d840', background:'rgba(180,210,20,0.12)', borderRadius:7, padding:'1px 7px' }}>😸 +{it.mood}</span>}
+                      {it.scaredReduction > 0 && <span style={{ fontSize:11, fontWeight:700, color:'#80e0ff', background:'rgba(60,180,255,0.12)', borderRadius:7, padding:'1px 7px' }}>😌 −{it.scaredReduction} страх</span>}
+                    </div>
+                  </div>
+                  <div style={{ textAlign:'center', flexShrink:0 }}>
+                    <div style={{ fontSize:18, fontWeight:900, color: count > 0 ? '#60b0f8' : 'rgba(255,255,255,0.2)' }}>{count}</div>
+                    <div style={{ fontSize:9, color:'rgba(255,255,255,0.3)', fontWeight:700 }}>шт.</div>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div style={{ textAlign:'center', padding:'24px 12px' }}>
+              <div style={{ fontSize:44, marginBottom:10 }}>🛒</div>
+              <div style={{ fontSize:14, fontWeight:800, color:'rgba(160,210,255,0.7)', marginBottom:6 }}>Нет лекарств</div>
+              <div style={{ fontSize:12, color:'rgba(255,255,255,0.3)', marginBottom:18 }}>Купи лекарства в магазине</div>
+              <button onClick={() => onGoShop('med')}
+                style={{ padding:'12px 24px', borderRadius:16, border:'none',
+                  background:'linear-gradient(135deg,#3090d0,#1860a0)', color:'white',
+                  fontSize:14, fontWeight:900, cursor:'pointer', fontFamily:"'Nunito',sans-serif",
+                  boxShadow:'0 4px 14px rgba(30,120,200,0.5)' }}>
+                Перейти в Магазин 🛒
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════
    ROOM DEFINITIONS — all 5 interactive locations
    ══════════════════════════════════════════════════ */
 const ROOM_DEFS = {
   kitchen: {
-    RoomComp: KitchenRoom, bgColor:'#3a2008', roomName:'🍔 Голод', catDefaultX:'52%',
+    RoomComp: KitchenRoom, bgColor:'#3a2008', roomName:'🍔 Голод', catDefaultX:'calc(50% - 65px)',
     minigameScreen:'minigame_catch', minigameLabel:'🎯 Поймай еду',
     // bowl and faucet are now clickable SVG elements inside KitchenRoom, not hotspots
     objects:[
@@ -2743,7 +2992,7 @@ const ROOM_DEFS = {
     ]
   },
   bathroom: {
-    RoomComp: BathroomRoom, bgColor:'#0a1f3a', roomName:'🚿 Гигиена', catDefaultX:'48%',
+    RoomComp: BathroomRoom, bgColor:'#0a1f3a', roomName:'🚿 Гигиена', catDefaultX:'calc(50% - 65px)',
     objects:[
       { id:'bathtub', emoji:'🛁', label:'Купаться', posX:'68%', posY:'54%', catTargetX:'62%', thought:'🛁', cooldownMin:8,  isCatTap:false,
         getEffect:()=>({ ok:true, delta:{ toilet:-28, mood:5 }, xp:7, particles:'💦', msg:'🛁 Кот помылся!', actionKey:'bathroomCount' })},
@@ -2754,7 +3003,7 @@ const ROOM_DEFS = {
     ]
   },
   rest: {
-    RoomComp: RestRoom, bgColor:'#0e0820', roomName:'🛏️ Сон', catDefaultX:'42%',
+    RoomComp: RestRoom, bgColor:'#0e0820', roomName:'🛏️ Сон', catDefaultX:'calc(50% - 65px)',
     objects:[
       { id:'bed',     emoji:'🛏️', label:'Поспать',  posX:'20%', posY:'65%', catTargetX:'13%', thought:'💤', cooldownMin:10, isCatTap:false,
         getEffect:()=>({ ok:true, delta:{ fatigue:-38, mood:6 }, xp:8, particles:'💤', msg:'💤 Кот поспал!', actionKey:'sleepCount' })},
@@ -2765,7 +3014,7 @@ const ROOM_DEFS = {
     ]
   },
   yard: {
-    RoomComp: YardRoom, bgColor:'#082010', roomName:'🎮 Настроение', catDefaultX:'48%',
+    RoomComp: YardRoom, bgColor:'#082010', roomName:'🎮 Настроение', catDefaultX:'calc(50% - 65px)',
     minigameScreen:'minigame_memory', minigameLabel:'🧩 Карточки',
     objects:[
       { id:'ball',  emoji:'⚽', label:'Мяч',     posX:'22%', posY:'68%', catTargetX:'16%', thought:'⚽', cooldownMin:3, isCatTap:false,
@@ -2777,7 +3026,7 @@ const ROOM_DEFS = {
     ]
   },
   clinic: {
-    RoomComp: ClinicRoom, bgColor:'#081828', roomName:'🏥 Здоровье', catDefaultX:'38%',
+    RoomComp: ClinicRoom, bgColor:'#081828', roomName:'🏥 Здоровье', catDefaultX:'calc(50% - 65px)',
     objects:[
       { id:'cabinet', emoji:'🗄️', label:'Аптечка', posX:'75%', posY:'42%', catTargetX:'68%', thought:'💊', cooldownMin:0, isCatTap:false,
         getEffect:(inv)=>{
@@ -2793,164 +3042,166 @@ const ROOM_DEFS = {
 };
 
 /* ══════════════════════════════════════════════════
-   KITCHEN FEED MENU — bottom sheet
+   FOOD BOWL MENU — миска с едой
    ══════════════════════════════════════════════════ */
-function KitchenFeedMenu({ inventory, tab, onTabChange, onFeedItem, onWater, onGoShop, onClose }) {
-  const foodItems  = FOOD_ITEMS;
-  const hasFood    = foodItems.some(it => (inventory[it.id] || 0) > 0);
-
-  const tabStyle = (id) => ({
-    flex: 1, padding: '9px 4px', borderRadius: 12, border: 'none', cursor: 'pointer',
-    fontSize: 13, fontWeight: 800, fontFamily: "'Nunito',sans-serif",
-    background: tab === id
-      ? 'linear-gradient(135deg,#f5a830,#e08010)'
-      : 'rgba(255,255,255,0.06)',
-    color: tab === id ? 'white' : 'rgba(255,255,255,0.4)',
-    boxShadow: tab === id ? '0 3px 0 rgba(160,80,0,0.5)' : 'none',
-    transition: 'all 0.15s',
-  });
+function FoodBowlMenu({ inventory, onFeedItem, onGoShop, onClose }) {
+  const hasFood = FOOD_ITEMS.some(it => (inventory[it.id] || 0) > 0);
 
   return (
     <div onClick={onClose}
       style={{ position:'absolute', inset:0, zIndex:90,
-        background:'rgba(0,0,0,0.55)', backdropFilter:'blur(4px)' }}>
+        background:'rgba(0,0,0,0.6)', backdropFilter:'blur(4px)' }}>
       <div onClick={e => e.stopPropagation()}
         style={{ position:'absolute', bottom:192, left:0, right:0,
           background:'linear-gradient(160deg,#1c1008,#120a04)',
           borderRadius:'22px 22px 0 0',
-          boxShadow:'0 -6px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,200,80,0.15)',
-          maxHeight:'62%', display:'flex', flexDirection:'column',
+          boxShadow:'0 -6px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,200,80,0.18)',
+          maxHeight:'60%', display:'flex', flexDirection:'column',
           animation:'slideUp 0.22s ease' }}>
 
-        {/* Handle + header */}
-        <div style={{ padding:'10px 16px 0', display:'flex', alignItems:'center', gap:8 }}>
-          <div style={{ flex:1, height:4, background:'rgba(255,255,255,0.12)', borderRadius:99, margin:'0 auto 0', maxWidth:40, alignSelf:'center' }}/>
+        {/* Handle */}
+        <div style={{ display:'flex', justifyContent:'center', padding:'10px 0 4px' }}>
+          <div style={{ width:40, height:4, background:'rgba(255,255,255,0.12)', borderRadius:99 }}/>
         </div>
-        <div style={{ padding:'8px 18px 10px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <div style={{ fontSize:16, fontWeight:900, color:'#f5dfc0' }}>🥣 Накормить котика</div>
+        {/* Header */}
+        <div style={{ padding:'6px 18px 12px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <div style={{ fontSize:26 }}>🥣</div>
+            <div>
+              <div style={{ fontSize:16, fontWeight:900, color:'#f5dfc0' }}>Миска с едой</div>
+              <div style={{ fontSize:11, color:'rgba(255,200,120,0.5)', fontWeight:700 }}>Выбери, чем накормить котика</div>
+            </div>
+          </div>
           <button onClick={onClose}
             style={{ background:'rgba(255,255,255,0.08)', border:'none', borderRadius:10,
               width:30, height:30, cursor:'pointer', color:'rgba(255,255,255,0.4)',
               fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
         </div>
 
-        {/* Tabs */}
-        <div style={{ display:'flex', gap:8, padding:'0 16px 12px' }}>
-          <button style={tabStyle('food')} onClick={() => onTabChange('food')}>🍔 Еда</button>
-          <button style={tabStyle('water')} onClick={() => onTabChange('water')}>💧 Вода</button>
-        </div>
-
-        {/* Scrollable content */}
+        {/* Content */}
         <div style={{ overflowY:'auto', flex:1, padding:'0 16px 16px', display:'flex', flexDirection:'column', gap:8 }}>
-
-          {/* ── FOOD TAB ── */}
-          {tab === 'food' && (
-            <>
-              {hasFood ? (
-                foodItems.map(it => {
-                  const count = inventory[it.id] || 0;
-                  const disabled = count <= 0;
-                  return (
-                    <div key={it.id} onClick={() => !disabled && onFeedItem(it)}
-                      style={{
-                        display:'flex', alignItems:'center', gap:12,
-                        background: disabled ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
-                        border: `1.5px solid ${disabled ? 'rgba(255,255,255,0.05)' : 'rgba(255,200,80,0.25)'}`,
-                        borderRadius:16, padding:'12px 14px',
-                        cursor: disabled ? 'not-allowed' : 'pointer',
-                        opacity: disabled ? 0.4 : 1,
-                        transition:'background 0.15s, transform 0.1s',
-                      }}
-                      onPointerDown={e => { if (!disabled) e.currentTarget.style.transform='scale(0.97)'; }}
-                      onPointerUp={e   => { e.currentTarget.style.transform='scale(1)'; }}
-                      onPointerLeave={e=> { e.currentTarget.style.transform='scale(1)'; }}>
-                      {/* Icon */}
-                      <div style={{ width:46, height:46, borderRadius:14, background:'rgba(255,255,255,0.08)',
-                        display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, flexShrink:0 }}>
-                        {it.emoji}
-                      </div>
-                      {/* Info */}
-                      <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontSize:14, fontWeight:900, color:'#f0d8a0', marginBottom:2 }}>{it.name}</div>
-                        <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
-                          <span style={{ fontSize:11, fontWeight:700, color:'#e06030',
-                            background:'rgba(220,80,20,0.15)', borderRadius:7, padding:'1px 7px' }}>
-                            🍔 {Math.abs(it.hunger)}
-                          </span>
-                          {it.mood  > 0 && <span style={{ fontSize:11, fontWeight:700, color:'#c0d840',
-                            background:'rgba(160,200,20,0.15)', borderRadius:7, padding:'1px 7px' }}>
-                            😸 +{it.mood}
-                          </span>}
-                          {it.health > 0 && <span style={{ fontSize:11, fontWeight:700, color:'#60c080',
-                            background:'rgba(40,180,80,0.15)', borderRadius:7, padding:'1px 7px' }}>
-                            ❤️ +{it.health}
-                          </span>}
-                        </div>
-                      </div>
-                      {/* Count badge */}
-                      <div style={{ textAlign:'center', flexShrink:0 }}>
-                        <div style={{ fontSize:18, fontWeight:900,
-                          color: count > 0 ? '#f5d060' : 'rgba(255,255,255,0.2)' }}>{count}</div>
-                        <div style={{ fontSize:9, color:'rgba(255,255,255,0.3)', fontWeight:700 }}>шт.</div>
-                      </div>
+          {hasFood ? (
+            FOOD_ITEMS.map(it => {
+              const count = inventory[it.id] || 0;
+              const disabled = count <= 0;
+              return (
+                <div key={it.id} onClick={() => !disabled && onFeedItem(it)}
+                  style={{
+                    display:'flex', alignItems:'center', gap:12,
+                    background: disabled ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
+                    border:`1.5px solid ${disabled ? 'rgba(255,255,255,0.05)' : 'rgba(255,200,80,0.28)'}`,
+                    borderRadius:16, padding:'12px 14px',
+                    cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1,
+                    transition:'transform 0.1s',
+                  }}
+                  onPointerDown={e => { if (!disabled) e.currentTarget.style.transform='scale(0.97)'; }}
+                  onPointerUp={e   => { e.currentTarget.style.transform='scale(1)'; }}
+                  onPointerLeave={e=> { e.currentTarget.style.transform='scale(1)'; }}>
+                  <div style={{ width:46, height:46, borderRadius:14, background:'rgba(255,255,255,0.08)',
+                    display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, flexShrink:0 }}>
+                    {it.emoji}
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:14, fontWeight:900, color:'#f0d8a0', marginBottom:3 }}>{it.name}</div>
+                    <div style={{ display:'flex', gap:5, flexWrap:'wrap' }}>
+                      <span style={{ fontSize:11, fontWeight:700, color:'#e06030', background:'rgba(220,80,20,0.15)', borderRadius:7, padding:'1px 7px' }}>
+                        🍔 −{Math.abs(it.hunger)}
+                      </span>
+                      {it.mood > 0 && <span style={{ fontSize:11, fontWeight:700, color:'#c0d840', background:'rgba(160,200,20,0.15)', borderRadius:7, padding:'1px 7px' }}>😸 +{it.mood}</span>}
+                      {it.health > 0 && <span style={{ fontSize:11, fontWeight:700, color:'#60c080', background:'rgba(40,180,80,0.15)', borderRadius:7, padding:'1px 7px' }}>❤️ +{it.health}</span>}
                     </div>
-                  );
-                })
-              ) : (
-                <div style={{ textAlign:'center', padding:'24px 12px' }}>
-                  <div style={{ fontSize:44, marginBottom:10 }}>🛒</div>
-                  <div style={{ fontSize:14, fontWeight:800, color:'rgba(255,220,160,0.7)', marginBottom:6 }}>
-                    У тебя пока нет еды
                   </div>
-                  <div style={{ fontSize:12, color:'rgba(255,255,255,0.3)', marginBottom:18 }}>
-                    Купи корм в магазине, чтобы накормить котика
-                  </div>
-                  <button onClick={() => onGoShop('food')}
-                    style={{ padding:'12px 24px', borderRadius:16, border:'none',
-                      background:'linear-gradient(135deg,#f5a830,#e08010)',
-                      color:'white', fontSize:14, fontWeight:900, cursor:'pointer',
-                      fontFamily:"'Nunito',sans-serif", boxShadow:'0 4px 14px rgba(200,120,0,0.4)' }}>
-                    Перейти в Магазин 🛒
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* ── WATER TAB ── */}
-          {tab === 'water' && (
-            <div>
-              <div onClick={onWater}
-                style={{ display:'flex', alignItems:'center', gap:12,
-                  background:'rgba(40,120,200,0.12)',
-                  border:'1.5px solid rgba(80,160,255,0.3)',
-                  borderRadius:16, padding:'14px', cursor:'pointer',
-                  transition:'transform 0.1s' }}
-                onPointerDown={e => { e.currentTarget.style.transform='scale(0.97)'; }}
-                onPointerUp={e   => { e.currentTarget.style.transform='scale(1)'; }}
-                onPointerLeave={e=> { e.currentTarget.style.transform='scale(1)'; }}>
-                <div style={{ width:46, height:46, borderRadius:14,
-                  background:'rgba(60,150,255,0.15)',
-                  display:'flex', alignItems:'center', justifyContent:'center', fontSize:28, flexShrink:0 }}>
-                  💧
-                </div>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:14, fontWeight:900, color:'#90d0ff', marginBottom:2 }}>Свежая водичка</div>
-                  <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
-                    <span style={{ fontSize:11, fontWeight:700, color:'#60aaff',
-                      background:'rgba(40,100,200,0.2)', borderRadius:7, padding:'1px 7px' }}>🍔 −5 голод</span>
-                    <span style={{ fontSize:11, fontWeight:700, color:'#c0d840',
-                      background:'rgba(160,200,20,0.15)', borderRadius:7, padding:'1px 7px' }}>😸 +2 настр.</span>
+                  <div style={{ textAlign:'center', flexShrink:0 }}>
+                    <div style={{ fontSize:18, fontWeight:900, color: count > 0 ? '#f5d060' : 'rgba(255,255,255,0.2)' }}>{count}</div>
+                    <div style={{ fontSize:9, color:'rgba(255,255,255,0.3)', fontWeight:700 }}>шт.</div>
                   </div>
                 </div>
-                <div style={{ fontSize:26 }}>→</div>
-              </div>
-              <div style={{ textAlign:'center', marginTop:14, fontSize:11,
-                color:'rgba(255,255,255,0.2)', fontWeight:700 }}>
-                Вода всегда доступна бесплатно 💙
-              </div>
+              );
+            })
+          ) : (
+            <div style={{ textAlign:'center', padding:'24px 12px' }}>
+              <div style={{ fontSize:44, marginBottom:10 }}>🛒</div>
+              <div style={{ fontSize:14, fontWeight:800, color:'rgba(255,220,160,0.7)', marginBottom:6 }}>У тебя пока нет еды</div>
+              <div style={{ fontSize:12, color:'rgba(255,255,255,0.3)', marginBottom:18 }}>Купи корм в магазине, чтобы накормить котика</div>
+              <button onClick={() => onGoShop('food')}
+                style={{ padding:'12px 24px', borderRadius:16, border:'none',
+                  background:'linear-gradient(135deg,#f5a830,#e08010)', color:'white',
+                  fontSize:14, fontWeight:900, cursor:'pointer', fontFamily:"'Nunito',sans-serif",
+                  boxShadow:'0 4px 14px rgba(200,120,0,0.4)' }}>
+                Перейти в Магазин 🛒
+              </button>
             </div>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════
+   WATER BOWL MENU — миска с водой
+   ══════════════════════════════════════════════════ */
+function WaterBowlMenu({ onDrink, onClose }) {
+  return (
+    <div onClick={onClose}
+      style={{ position:'absolute', inset:0, zIndex:90,
+        background:'rgba(0,0,0,0.55)', backdropFilter:'blur(4px)' }}>
+      <div onClick={e => e.stopPropagation()}
+        style={{ position:'absolute', bottom:192, left:0, right:0,
+          background:'linear-gradient(160deg,#060d1c,#040a14)',
+          borderRadius:'22px 22px 0 0',
+          boxShadow:'0 -6px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(80,160,255,0.2)',
+          display:'flex', flexDirection:'column',
+          animation:'slideUp 0.22s ease' }}>
+
+        {/* Handle */}
+        <div style={{ display:'flex', justifyContent:'center', padding:'10px 0 4px' }}>
+          <div style={{ width:40, height:4, background:'rgba(255,255,255,0.12)', borderRadius:99 }}/>
+        </div>
+        {/* Header */}
+        <div style={{ padding:'6px 18px 14px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <div style={{ fontSize:26 }}>💧</div>
+            <div>
+              <div style={{ fontSize:16, fontWeight:900, color:'#90d8ff' }}>Миска с водой</div>
+              <div style={{ fontSize:11, color:'rgba(100,180,255,0.5)', fontWeight:700 }}>Вода всегда доступна бесплатно</div>
+            </div>
+          </div>
+          <button onClick={onClose}
+            style={{ background:'rgba(255,255,255,0.08)', border:'none', borderRadius:10,
+              width:30, height:30, cursor:'pointer', color:'rgba(255,255,255,0.4)',
+              fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
+        </div>
+
+        {/* Water action */}
+        <div style={{ padding:'0 16px 20px' }}>
+          <div onClick={onDrink}
+            style={{ display:'flex', alignItems:'center', gap:14,
+              background:'rgba(40,120,200,0.14)',
+              border:'1.5px solid rgba(80,160,255,0.35)',
+              borderRadius:18, padding:'16px 18px', cursor:'pointer',
+              transition:'transform 0.1s' }}
+            onPointerDown={e => { e.currentTarget.style.transform='scale(0.97)'; }}
+            onPointerUp={e   => { e.currentTarget.style.transform='scale(1)'; }}
+            onPointerLeave={e=> { e.currentTarget.style.transform='scale(1)'; }}>
+            <div style={{ width:52, height:52, borderRadius:16,
+              background:'linear-gradient(135deg,rgba(60,150,255,0.2),rgba(30,100,200,0.15))',
+              display:'flex', alignItems:'center', justifyContent:'center', fontSize:30, flexShrink:0 }}>
+              💧
+            </div>
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize:15, fontWeight:900, color:'#90d0ff', marginBottom:4 }}>Свежая водичка</div>
+              <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                <span style={{ fontSize:11, fontWeight:700, color:'#60aaff', background:'rgba(40,100,200,0.2)', borderRadius:7, padding:'2px 8px' }}>🍔 −5 голод</span>
+                <span style={{ fontSize:11, fontWeight:700, color:'#c0d840', background:'rgba(160,200,20,0.15)', borderRadius:7, padding:'2px 8px' }}>😸 +2 настр.</span>
+              </div>
+            </div>
+            <div style={{ fontSize:22, color:'rgba(100,180,255,0.6)' }}>→</div>
+          </div>
+          <div style={{ textAlign:'center', marginTop:12, fontSize:11,
+            color:'rgba(100,160,255,0.3)', fontWeight:700 }}>
+            💙 Лапай на миску, чтобы напоить котика
+          </div>
         </div>
       </div>
     </div>
@@ -2963,12 +3214,14 @@ function KitchenFeedMenu({ inventory, tab, onTabChange, onFeedItem, onWater, onG
 function RoomScreen({ roomId, fills, isCrit, activeNav, setActiveNav, onPawClick,
                       hearts, removeHeart, inventory, stats, level,
                       cooldowns, onObjectAction, onMinigame, onBack, activeNFT,
-                      onKitchenFeed, onGoShop }) {
+                      onKitchenFeed, onKitchenDrink, onUseMed, onGoShop }) {
   const def      = ROOM_DEFS[roomId];
   const PANEL_H  = 192;
-  // Kitchen feed menu
-  const [kitchenMenuOpen, setKitchenMenuOpen] = useState(false);
-  const [kitchenMenuTab,  setKitchenMenuTab]  = useState('food');
+  // Kitchen bowl menus — separate for food and water
+  const [foodMenuOpen,   setFoodMenuOpen]   = useState(false);
+  const [waterMenuOpen,  setWaterMenuOpen]  = useState(false);
+  // Clinic med menu
+  const [clinicMenuOpen, setClinicMenuOpen] = useState(false);
 
   const [catLeft,    setCatLeft]    = useState(def.catDefaultX);
   const [catFacing,  setCatFacing]  = useState(1);
@@ -3013,6 +3266,11 @@ function RoomScreen({ roomId, fills, isCrit, activeNav, setActiveNav, onPawClick
   function handleTap(obj) {
     const cdKey = `${roomId}_${obj.id}`;
     if ((cooldowns[cdKey] || 0) > Date.now()) return;
+    // Clinic cabinet — open ClinicMedMenu instead of direct action
+    if (obj.id === 'cabinet' && roomId === 'clinic') {
+      setClinicMenuOpen(true);
+      return;
+    }
     const result = obj.getEffect(inventory, stats);
     if (!result.ok) {
       setCatThought('😿');
@@ -3053,23 +3311,25 @@ function RoomScreen({ roomId, fills, isCrit, activeNav, setActiveNav, onPawClick
 
   // ── Kitchen menu callbacks ──
   function handleKitchenFeedItem(item) {
-    setKitchenMenuOpen(false);
-    const bowlObj = def.objects.find(o => o.id === 'bowl');
-    if (!bowlObj) return;
-    walkCatTo(bowlObj.catTargetX, '😋', '🍖', () => {
-      if (onKitchenFeed) onKitchenFeed(item, `kitchen_bowl`, bowlObj.cooldownMin * 60000);
+    setFoodMenuOpen(false);
+    const catTargetX = 'calc(50% - 65px)';
+    walkCatTo(catTargetX, '😋', '🍖', () => {
+      if (onKitchenFeed) onKitchenFeed(item, `kitchen_bowl`, 1 * 60000);
     });
   }
 
-  function handleKitchenWater() {
-    setKitchenMenuOpen(false);
-    const faucetObj = def.objects.find(o => o.id === 'faucet');
-    if (!faucetObj) return;
-    walkCatTo(faucetObj.catTargetX, '💧', '💧', () => {
-      onObjectAction({
-        cdKey: 'kitchen_faucet', cooldownMs: faucetObj.cooldownMin * 60000,
-        delta: { hunger: -5, mood: 2 }, xp: 1, msg: '💧 Кот попил водички!',
-      });
+  function handleKitchenDrinkAction() {
+    setWaterMenuOpen(false);
+    const catTargetX = 'calc(50% - 65px)';
+    walkCatTo(catTargetX, '💧', '💧', () => {
+      if (onKitchenDrink) onKitchenDrink();
+    });
+  }
+
+  function handleClinicMedUse(medItem) {
+    setClinicMenuOpen(false);
+    walkCatTo(def.catDefaultX, '💊', '💊', () => {
+      if (onUseMed) onUseMed(medItem);
     });
   }
 
@@ -3079,8 +3339,8 @@ function RoomScreen({ roomId, fills, isCrit, activeNav, setActiveNav, onPawClick
       <div style={{ position:'absolute', top:0, left:0, right:0, bottom:PANEL_H, overflow:'hidden' }}>
         {roomId === 'kitchen' ? (
           <def.RoomComp
-            onFoodBowlClick={() => { setKitchenMenuTab('food');  setKitchenMenuOpen(true); }}
-            onWaterBowlClick={() => { setKitchenMenuTab('water'); setKitchenMenuOpen(true); }}
+            onFoodBowlClick={() => setFoodMenuOpen(true)}
+            onWaterBowlClick={() => setWaterMenuOpen(true)}
             foodCooldown={Math.max(0, (cooldowns['kitchen_bowl']   || 0) - Date.now())}
             waterCooldown={Math.max(0, (cooldowns['kitchen_faucet']|| 0) - Date.now())}
           />
@@ -3138,16 +3398,31 @@ function RoomScreen({ roomId, fills, isCrit, activeNav, setActiveNav, onPawClick
 
       <BottomPanel fills={fills} isCrit={isCrit} onPawClick={onPawClick} activeNav={activeNav} setActiveNav={setActiveNav} canClaimDaily={false}/>
 
-      {/* Kitchen feed menu */}
-      {kitchenMenuOpen && (
-        <KitchenFeedMenu
+      {/* Food bowl menu */}
+      {foodMenuOpen && (
+        <FoodBowlMenu
           inventory={inventory}
-          tab={kitchenMenuTab}
-          onTabChange={setKitchenMenuTab}
           onFeedItem={handleKitchenFeedItem}
-          onWater={handleKitchenWater}
-          onGoShop={(shopTab) => { setKitchenMenuOpen(false); if (onGoShop) onGoShop(shopTab); }}
-          onClose={() => setKitchenMenuOpen(false)}
+          onGoShop={(shopTab) => { setFoodMenuOpen(false); if (onGoShop) onGoShop(shopTab); }}
+          onClose={() => setFoodMenuOpen(false)}
+        />
+      )}
+
+      {/* Water bowl menu */}
+      {waterMenuOpen && (
+        <WaterBowlMenu
+          onDrink={handleKitchenDrinkAction}
+          onClose={() => setWaterMenuOpen(false)}
+        />
+      )}
+
+      {/* Clinic med menu */}
+      {clinicMenuOpen && (
+        <ClinicMedMenu
+          inventory={inventory}
+          onUseMed={handleClinicMedUse}
+          onGoShop={(tab) => { setClinicMenuOpen(false); if (onGoShop) onGoShop(tab); }}
+          onClose={() => setClinicMenuOpen(false)}
         />
       )}
     </div>
@@ -4396,17 +4671,20 @@ function App() {
     showToast(`${item.emoji} +${earned}🪙 +${item.xp}XP`);
   }, [inventory, level, scaredLvl, applyXP, applyTrust, afterAction, spawnHearts, showToast]);
 
-  // roomKey: 'bathroomCount' | 'sleepCount' | 'clinicCount'
+  // roomKey: 'bathroomCount' | 'sleepCount' | 'clinicCount' | 'playCount'
   const handleRoomAction = useCallback((statChanges, baseXP, baseCoins, roomKey) => {
     // ── Scared LvL blocks / reduces effects ──
     const isToilet   = roomKey === 'bathroomCount' && (statChanges.toilet != null);
     const isBath     = roomKey === 'bathroomCount' && (statChanges.toilet == null);
     const isMedicine = roomKey === 'clinicCount';
     const isSleep    = roomKey === 'sleepCount';
+    const isPlay     = roomKey === 'playCount';
 
     const blockMsg = isToilet   ? scaredBlock(scaredLvl, 'toilet')
                    : isBath     ? scaredBlock(scaredLvl, 'bath')
                    : isMedicine ? scaredBlock(scaredLvl, 'medicine')
+                   : isSleep    ? scaredBlock(scaredLvl, 'sleep')
+                   : isPlay     ? scaredBlock(scaredLvl, 'play')
                    : null;
     if (blockMsg) { showToast(blockMsg); return; }
 
@@ -4615,6 +4893,29 @@ function App() {
     showToast(msg || '✨');
   }, [level, applyXP, afterAction, spawnHearts, showToast]);
 
+  // ── Use medicine from ClinicMedMenu ──
+  const handleUseMed = useCallback((medItem) => {
+    const blockMsg = scaredBlock(scaredLvl, 'medicine');
+    if (blockMsg) { showToast(blockMsg); return; }
+    const count = inventory[medItem.id] || 0;
+    if (count <= 0) { showToast('Нет лекарства! Купи в магазине 🛒'); return; }
+    setInventory(prev => ({ ...prev, [medItem.id]: Math.max(0, prev[medItem.id] - 1) }));
+    setStats(prev => ({
+      ...prev,
+      health: clamp(prev.health + medItem.health, 0, 100),
+      mood:   clamp(prev.mood   + (medItem.mood || 0), 0, 100),
+    }));
+    if (medItem.scaredReduction) setScaredLvl(p => Math.max(0, p - medItem.scaredReduction));
+    const earned = earnCoins(10, level);
+    setCoins(c => c + earned);
+    applyXP(medItem.xp);
+    applyTrust(1);
+    afterAction('clinicCount');
+    spawnHearts(3, 100, '💊');
+    playSound('med');
+    showToast(`${medItem.emoji} +${medItem.health}❤️ +${earned}🪙 +${medItem.xp}XP`);
+  }, [inventory, level, scaredLvl, applyXP, applyTrust, afterAction, spawnHearts, showToast]);
+
   const handleMinigameComplete = useCallback((earnedCoins, xpGain, hungerReduce = 0) => {
     // Cap: 30–50 монет, 5–10 XP (по балансу)
     const cappedCoins = Math.min(50, Math.max(28, earnedCoins));
@@ -4661,8 +4962,10 @@ function App() {
     }
   }, [coins, afterAction, showToast]);
 
-  // ── Kitchen feed from menu (applies fearMult, calms cat, sets bowl cooldown) ──
+  // ── Kitchen feed from food bowl menu ──
   const handleKitchenFeed = useCallback((item, cdKey, cooldownMs) => {
+    const blockMsg = scaredBlock(scaredLvl, 'eat');
+    if (blockMsg) { showToast(blockMsg); return; }
     const count = inventory[item.id] || 0;
     if (count <= 0) return;
     setInventory(prev => ({ ...prev, [item.id]: Math.max(0, prev[item.id] - 1) }));
@@ -4684,9 +4987,43 @@ function App() {
     if (item.id === 'food_premium') afterAction('premiumFed');
     if (cdKey && cooldownMs > 0) setCooldowns(prev => ({ ...prev, [cdKey]: Date.now() + cooldownMs }));
     spawnHearts(3, 80);
-    playSound('pour');
+    // Crunch sound for dry food, pour for liquid/wet
+    playSound(item.id === 'food_basic' ? 'crunch' : 'pour');
+    setTimeout(() => playSound('crunch'), 280);
     showToast(`${item.emoji} +${earned}🪙 +${item.xp}XP`);
   }, [inventory, level, scaredLvl, applyXP, applyTrust, afterAction, spawnHearts, showToast]);
+
+  // ── Kitchen drink from water bowl menu ──
+  const handleKitchenDrink = useCallback(() => {
+    const blockMsg = scaredBlock(scaredLvl, 'drink');
+    if (blockMsg) { showToast(blockMsg); return; }
+    setStats(prev => ({
+      ...prev,
+      hunger: clamp(prev.hunger - 5,  0, 100),
+      mood:   clamp(prev.mood   + 2,  0, 100),
+    }));
+    setScaredLvl(p => Math.max(0, p - 0.3));
+    setCooldowns(prev => ({ ...prev, kitchen_faucet: Date.now() + 5 * 60000 }));
+    spawnHearts(2, 80, '💧');
+    playSound('drink');
+    showToast('💧 Кот попил водички!');
+  }, [scaredLvl, spawnHearts, showToast]);
+
+  // ── Give calming treat (успокоительное лакомство) ──
+  const handleGiveTreat = useCallback((treat) => {
+    const count = inventory[treat.id] || 0;
+    if (count <= 0) { showToast('Нет лакомства! Купи в магазине 🛒'); return; }
+    setInventory(prev => ({ ...prev, [treat.id]: Math.max(0, prev[treat.id] - 1) }));
+    setScaredLvl(p => Math.max(0, p - (treat.scaredReduction || 15)));
+    setStats(prev => ({
+      ...prev,
+      mood:   clamp(prev.mood   + (treat.mood   || 0), 0, 100),
+      hunger: clamp(prev.hunger + (treat.hunger  || 0), 0, 100),
+    }));
+    spawnHearts(3, 80, '🌿');
+    playSound('treat');
+    showToast(`${treat.emoji} Кот успокоился! −${treat.scaredReduction}`);
+  }, [inventory, spawnHearts, showToast]);
 
   const handleShopEquip = useCallback((item) => {
     setEquipped(prev => {
@@ -4903,6 +5240,8 @@ function App() {
         onBack={() => { setScreen('home'); setActiveNav('home'); }}
         activeNFT={activeNFT}
         onKitchenFeed={handleKitchenFeed}
+        onKitchenDrink={handleKitchenDrink}
+        onUseMed={handleUseMed}
         onGoShop={() => { setScreen('shop'); setActiveNav('shop'); }}/>
       {toast && <Toast key={toastKey} msg={toast}/>}
       {complaint && <ComplaintOverlay text={complaint} onClose={() => setComplaint(null)}/>}
@@ -5047,6 +5386,49 @@ function App() {
               }}/>
             </div>
           </div>
+
+          {/* Calming action hint — visible when fear ≥ 70 */}
+          {scaredLvl >= 70 && (() => {
+            const hasTreat = CALM_TREATS.some(t => (inventory[t.id] || 0) > 0);
+            const bestTreat = CALM_TREATS.slice().sort((a,b) => b.scaredReduction - a.scaredReduction).find(t => (inventory[t.id]||0)>0);
+            return (
+              <div style={{ marginTop:8, display:'flex', gap:6 }}>
+                <div onClick={handleCatClick}
+                  style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:5,
+                    padding:'7px 8px', borderRadius:12, cursor:'pointer',
+                    background:'rgba(255,120,50,0.14)', border:'1px solid rgba(255,120,50,0.3)',
+                    transition:'transform 0.1s' }}
+                  onPointerDown={e=>e.currentTarget.style.transform='scale(0.95)'}
+                  onPointerUp={e=>e.currentTarget.style.transform='scale(1)'}
+                  onPointerLeave={e=>e.currentTarget.style.transform='scale(1)'}>
+                  <span style={{ fontSize:13 }}>🖐️</span>
+                  <span style={{ fontSize:10, fontWeight:800, color:'rgba(255,180,130,0.9)' }}>Погладить</span>
+                </div>
+                {hasTreat && bestTreat && (
+                  <div onClick={() => handleGiveTreat(bestTreat)}
+                    style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:5,
+                      padding:'7px 8px', borderRadius:12, cursor:'pointer',
+                      background:'rgba(60,180,80,0.14)', border:'1px solid rgba(60,200,80,0.3)',
+                      transition:'transform 0.1s' }}
+                    onPointerDown={e=>e.currentTarget.style.transform='scale(0.95)'}
+                    onPointerUp={e=>e.currentTarget.style.transform='scale(1)'}
+                    onPointerLeave={e=>e.currentTarget.style.transform='scale(1)'}>
+                    <span style={{ fontSize:13 }}>{bestTreat.emoji}</span>
+                    <span style={{ fontSize:10, fontWeight:800, color:'rgba(130,230,150,0.9)' }}>{bestTreat.name}</span>
+                  </div>
+                )}
+                {!hasTreat && (
+                  <div onClick={() => { setScreen('shop'); setActiveNav('shop'); }}
+                    style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:5,
+                      padding:'7px 8px', borderRadius:12, cursor:'pointer',
+                      background:'rgba(255,210,60,0.1)', border:'1px solid rgba(255,210,60,0.25)' }}>
+                    <span style={{ fontSize:13 }}>🛒</span>
+                    <span style={{ fontSize:10, fontWeight:800, color:'rgba(255,230,130,0.8)' }}>Купить угощение</span>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Right buttons cluster */}

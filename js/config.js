@@ -127,8 +127,17 @@ const TOY_ITEMS = [
 
 // ─── SHOP: MEDICINES ───
 const MED_ITEMS = [
-  { id:'med_basic',   emoji:'💊', name:'Таблетки',  desc:'Восстанавливает здоровье',     cost:40,  health:22, xp:8  },
-  { id:'med_premium', emoji:'🧪', name:'Микстура',  desc:'Мощное исцеление + настроение', cost:80,  health:40, mood:5, xp:15 },
+  { id:'med_basic',   emoji:'💊', name:'Таблетки',   desc:'Восстанавливает здоровье',      cost:40,  health:22, xp:8  },
+  { id:'med_drops',   emoji:'💉', name:'Капли',      desc:'Быстрое исцеление',             cost:60,  health:32, xp:12 },
+  { id:'med_premium', emoji:'🧪', name:'Микстура',   desc:'Мощное исцеление + настроение', cost:80,  health:40, mood:5, xp:15 },
+  { id:'med_spray',   emoji:'🌿', name:'Травяной спрей', desc:'Нежное исцеление + спокойствие', cost:55, health:18, mood:8, scaredReduction:8, xp:10 },
+];
+
+// ─── SHOP: CALM TREATS (успокоительные лакомства) ───
+const CALM_TREATS = [
+  { id:'treat_mint',      emoji:'🌿', name:'Мята',        desc:'Успокаивает страх кота',          cost:30, scaredReduction:15, mood:5, xp:5  },
+  { id:'treat_valerian',  emoji:'🌸', name:'Валериана',   desc:'Сильно снижает стресс',           cost:50, scaredReduction:25, mood:8, xp:8  },
+  { id:'treat_fish',      emoji:'🐟', name:'Рыбное лакомство', desc:'Вкусняшка — успокаивает и насыщает', cost:40, scaredReduction:18, mood:10, hunger:-10, xp:6 },
 ];
 
 // ─── SHOP: ACCESSORIES (cosmetic) ───
@@ -536,6 +545,29 @@ function playSound(type) {
         _note(ctx,  880, t+0.00,  0.09, 0.13, 'sine');
         _note(ctx,  880, t+0.14,  0.09, 0.13, 'sine');
         _note(ctx, 1100, t+0.28,  0.22, 0.15, 'sine');
+        break;
+      case 'crunch':
+        // Cat crunching dry kibble — fast random-pitched ticks
+        _note(ctx,  900, t+0.00,  0.04, 0.14, 'square');
+        _note(ctx,  750, t+0.05,  0.04, 0.12, 'square');
+        _note(ctx,  870, t+0.10,  0.04, 0.13, 'square');
+        _note(ctx,  720, t+0.15,  0.04, 0.11, 'square');
+        _note(ctx,  800, t+0.20,  0.04, 0.12, 'square');
+        _note(ctx,  680, t+0.25,  0.04, 0.10, 'square');
+        break;
+      case 'drink':
+        // Cat lapping water — soft rhythmic laps
+        _note(ctx,  380, t+0.00,  0.10, 0.10, 'sine');
+        _note(ctx,  420, t+0.13,  0.10, 0.10, 'sine');
+        _note(ctx,  360, t+0.26,  0.10, 0.09, 'sine');
+        _note(ctx,  400, t+0.39,  0.10, 0.09, 'sine');
+        _note(ctx,  340, t+0.52,  0.14, 0.08, 'sine');
+        break;
+      case 'treat':
+        // Happy treat nibble — quick ascending sparkle
+        _note(ctx,  659, t+0.00,  0.08, 0.14, 'sine');
+        _note(ctx,  784, t+0.09,  0.08, 0.13, 'sine');
+        _note(ctx,  987, t+0.18,  0.18, 0.15, 'sine');
         break;
       case 'action':
         _note(ctx,  440, t,       0.1,  0.12, 'sine');
