@@ -46,7 +46,7 @@ function defaultFreelance() {
 function defaultState() {
   return {
     stats:        defaultStats(),
-    coins:        125,
+    coins:        150,
     xp:           0,
     createdAt:    Date.now(),
     lastUpdate:   Date.now(),
@@ -68,8 +68,8 @@ function defaultState() {
     // Freelance & timezone
     timezone:     null,
     freelance:    defaultFreelance(),
-    // Scared Level
-    scaredLvl:    80 + Math.random() * 10,
+    // Scared Level (fresh cat: slightly scared, comfortable to interact with)
+    scaredLvl:    25 + Math.random() * 10,
   };
 }
 
@@ -156,8 +156,8 @@ const _INIT = (() => {
         freelance:     saved.freelance    ? { ...defaultFreelance(), ...saved.freelance } : defaultFreelance(),
         // Cooldowns: timestamps survive reload (expired ones just return 0 on check)
         cooldowns:     saved.cooldowns    || {},
-        // Scared LvL: grows offline (+2 per 10 min), cap at 100
-        scaredLvl:     Math.min(100, (saved.scaredLvl ?? 85) + (minsAway / 10) * 2),
+        // Scared LvL: grows offline (+1 per 10 min), cap at 100
+        scaredLvl:     Math.min(100, (saved.scaredLvl ?? 25) + (minsAway / 10) * 1),
         complaint:     null,
         canClaimDaily: daily.canClaim,
         pendingStreak: daily.newStreak,
